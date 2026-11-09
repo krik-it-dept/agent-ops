@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Ops</title>
+<link rel="icon" type="image/x-icon" href="/icons/app.ico?v=cobalt-robot">
+<link rel="preconnect" href="https://ds-cdn.prod-east.frontend.public.atl-paas.net" crossorigin>
+<link rel="stylesheet" href="https://ds-cdn.prod-east.frontend.public.atl-paas.net/assets/font-rules/v6/atlassian-fonts.css">
+<style>
+/* Product UI tokens from the owner's Jira reference, section 2.3 and sections 3?5. */
+:root {
+  color-scheme: light dark;
+  --ds-font-family-body: "Atlassian Sans", "Segoe UI", system-ui, sans-serif;
+  --ds-font-family-code: "Atlassian Mono", "Cascadia Code", "Segoe UI Mono", monospace;
+  --ds-font-weight-heading: 653;
+  --ds-surface: #FFFFFF;
+  --ds-surface-sunken: #F8F8F8;
+  --ds-surface-container: #F0F1F2;
+  --ds-surface-raised: #FFFFFF;
+  --ds-surface-raised-hovered: #F0F1F2;
+  --ds-text: #292A2E;
+  --ds-text-subtle: #505258;
+  --ds-text-subtlest: #6B6E76;
+  --ds-text-inverse: #FFFFFF;
+  --ds-text-disabled: #080F214A;
+  --ds-link: #1868DB;
+  --ds-background-brand-bold: #1868DB;
+  --ds-background-brand-bold-hovered: #1558BC;
+  --ds-background-brand-bold-pressed: #144794;
+  --ds-background-brand-subtlest: #E9F2FE;
+  --ds-background-neutral: #0515240F;
+  --ds-background-neutral-hovered: #0B120E24;
+  --ds-background-neutral-pressed: #DDDEE1;
+  --ds-background-input: #FFFFFF;
+  --ds-background-input-hovered: #F8F8F8;
+  --ds-text-information: #1558BC;
+  --ds-background-information: #E9F2FE;
+  --ds-text-success: #216E4E;
+  --ds-background-success: #DCFFF1;
+  --ds-text-warning: #9E4C00;
+  --ds-background-warning: #FFF5DB;
+  --ds-text-danger: #AE2E24;
+  --ds-background-danger: #FFECEB;
+  --ds-text-discovery: #803FA5;
+  --ds-background-discovery: #F8EEFE;
+  --ds-border: #0B120E24;
+  --ds-border-input: #8C8F97;
+  --ds-border-focused: #4688EC;
+  --ds-shadow-raised: 0 1px 1px rgba(30,31,33,.25), 0 0 1px rgba(30,31,33,.31);
+  --ds-space-025: 2px;
+  --ds-space-050: 4px;
+  --ds-space-075: 6px;
+  --ds-space-100: 8px;
+  --ds-space-150: 12px;
+  --ds-space-200: 16px;
+  --ds-space-250: 20px;
+  --ds-space-300: 24px;
+  --ds-space-400: 32px;
+  --ds-radius-small: 3px;
+  --ds-radius-medium: 6px;
+  --ds-radius-large: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ds-surface: #1D2125;
+    --ds-surface-sunken: #161A1D;
+    --ds-surface-container: #2C333A;
+    --ds-surface-raised: #22272B;
+    --ds-surface-raised-hovered: #2C333A;
+    --ds-text: #DEE4EA;
+    --ds-text-subtle: #B6C2CF;
+    --ds-text-subtlest: #9FADBC;
+    --ds-text-disabled: #BFDBF847;
+    --ds-link: #85B8FF;
+    --ds-background-brand-subtlest: #092957;
+    --ds-background-neutral: #A1BDD914;
+    --ds-background-neutral-hovered: #A6C5E229;
+    --ds-background-neutral-pressed: #38414A;
+    --ds-background-input: #22272B;
+    --ds-background-input-hovered: #282E33;
+    --ds-text-information: #85B8FF;
+    --ds-background-information: #092957;
+    --ds-text-success: #7EE2B8;
+    --ds-background-success: #164B35;
+    --ds-text-warning: #F5CD47;
+    --ds-background-warning: #533F04;
+    --ds-text-danger: #FD9891;
+    --ds-background-danger: #5D1F1A;
+    --ds-text-discovery: #D8A0F7;
+    --ds-background-discovery: #48245D;
+    --ds-border: #A6C5E229;
+    --ds-border-input: #738496;
+    --ds-border-focused: #85B8FF;
+    --ds-shadow-raised: 0 1px 1px #03040480, 0 0 1px #03040480;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--ds-surface); color: var(--ds-text); font: 400 14px/20px var(--ds-font-family-body); }
+button, input, select { font: inherit; color: inherit; }
+button, select { cursor: pointer; }
+button:disabled, select:disabled { cursor: default; color: var(--ds-text-disabled); }
+a { color: var(--ds-link); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--ds-border-focused); outline-offset: 2px;
+}
+.mono, time, .id { font-family: var(--ds-font-family-code); font-variant-numeric: tabular-nums; }
+.app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+.appbar {
+  display: flex; align-items: center; gap: var(--ds-space-300); height: 48px; flex-shrink: 0;
+  padding: 0 var(--ds-space-200); border-bottom: 1px solid var(--ds-border);
+}
+.nav { display: flex; align-self: stretch; gap: var(--ds-space-200); }
+.item { position: relative; display: flex; align-items: center; gap: var(--ds-space-100); border: 0; background: transparent; padding: 0 var(--ds-space-050); color: var(--ds-text-subtle); font-weight: 500; white-space: nowrap; }
+.item:hover { color: var(--ds-link); }
+.item.on { color: var(--ds-link); }
+.item.on::after { position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--ds-link); border-radius: 2px 2px 0 0; content: ""; }
+.badge { padding: 0 var(--ds-space-050); border-radius: var(--ds-radius-small); background: var(--ds-background-neutral); font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; }
+.save-state { margin-left: auto; font-size: 12px; color: var(--ds-text-subtle); }
+.connection { font-size: 12px; color: var(--ds-text-subtlest); white-space: nowrap; }
+.live { width: 6px; height: 6px; border-radius: 50%; background: var(--ds-text-success); flex-shrink: 0; }
+.live.off { background: var(--ds-text-warning); }
+#upd { font-size: 12px; color: var(--ds-text-subtlest); }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; flex: 1; }
+.top { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ds-space-150); padding: var(--ds-space-300); background: var(--ds-surface); flex-shrink: 0; }
+.top h1 { margin: 0; font-size: 24px; line-height: 28px; font-weight: var(--ds-font-weight-heading); overflow-wrap: anywhere; }
+.sub { color: var(--ds-text-subtlest); font-size: 12px; }
+.search { margin-left: auto; width: min(300px, 32vw); min-height: 32px; border: 1px solid var(--ds-border-input); border-radius: var(--ds-radius-small); padding: 5px var(--ds-space-100); background: var(--ds-background-input); }
+.search::placeholder { color: var(--ds-text-subtlest); }
+.search:hover { background: var(--ds-background-input-hovered); }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 5px var(--ds-space-150); border: 1px solid transparent; border-radius: var(--ds-radius-small); background: var(--ds-background-neutral); font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; }
+.btn:hover { background: var(--ds-background-neutral-hovered); }
+.btn:active { background: var(--ds-background-neutral-pressed); }
+.view { overflow: auto; overscroll-behavior: contain; flex: 1; min-height: 0; padding: 0 var(--ds-space-300) var(--ds-space-300); background: var(--ds-surface); scrollbar-color: var(--ds-border-input) transparent; }
+.view.detail { padding-top: var(--ds-space-300); }
+.error { padding: var(--ds-space-100) var(--ds-space-300); background: var(--ds-background-danger); color: var(--ds-text-danger); font-size: 12px; overflow-wrap: anywhere; }
+.board { display: grid; grid-template-columns: repeat(5, 280px); gap: var(--ds-space-150); width: max-content; min-width: 100%; min-height: 100%; align-items: stretch; }
+.column { min-width: 0; min-height: 240px; padding: var(--ds-space-100); border-radius: var(--ds-radius-medium); background: var(--ds-surface-sunken); }
+.column h2 { display: flex; align-items: center; gap: var(--ds-space-100); position: sticky; top: 0; z-index: 1; min-height: 36px; margin: 0 0 var(--ds-space-100); padding: var(--ds-space-100) var(--ds-space-050); background: var(--ds-surface-sunken); color: var(--ds-text-subtle); font-size: 14px; line-height: 20px; font-weight: var(--ds-font-weight-heading); text-transform: uppercase; }
+.column h2 span { padding: 0 var(--ds-space-050); border-radius: var(--ds-radius-small); background: var(--ds-background-neutral); font-family: var(--ds-font-family-code); font-size: 12px; line-height: 16px; font-weight: 400; }
+.task-card { position: relative; border: 1px solid transparent; border-radius: var(--ds-radius-large); background: var(--ds-surface-raised); box-shadow: var(--ds-shadow-raised); padding: var(--ds-space-150); margin-bottom: var(--ds-space-100); cursor: pointer; }
+.task-card:hover { background: var(--ds-surface-raised-hovered); }
+.task-card:focus-within { outline: 2px solid var(--ds-border-focused); outline-offset: 2px; }
+.task-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-100); margin-bottom: var(--ds-space-100); }
+.task-repo { min-width: 0; color: var(--ds-text-subtle); font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-edited { font-size: 12px; line-height: 16px; color: var(--ds-text-subtlest); white-space: nowrap; flex-shrink: 0; }
+.task-title { display: block; width: 100%; border: 0; background: none; text-align: left; padding: 0; font-size: 14px; line-height: 20px; font-weight: 500; overflow-wrap: anywhere; }
+.task-next { color: var(--ds-text-subtle); margin: var(--ds-space-100) 0; font-size: 12px; line-height: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.task-status { display: flex; align-items: center; gap: var(--ds-space-050); flex-wrap: wrap; margin-top: var(--ds-space-100); }
+.stage-detail { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; line-height: 16px; color: var(--ds-text-subtle); margin-top: var(--ds-space-050); overflow-wrap: anywhere; }
+.task-progress { display: flex; align-items: center; gap: var(--ds-space-100); margin-top: var(--ds-space-150); font-size: 12px; color: var(--ds-text-subtlest); }
+.task-progress .bar { flex: 1; min-width: 32px; }
+.task-footer { display: flex; align-items: center; justify-content: flex-end; margin-top: var(--ds-space-150); font-size: 12px; color: var(--ds-text-subtle); }
+.assignee { display: flex; align-items: center; gap: var(--ds-space-100); min-width: 0; }
+.assignee .owner { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.av { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #FFFFFF; font-size: 12px; line-height: 16px; font-weight: 500; flex-shrink: 0; }
+.empty-column { padding: var(--ds-space-150) var(--ds-space-050); color: var(--ds-text-subtlest); font-size: 12px; }
+.empty { color: var(--ds-text-subtlest); padding: var(--ds-space-400) var(--ds-space-200); text-align: center; }
+.pill { display: inline-flex; align-items: center; max-width: 100%; padding: 2px var(--ds-space-075); border-radius: var(--ds-radius-small); font-size: 12px; line-height: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; overflow-wrap: anywhere; }
+.t-doing, .t-test { background: var(--ds-background-information); color: var(--ds-text-information); }
+.t-ok { background: var(--ds-background-success); color: var(--ds-text-success); }
+.t-review { background: var(--ds-background-discovery); color: var(--ds-text-discovery); }
+.t-pending { background: var(--ds-background-warning); color: var(--ds-text-warning); }
+.t-bad { background: var(--ds-background-danger); color: var(--ds-text-danger); }
+.t-idle { background: var(--ds-background-neutral-pressed); color: var(--ds-text); }
+.bar { height: 4px; background: var(--ds-background-neutral-pressed); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ds-link); }
+.pipe { display: inline-flex; gap: 3px; }
+.pipe i { width: 12px; height: 3px; border-radius: 1px; background: var(--ds-background-neutral-pressed); }
+.pipe i.p { background: var(--ds-link); opacity: .4; }
+.pipe i.c { background: var(--ds-link); }
+.pr { font-weight: 500; text-decoration: none; }
+.pr:hover { text-decoration: underline; }
+.chead { display: grid; gap: var(--ds-space-150); max-width: 1200px; width: 100%; margin: auto; }
+.chead .t { display: flex; align-items: center; gap: var(--ds-space-150); flex-wrap: wrap; }
+.chead .t h1 { font-size: 24px; line-height: 28px; max-width: 560px; }
+.chead .goal { font-size: 14px; line-height: 20px; max-width: 900px; }
+.chead .meta { display: flex; align-items: center; gap: var(--ds-space-150); flex-wrap: wrap; font-size: 12px; color: var(--ds-text-subtle); }
+.chead .stage-detail { max-width: 540px; }
+.tabs { display: flex; gap: var(--ds-space-200); padding: 0 var(--ds-space-300); border-bottom: 1px solid var(--ds-border); background: var(--ds-surface); }
+.tab { position: relative; border: 0; background: none; min-height: 40px; padding: var(--ds-space-100) var(--ds-space-050); font-size: 14px; font-weight: 500; color: var(--ds-text-subtle); border-bottom: 3px solid transparent; }
+.tab.on { color: var(--ds-link); border-bottom-color: var(--ds-link); }
+.tab span { margin-left: var(--ds-space-050); font-size: 12px; font-weight: 400; color: var(--ds-text-subtlest); }
+.detail > * { max-width: 1150px; margin-left: auto; margin-right: auto; }
+.pin { padding: var(--ds-space-150); margin-bottom: var(--ds-space-300); background: var(--ds-surface-sunken); border-radius: var(--ds-radius-medium); font-size: 14px; }
+.pin b { margin-right: var(--ds-space-150); color: var(--ds-text-subtle); font-size: 12px; text-transform: uppercase; }
+.ms { margin-bottom: var(--ds-space-300); border-bottom: 1px solid var(--ds-border); padding-bottom: var(--ds-space-200); }
+.ms-h { display: flex; align-items: center; gap: var(--ds-space-100); flex-wrap: wrap; font-size: 14px; }
+.ms-h b { font-weight: var(--ds-font-weight-heading); }
+.ms-h .id { color: var(--ds-text-subtle); font-size: 12px; }
+.ms-h .c { margin-left: auto; color: var(--ds-text-subtlest); font-size: 12px; }
+.ms-h .bar { width: 100px; }
+.sum { margin: var(--ds-space-100) 0; padding: var(--ds-space-100) var(--ds-space-150); background: var(--ds-surface-sunken); font-size: 14px; border-radius: var(--ds-radius-small); }
+.st { display: grid; grid-template-columns: 16px 1fr auto; gap: var(--ds-space-100); padding: var(--ds-space-100) 0; border-top: 1px solid var(--ds-border); font-size: 14px; }
+.st:first-of-type { border-top: 0; }
+.box { display: grid; place-items: center; width: 16px; height: 16px; border: 1px solid var(--ds-border-input); border-radius: var(--ds-radius-small); font-size: 12px; margin-top: 2px; }
+.s-done .box { background: var(--ds-background-success); border-color: var(--ds-text-success); color: var(--ds-text-success); }
+.s-done .tx { color: var(--ds-text-subtle); }
+.s-doing .box { border-color: var(--ds-link); color: var(--ds-link); }
+.s-blocked .box, .s-blocked .tx { color: var(--ds-text-danger); }
+.tag { height: fit-content; padding: 0 var(--ds-space-050); border-radius: var(--ds-radius-small); background: var(--ds-surface-container); color: var(--ds-text-subtle); font-size: 12px; white-space: nowrap; }
+.list .li { display: grid; grid-template-columns: 120px 1fr; gap: var(--ds-space-200); padding: var(--ds-space-150) 0; border-bottom: 1px solid var(--ds-border); font-size: 14px; }
+.li time, .li .a { color: var(--ds-text-subtle); }
+.li .a::before { content: "? "; }
+.feed { display: flex; flex-direction: column; }
+.day { margin: var(--ds-space-200) 0 var(--ds-space-100); padding-bottom: var(--ds-space-050); border-bottom: 1px solid var(--ds-border); font-size: 12px; color: var(--ds-text-subtlest); }
+.msg { display: grid; grid-template-columns: 24px 1fr; gap: var(--ds-space-150); padding: var(--ds-space-100) 0; }
+.mh { display: flex; align-items: baseline; gap: var(--ds-space-100); flex-wrap: wrap; font-size: 14px; }
+.mh time { font-size: 12px; color: var(--ds-text-subtlest); }
+.mb { font-size: 14px; margin-top: var(--ds-space-050); overflow-wrap: anywhere; }
+.mb .x { color: var(--ds-text-subtle); }
+.blk { border-left: 2px solid var(--ds-border); padding: var(--ds-space-050) var(--ds-space-150); }
+.blk .k { margin-bottom: var(--ds-space-050); font-size: 12px; font-weight: var(--ds-font-weight-heading); color: var(--ds-text-subtle); }
+.k-blocked, .k-stale { border-color: var(--ds-text-danger); }
+.k-decision { border-color: var(--ds-text-discovery); }
+.k-waiting { border-color: var(--ds-text-warning); }
+.ok { color: var(--ds-text-success); }
+.column.drop-target, .column.drop-target h2 { background: var(--ds-background-brand-subtlest); }
+.column.drop-target { outline: 2px dashed var(--ds-border-focused); outline-offset: -2px; }
+.task-card[draggable="true"] { cursor: grab; }
+.task-card.dragging { opacity: .45; }
+.status-select { min-height: 32px; max-width: 220px; border: 1px solid transparent; border-radius: var(--ds-radius-small); background: var(--ds-background-neutral); padding: var(--ds-space-050) var(--ds-space-100); font-size: 14px; font-weight: 500; }
+.status-select:hover { background: var(--ds-background-neutral-hovered); }
+@media (max-width: 760px) {
+  .appbar { height: auto; min-height: 48px; flex-wrap: wrap; gap: var(--ds-space-150); padding: 0 var(--ds-space-150); }
+  .nav { min-height: 48px; gap: var(--ds-space-100); }
+  .save-state { font-size: 12px; }
+  .connection { margin-left: auto; }
+  .save-state:empty { display: none; }
+  #upd { display: none; }
+  .top { padding: var(--ds-space-200) var(--ds-space-150); gap: var(--ds-space-100); }
+  .top h1, .chead .t h1 { font-size: 20px; line-height: 24px; }
+  .search { width: min(280px, 100%); flex: 1 1 180px; }
+  .chead .search { margin-left: 0; }
+  .view { padding-left: var(--ds-space-150); padding-right: var(--ds-space-150); }
+  .tabs { padding: 0 var(--ds-space-150); gap: var(--ds-space-100); overflow-x: auto; }
+  .tab { flex-shrink: 0; }
+  .list .li { grid-template-columns: 1fr; gap: var(--ds-space-050); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+
+/* Workspace views and agent identity. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.agent-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;line-height:20px;color:var(--ds-text-subtle)}
+.agent-icon{width:20px;height:20px;object-fit:contain;flex-shrink:0}.agent-icon-codex{padding:3px;border-radius:4px;background:#181818}.agent-icon-anti{border-radius:4px;background:#fff}
+.agent-unknown{display:grid;place-items:center;width:20px;height:20px;border:1px solid var(--ds-border-input);border-radius:50%;color:var(--ds-text-subtlest);font-weight:500}
+.agent-editor{display:inline-flex;align-items:center;gap:6px}.agent-editor .agent-chip>span:last-child{display:none}.agent-select,.agent-filter{height:32px;border:1px solid var(--ds-border);border-radius:3px;background:var(--ds-surface);padding:4px 8px;font-size:14px;max-width:150px}.agent-select:hover,.agent-filter:hover{background:var(--ds-background-neutral)}
+.task-footer{justify-content:space-between;gap:8px}.task-footer .assignee .owner{max-width:112px}.top .agent-filter{max-width:140px}
+.table-wrap{border:1px solid var(--ds-border);border-radius:8px;overflow:visible;min-width:1020px}.work-table{width:100%;border-collapse:separate;border-spacing:0}.work-table th,.work-table td{padding:12px 16px;border-bottom:1px solid var(--ds-border);vertical-align:middle;text-align:left}.work-table th{position:sticky;top:0;z-index:2;background:var(--ds-surface-sunken);font-size:12px;font-weight:653;color:var(--ds-text-subtle)}.work-table th:first-child{border-top-left-radius:8px}.work-table th:last-child{border-top-right-radius:8px}.work-table tbody tr:last-child td{border-bottom:0}.work-table tr:hover td{background:var(--ds-background-neutral)}.work-name{min-width:260px;max-width:420px}.work-link{display:block;padding:0;border:0;background:none;text-align:left;font-size:14px;line-height:20px;color:var(--ds-link);overflow-wrap:anywhere}.work-link:hover{text-decoration:underline}.work-meta{display:block;color:var(--ds-text-subtlest);font-size:12px;line-height:16px;margin-top:4px}.updated-cell{white-space:nowrap;font-size:12px;color:var(--ds-text-subtlest)}.list-progress{display:flex;gap:8px;align-items:center;min-width:110px;font-size:12px}.list-progress .bar{width:64px;flex:1}.work-table .status-select{max-width:200px}.work-table .stage-detail{max-width:240px}
+.timeline-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.timeline-actions{display:flex;gap:6px}.timeline-legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ds-text-subtle);margin-bottom:16px}.legend-dot,.legend-edit{display:inline-block;width:10px;height:10px;flex-shrink:0}.legend-dot{border-radius:50%;background:var(--ds-link)}.legend-edit{border:2px solid var(--ds-text-subtlest);transform:rotate(45deg);margin-left:12px}.timeline-scroll{border:1px solid var(--ds-border);border-radius:8px;isolation:isolate}.timeline-table{border-collapse:separate;border-spacing:0;table-layout:fixed;width:max-content}.timeline-table th,.timeline-table td{height:64px;padding:8px;border-right:1px solid var(--ds-border);border-bottom:1px solid var(--ds-border);vertical-align:middle;background:var(--ds-surface)}.timeline-table th{height:44px;font-size:12px;font-weight:653;background:var(--ds-surface-sunken);position:sticky;top:0;z-index:4;text-align:left}.timeline-table tbody tr:last-child td{border-bottom:0}.timeline-table .timeline-work{position:sticky;left:0;width:280px;min-width:280px;max-width:280px;z-index:2}.timeline-table .timeline-status{position:sticky;left:280px;width:190px;min-width:190px;z-index:2}.timeline-table .timeline-agent{position:sticky;left:470px;width:124px;min-width:124px;z-index:2;box-shadow:2px 0 0 var(--ds-border)}.timeline-table thead .timeline-work,.timeline-table thead .timeline-status,.timeline-table thead .timeline-agent{z-index:5}.timeline-table .timeline-day{width:36px;min-width:36px;text-align:center;padding:4px}.timeline-table .weekend{background:var(--ds-surface-sunken)}.timeline-table .today{background:var(--ds-background-brand-subtlest);border-left:1px solid var(--ds-link);border-right:1px solid var(--ds-link)}.timeline-dot{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:var(--ds-background-information);color:var(--ds-text-information);font-size:12px;font-weight:653}.timeline-dot:hover{outline:2px solid var(--ds-border-focused)}.timeline-edit{display:inline-block;width:10px;height:10px;border:2px solid var(--ds-text-subtlest);transform:rotate(45deg)}.history-filter{display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:12px;color:var(--ds-text-subtle)}
+.summary{max-width:1200px;margin:0 auto}.summary-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}.summary-stat{display:grid;grid-template-columns:1fr auto;gap:4px 16px;border:1px solid var(--ds-border);border-radius:6px;padding:16px}.summary-stat>span{font-size:14px;font-weight:500}.summary-stat>strong{grid-column:2;grid-row:1/3;font-size:28px;line-height:32px;font-weight:653;align-self:center}.summary-stat small{font-size:12px;color:var(--ds-text-subtlest)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.summary-panel{padding:20px;border:1px solid var(--ds-border);border-radius:8px;min-width:0}.summary-panel h2{font-size:16px;line-height:20px;font-weight:653;margin:0}.summary-panel h3{font-size:14px;font-weight:653;margin:24px 0 12px}.status-overview{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:16px}.status-chart{width:180px;max-width:100%;height:180px}.chart-count{font:653 22px var(--ds-font-family-body);fill:var(--ds-text)}.chart-label{font:400 10px var(--ds-font-family-body);fill:var(--ds-text-subtle)}.status-legend{padding:0;list-style:none;flex:1;min-width:170px}.status-legend li{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:12px}.status-legend strong{margin-left:auto;font-family:var(--ds-font-family-code)}.legend-swatch{width:8px;height:8px;flex-shrink:0;border-radius:2px}.summary-feed{max-height:280px;overflow:auto;margin-top:12px;padding-right:8px}.summary-feed .empty{padding:48px 12px}.summary-feed .ch{cursor:pointer;color:var(--ds-link)}.agent-workload{display:grid;gap:12px;margin-top:24px}.workload-row{display:flex;align-items:center;gap:12px;width:100%;padding:8px 0;border:0;background:none;text-align:left;font-size:12px;color:var(--ds-text-subtle)}.workload-row:hover{background:var(--ds-background-neutral)}.workload-row .agent-chip{min-width:86px}.workload-bar{height:8px;flex:1;min-width:40px;background:var(--ds-background-neutral);border-radius:3px;overflow:hidden}.workload-bar i{display:block;height:100%;background:var(--ds-link)}.summary-progress{margin-top:24px}.summary-progress strong{display:block;font-size:28px;font-weight:653;line-height:32px;margin-bottom:16px}.summary-progress strong span{font-size:16px;font-weight:400;color:var(--ds-text-subtlest)}.attention-row{position:relative;padding:8px 0;border-bottom:1px solid var(--ds-border)}.attention-row .agent-chip{position:absolute;right:0;bottom:8px}.attention-row .work-meta{padding-right:90px}
+@media(max-width:1000px){.appbar{gap:12px}.nav{gap:12px}.summary-stats{grid-template-columns:repeat(2,1fr)}.summary-grid{grid-template-columns:1fr}.connection{display:none}}
+@media(max-width:760px){.nav{overflow-x:auto;max-width:100%;order:0;width:auto;min-height:40px;flex:1;min-width:0}.nav .item{flex-shrink:0}.appbar{gap:0 12px}.summary-stats{gap:8px}.summary-stat{padding:12px}.summary-stat>strong{font-size:24px}.timeline-table .timeline-work{width:220px;min-width:220px;max-width:220px}.timeline-table .timeline-status{left:220px}.timeline-table .timeline-agent{left:410px}.timeline-toolbar{flex-wrap:wrap}}
+
+.filter-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px;border:1px solid var(--ds-border);border-radius:6px;background:var(--ds-background-brand-subtlest);color:var(--ds-text-information);font-size:12px}.empty h2{font-size:16px;color:var(--ds-text)}.workload-row:disabled{cursor:default}.workload-row:disabled:hover{background:none}
+.role-chain{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}.role-arrow,.role-plus,.role-none{font-size:12px;color:var(--ds-text-subtlest)}.role-control{display:inline-flex;align-items:center;gap:6px}.role-control>small{font-size:12px;color:var(--ds-text-subtle)}.executor-select{min-height:32px;max-width:220px;padding:4px 8px;background:var(--ds-surface);border:1px solid var(--ds-border);border-radius:3px;font-size:14px}.task-footer{flex-wrap:wrap}.task-footer .role-chain{max-width:100%}.timeline-table .timeline-agent{width:190px;min-width:190px}.attention-row .role-chain{position:static;margin-top:4px}.attention-row .role-chain .agent-chip{position:static}.attention-row .work-meta{padding-right:0}
+.agent-stack{display:inline-flex;align-items:center;padding-right:2px}.agent-stack>.agent-chip{gap:0;margin-left:-5px;background:var(--ds-surface);border-radius:50%;padding:2px;border:1px solid var(--ds-surface)}.agent-stack>.agent-chip:first-child{margin-left:0}.agent-stack>.agent-chip>span{display:none}.agent-stack .agent-icon{width:18px;height:18px}.agent-multi{gap:6px}.st.has-agent{grid-template-columns:16px minmax(0,1fr) 140px 74px;align-items:start}.step-agent{min-width:0}.st.has-agent>.tag{justify-self:end;margin-top:4px}.execution-agent{display:inline-flex;align-items:center;min-height:24px;font-size:12px}.execution-note{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;color:var(--ds-text-subtlest);font-size:12px;line-height:16px}.checklist-columns{display:grid;grid-template-columns:minmax(0,1fr) 140px 74px;gap:8px;padding:8px 0;margin-bottom:16px;border-bottom:1px solid var(--ds-border);font-size:12px;font-weight:600;color:var(--ds-text-subtle)}.checklist-columns>span:last-child{text-align:right}.checklist-columns small{margin-left:12px;font-weight:400;color:var(--ds-text-subtlest)}@media(max-width:650px){.st.has-agent{grid-template-columns:16px minmax(0,1fr) 74px}.st.has-agent .step-agent{grid-column:2;grid-row:2}.st.has-agent>.tag{grid-column:3;grid-row:1}.checklist-columns{grid-template-columns:1fr 74px}.checklist-columns>span:nth-child(2){display:none}}
+.history-mark{display:block;color:var(--ds-text-subtlest);font-size:10px;line-height:14px;font-weight:400}
+.task-list-wrap{min-width:1100px}.task-list-table th,.task-list-table td{padding:10px 12px}.task-list-table .task-list-work{min-width:300px;max-width:600px;width:34%}.task-list-table .task-list-plan{min-width:170px;max-width:230px;width:16%}.task-list-table .task-list-plan .work-link{font-size:12px}.task-list-table .task-list-agent{min-width:130px}.task-list-table .task-list-status{min-width:105px;white-space:nowrap}.task-list-result{min-width:220px;max-width:380px;width:23%;font-size:12px;line-height:18px;color:var(--ds-text-subtle)}.task-work-link,.task-result-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}.task-result-text{max-height:36px}.task-list-plan .work-meta{margin-top:2px}.plan-stage{font-size:11px}.task-status-filter{min-width:155px}.task-focused{background:var(--ds-background-information);box-shadow:inset 3px 0 var(--ds-link);scroll-margin-block:64px;padding-left:8px!important;padding-right:8px!important;border-radius:3px}
+.task-list-status .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.task-list-status .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}.task-list-status .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.task-list-status .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}
+.task-list-table{table-layout:fixed;min-width:1200px}.task-list-table th:nth-child(1){width:30%}.task-list-table th:nth-child(2){width:16%}.task-list-table th:nth-child(3){width:11%}.task-list-table th:nth-child(4){width:10%}.task-list-table th:nth-child(5){width:23%}.task-list-table th:nth-child(6){width:10%}.task-list-table th.column-open{z-index:8}.column-trigger{display:flex;align-items:center;gap:7px;width:100%;padding:3px 0;border:0;background:none;color:inherit;font:inherit;text-align:left}.column-trigger:hover,.column-filtered .column-trigger{color:var(--ds-link)}.column-chevron{margin-left:auto}.column-filter-dot{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:var(--ds-link)}
+.column-popover{position:absolute;top:100%;left:0;z-index:10;width:300px;max-height:min(520px,calc(100dvh - 240px));overflow:auto;padding:8px;border:1px solid var(--ds-border);border-radius:6px;background:var(--ds-surface);box-shadow:0 8px 24px #091e4233;color:var(--ds-text);font-size:12px;font-weight:400}.task-list-table th:last-child .column-popover{left:auto;right:0}.column-popover button{border:0;border-radius:3px;background:none;padding:7px 8px;color:var(--ds-text);font:inherit;text-align:left}.column-popover button:hover{background:var(--ds-background-neutral)}.column-sort-actions{display:grid;border-bottom:1px solid var(--ds-border);padding-bottom:6px}.column-filter-body{display:grid;gap:8px;padding:12px 6px}.column-popover input[type=search],.column-popover select,.column-date-range input{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--ds-border-input);border-radius:3px;background:var(--ds-surface);color:var(--ds-text);font:inherit}.column-selection-actions{display:flex;justify-content:space-between}.column-plan-options{max-height:190px;overflow:auto}.column-plan-options>label{display:flex;align-items:center;gap:8px;padding:7px 4px;cursor:pointer}.column-plan-options>label:hover{background:var(--ds-background-neutral)}.column-plan-options input{accent-color:var(--ds-link)}.column-plan-options>label>span{flex:1;overflow-wrap:anywhere}.column-plan-options small{display:block;color:var(--ds-text-subtlest);font-size:11px}.column-date-range{display:flex;gap:8px}.column-date-range label{display:grid;gap:4px;min-width:0;flex:1}.column-footer{display:flex;justify-content:flex-end;gap:4px;border-top:1px solid var(--ds-border);padding-top:8px}.column-footer>button:first-child{margin-right:auto}.column-footer .column-apply{background:var(--ds-link);color:var(--ds-surface)}.column-footer .column-apply:hover{background:var(--ds-text-information)}.column-error{padding:0 6px;color:var(--ds-text-danger)}
+.task-group-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--ds-text-subtle)}.task-group-toolbar label{display:flex;align-items:center;gap:8px}.task-group-toolbar select{height:30px;padding:4px 8px;border:1px solid var(--ds-border);border-radius:3px;background:var(--ds-surface);color:var(--ds-text);font:inherit}.task-group-toolbar .btn{height:30px;font-size:12px}.task-group-toolbar .work-meta{margin:0 0 0 8px}.task-list-table .task-group-heading td{border-bottom:1px solid var(--ds-border);border-top:1px solid var(--ds-border);background:var(--ds-surface-sunken);padding:8px 12px}.task-group-heading td>div{display:flex;align-items:center;gap:12px}.task-group-heading .work-meta{margin:0}.task-group-toggle,.task-group-open{padding:4px 0;border:0;background:none;font:inherit;text-align:left}.task-group-toggle{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ds-text)}.task-group-toggle>span{width:12px}.task-group-open{margin-left:auto;font-size:12px;color:var(--ds-link)}.task-group-toggle:hover,.task-group-open:hover{color:var(--ds-link);text-decoration:underline}.task-list-table tbody[hidden]{display:none}
+.workload-row{display:grid;grid-template-columns:90px minmax(40px,1fr) auto}.workload-counts{display:grid;gap:4px;text-align:right;font-variant-numeric:tabular-nums}.workload-counts strong{font-size:12px;font-weight:600;color:var(--ds-text)}.workload-counts small{font-size:11px;color:var(--ds-text-subtlest)}@media(max-width:600px){.workload-row{grid-template-columns:90px minmax(40px,1fr)}.workload-counts{grid-column:1/-1}}
+.msg.context-actor{grid-template-columns:minmax(0,1fr)}
+.workspace{display:flex;flex:1;min-height:0;min-width:0}.plan-sidebar{width:232px;flex:0 0 232px;display:flex;flex-direction:column;border-right:1px solid var(--ds-border);background:var(--ds-surface);padding:16px 10px;min-height:0}.sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:0 8px 12px;font-size:14px;font-weight:600}.sidebar-collections{display:flex;gap:4px;margin-bottom:12px}.sidebar-collections button{flex:1;border:0;background:none;color:var(--ds-text-subtle);font-size:12px;padding:6px 3px;border-radius:3px}.sidebar-collections button[aria-pressed=true]{background:var(--ds-background-brand-subtlest);color:var(--ds-link)}.sidebar-items{overflow:auto;flex:1;min-height:0}.sidebar-plan{display:flex;align-items:center;gap:6px;padding:4px;border-radius:4px}.sidebar-plan:hover{background:var(--ds-background-neutral)}.sidebar-plan.current{background:var(--ds-background-brand-subtlest)}.sidebar-plan-link{flex:1;min-width:0;padding:5px 2px;border:0;background:none;text-align:left}.sidebar-plan-link>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.sidebar-plan-link small{display:block;color:var(--ds-text-subtlest);font-size:11px;line-height:16px}.sidebar-empty{padding:16px 8px;color:var(--ds-text-subtlest);font-size:12px}.icon-btn{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:3px;background:none;color:var(--ds-text-subtle);flex-shrink:0}.icon-btn:hover{background:var(--ds-background-neutral-hovered)}.icon-btn svg{width:18px;height:18px}.star-toggle[aria-pressed=true]{color:var(--ds-text-warning)}.star-toggle[aria-pressed=true] svg{fill:currentColor}.task-heading .task-edited{margin-left:auto}.task-heading .icon-btn{width:26px;height:26px}.sidebar-toggle{width:30px}.chead .star-toggle{margin-left:-6px}.plan-link-tools{display:flex;align-items:center;gap:4px}.plan-link-tools .work-link{flex:1;min-width:0}
+.quick-plan{padding:0;border:1px solid var(--ds-border);border-radius:10px;background:var(--ds-surface);color:var(--ds-text);width:min(1100px,calc(100vw - 48px));max-width:none;height:min(780px,calc(100dvh - 64px));max-height:none;box-shadow:0 16px 48px #091e4244}.quick-plan::backdrop{background:#091e4270}.quick-shell{height:100%;display:flex;flex-direction:column;min-height:0}.quick-header{padding:18px 24px;border-bottom:1px solid var(--ds-border);display:flex;align-items:center;gap:12px}.quick-title{min-width:0;flex:1}.quick-title small{color:var(--ds-text-subtlest);font-size:12px}.quick-title h2{font-size:22px;line-height:28px;margin:2px 0;overflow-wrap:anywhere}.quick-tabs{display:flex;gap:20px;padding:0 24px;border-bottom:1px solid var(--ds-border)}.quick-tabs button{padding:12px 0;border:0;border-bottom:3px solid transparent;background:none;color:var(--ds-text-subtle);font-size:14px}.quick-tabs button[aria-selected=true]{color:var(--ds-link);border-bottom-color:var(--ds-link)}.quick-scroll{padding:24px;overflow:auto;flex:1;min-height:0}.quick-scroll h3{font-size:14px;line-height:20px;margin:0 0 8px}.quick-overview{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:32px}.quick-overview p{margin:0 0 20px}.quick-facts{border:1px solid var(--ds-border);border-radius:6px;padding:16px;align-self:start}.quick-facts dl{margin:0;display:grid;grid-template-columns:100px minmax(0,1fr);gap:16px 8px}.quick-facts dt{font-size:12px;color:var(--ds-text-subtle)}.quick-facts dd{margin:0;font-size:12px;min-width:0}.quick-progress{display:flex;align-items:center;gap:12px;margin-top:20px;font-size:12px;color:var(--ds-text-subtle)}.quick-progress .bar{flex:1}.quick-footer{display:flex;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--ds-border)}.quick-footer .quick-open-full{margin-left:auto}.quick-footer small{color:var(--ds-text-subtlest);font-size:11px}.quick-table{width:100%;border-collapse:collapse}.quick-table th{font-size:12px;text-align:left;color:var(--ds-text-subtle)}.quick-table th,.quick-table td{padding:10px 8px;border-bottom:1px solid var(--ds-border);vertical-align:top}.quick-table th:first-child,.quick-table td:first-child{padding-left:0}.quick-table td:nth-child(2){width:130px}.quick-table td:last-child{width:90px;white-space:nowrap}.quick-table .work-link{font-size:13px}.quick-table .execution-note{max-width:100%}.quick-table .work-meta{font-size:11px}.quick-error{margin:12px 24px 0;padding:8px 12px;border-radius:4px;background:var(--ds-background-danger);color:var(--ds-text-danger);font-size:12px}
+@media(max-width:1000px){.plan-sidebar{width:210px;flex-basis:210px}.quick-overview{grid-template-columns:minmax(0,1fr) 250px}}@media(max-width:760px){.plan-sidebar{position:absolute;left:0;top:48px;bottom:0;z-index:9;width:240px;box-shadow:4px 0 16px #091e4226}.quick-plan{width:calc(100vw - 16px);height:calc(100dvh - 16px)}.quick-header,.quick-scroll{padding:16px}.quick-overview{grid-template-columns:1fr;gap:16px}.quick-tabs{padding:0 16px;gap:16px}.quick-footer{padding:12px 16px;flex-wrap:wrap}.quick-footer small{display:none}.quick-title h2{font-size:18px}.quick-header .pill{display:none}.quick-table td:nth-child(2){width:100px}}
+.plan-header{max-width:1200px;width:100%;margin:auto;display:grid;gap:12px}.plan-heading{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.plan-heading h1{flex:1;min-width:160px}.plan-toolbar{display:flex;align-items:center;gap:12px;justify-content:flex-end}.plan-toolbar .search{max-width:290px;height:30px;font-size:12px}.plan-toolbar .btn{min-height:30px;font-size:12px}.plan-roles{display:inline-flex;align-items:center;gap:8px;color:var(--ds-text-subtle);font-size:12px}.plan-roles .role-control{gap:5px}.plan-heading .status-select{max-width:185px}.plan-header .star-toggle{margin-left:-6px}.plan-header .plan-toolbar .source-link{margin-right:auto;background:none;color:var(--ds-text-subtlest);padding-left:0}
+.plan-summary{max-width:1120px}.plan-purpose{font-size:16px;line-height:25px;margin:0 0 24px;color:var(--ds-text)}.plan-purpose-label{display:block;font-size:11px;line-height:16px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;color:var(--ds-text-subtlest);margin-bottom:7px}.plan-insight{padding:16px 20px;margin:0 0 24px;border:1px solid color-mix(in srgb,var(--ds-text-warning) 25%,transparent);border-left:3px solid var(--ds-text-warning);border-radius:6px;background:var(--ds-background-warning)}.plan-insight .insight-label{display:flex;align-items:center;gap:7px;color:var(--ds-text-warning);font-size:12px;font-weight:600;margin-bottom:8px}.plan-insight .insight-label svg{width:16px;height:16px;flex-shrink:0}.plan-insight p{margin:0;line-height:22px;color:var(--ds-text)}.plan-insight .insight-next{margin-top:10px}.plan-insight .insight-next small{display:block;font-size:11px;font-weight:600;color:var(--ds-text-subtle);margin-bottom:3px}.plan-insight .insight-link{margin-top:12px;padding:0;border:0;background:none;color:var(--ds-link);font-size:12px;text-decoration:underline}.plan-insight.is-blocked{border-left-color:var(--ds-text-danger)}.plan-insight.is-blocked .insight-label{color:var(--ds-text-danger)}.plan-insight.is-recorded{background:var(--ds-surface-sunken);border-color:var(--ds-border)}.plan-insight.is-recorded .insight-label{color:var(--ds-text-subtle)}
+.plan-work-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;font-weight:600}.plan-work-title small{font-size:12px;font-weight:400;color:var(--ds-text-subtlest)}.plan-open-work .ms{margin-bottom:24px;padding-bottom:16px}.plan-open-work .ms-h{margin-bottom:8px}.plan-open-work .ms-h .c{font-size:11px}.plan-open-work .checklist-columns{margin-bottom:12px;padding-top:0}.plan-completed{border-top:1px solid var(--ds-border);margin-top:24px;padding-top:16px}.plan-completed>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:var(--ds-text-subtlest);font-size:13px;font-weight:500;padding:6px 0}.plan-completed>summary::-webkit-details-marker{display:none}.plan-completed>summary:before{content:'›';width:12px;font-size:18px}.plan-completed[open]>summary:before{content:'⌄'}.plan-completed .completed-count{font-family:var(--ds-font-family-code);font-size:11px;border-radius:4px;padding:1px 6px;background:var(--ds-background-neutral)}.plan-completed-body{padding-top:16px}.plan-completed .ms-h{margin-bottom:8px}.plan-completed .st{font-size:13px}.plan-completed .st.s-done .tx{color:var(--ds-text-subtle)}.plan-completed .quick-table td{color:var(--ds-text-subtle)}
+.report-disclosure{margin-top:5px;font-size:11px;line-height:16px;color:var(--ds-text-subtlest)}.report-disclosure>summary{cursor:pointer;width:fit-content;max-width:100%}.report-disclosure[open]>summary{color:var(--ds-link)}.report-body{margin:8px 0 4px;padding:10px 12px;background:var(--ds-surface-sunken);border-radius:4px;color:var(--ds-text-subtle);font-size:12px;line-height:19px;white-space:normal;overflow-wrap:anywhere}.plan-notes{margin:16px 0;color:var(--ds-text-subtlest);font-size:12px}.plan-notes>summary{cursor:pointer}.plan-notes[open]>summary{margin-bottom:8px}.plan-notes .report-body{margin-top:8px}.plan-context-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ds-text-subtlest);margin-top:24px}.focus-work-list{list-style:none;padding:0;margin:0 0 24px}.focus-work-list>li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--ds-border)}.focus-work-list .work-link{flex:1;font-size:13px;line-height:21px}.focus-work-list .tag{margin-top:2px}.plan-summary .section-link{font-size:12px;margin-top:8px;padding:0;border:0;background:none;color:var(--ds-link)}.plan-no-open{padding:12px 0;color:var(--ds-text-subtlest);font-size:13px}.st.s-doing>.tag{color:var(--ds-text-information);background:var(--ds-background-information)}.st.s-blocked>.tag{color:var(--ds-text-danger);background:var(--ds-background-danger)}.st.s-partial>.tag{color:var(--ds-text-warning);background:var(--ds-background-warning)}.st.s-done>.tag{color:var(--ds-text-success);background:var(--ds-background-success)}.quick-scroll .plan-summary{max-width:none}.quick-scroll .plan-purpose{font-size:15px;line-height:24px}.quick-scroll .plan-insight{margin-bottom:20px}.quick-header .quick-state{flex-shrink:0}.quick-tabs button{white-space:nowrap}
+@media(max-width:900px){.plan-heading h1{font-size:21px}.plan-roles{width:100%;padding-left:0}.plan-heading{gap:8px}.plan-toolbar{gap:8px}.plan-toolbar .search{flex:1;max-width:100%;min-width:120px}.plan-insight{padding:14px 16px}.plan-purpose{font-size:15px}.quick-header .quick-state{display:none}}
+.status-todo{--status-fg:var(--ds-text-subtle);--status-bg:var(--ds-background-neutral)}.status-doing{--status-fg:var(--ds-text-information);--status-bg:var(--ds-background-information)}.status-review{--status-fg:var(--ds-text-discovery);--status-bg:var(--ds-background-discovery)}.status-waiting{--status-fg:var(--ds-text-warning);--status-bg:var(--ds-background-warning)}.status-blocked{--status-fg:var(--ds-text-danger);--status-bg:var(--ds-background-danger)}.status-done{--status-fg:var(--ds-text-success);--status-bg:var(--ds-background-success)}.status-select[class*=status-],.pill[class*=status-]{color:var(--status-fg,var(--ds-text));background-color:var(--status-bg,var(--ds-background-neutral));border:1px solid color-mix(in srgb,var(--status-fg,var(--ds-border)) 24%,transparent);font-weight:600}.status-select[class*=status-]:hover{background-color:var(--status-bg)}.status-select option{background:var(--ds-surface);color:var(--ds-text);font-weight:400}.status-select option[class*=status-]{color:var(--status-fg)}.plan-state-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--status-fg,var(--ds-text-subtlest));vertical-align:middle}.sidebar-plan.is-done:not(.current) .sidebar-plan-link>span{color:var(--ds-text-subtlest)}.quick-role-line{padding:0 24px 12px}.quick-role-line:empty{display:none}.quick-group-row td{font-size:12px;font-weight:600;color:var(--ds-text-subtle);background:var(--ds-surface-sunken)}.focus-work-list .s-doing,.quick-table .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.focus-work-list .s-blocked,.quick-table .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.focus-work-list .s-partial,.quick-table .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}.quick-table .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}
+.task-card .task-progress .bar i{background:var(--status-fg,var(--ds-link))}.nav .item[data-go=waiting] .badge{background:var(--ds-background-warning);color:var(--ds-text-warning)}.plan-insight p+p{margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="appbar">
+    <button class="icon-btn sidebar-toggle" id="sidebar-toggle" data-sidebar-toggle aria-label="Toggle plans sidebar" aria-controls="plan-sidebar" aria-expanded="true" title="Plans"></button>
+    <nav class="nav" id="nav" aria-label="Views"></nav>
+    <span class="save-state" id="save-state" role="status" aria-live="polite"></span>
+    <span class="connection" id="connection" role="status">Connecting…</span>
+    <span class="live" id="live" title="Connection"></span><small id="upd"></small>
+  </header>
+  <div class="workspace">
+  <aside class="plan-sidebar" id="plan-sidebar" aria-label="Plans navigation"></aside>
+  <main class="main">
+    <div class="error" id="error" role="status" hidden></div>
+    <div class="top" id="top"></div>
+    <div id="tabs"></div>
+    <div class="view" id="view"></div>
+  </main>
+  </div>
+</div>
+<dialog class="quick-plan" id="quick-plan" aria-labelledby="quick-plan-title"><div class="quick-shell" id="quick-plan-content"></div></dialog>
+<script>
+(function () {
+  var D = { state: { plans: [], slots: {} }, activity: [], now: '' };
+  var ui = load('wb-ui', { view: 'home', layout: 'board', tab: 'summary', q: '', agent: 'all' });
+  if (ui.view === 'activity') ui.view = 'home';
+  if (!['board','list','timeline','summary'].includes(ui.layout)) ui.layout = 'board';
+  // Clear saved search/agent filters on opening; List starts with tasks in progress.
+  ui.agent='all';ui.q='';ui.activityDay='';
+  ui.taskStatus='doing';ui.focusTask=null;
+  ui.taskPlans=null;ui.taskWork='';ui.taskResult='';ui.taskDates={mode:'all',from:'',to:''};
+  if(!['none','plan'].includes(ui.taskGroup))ui.taskGroup='none';
+  if(!ui.collapsedPlans || typeof ui.collapsedPlans!=='object' || Array.isArray(ui.collapsedPlans))ui.collapsedPlans={};
+  if(!ui.planDetails || typeof ui.planDetails!=='object' || Array.isArray(ui.planDetails))ui.planDetails={};
+  if(ui.view==='waiting') ui.view='home';
+  var navigation=load('wb-navigation',{starred:[],recent:[],section:'all',collapsed:!!(window.matchMedia && window.matchMedia('(max-width:760px)').matches)});
+  navigation.starred=Array.isArray(navigation.starred)?Array.from(new Set(navigation.starred.filter(function(k){return typeof k==='string';}))).slice(0,200):[];
+  navigation.recent=Array.isArray(navigation.recent)?navigation.recent.filter(function(r){return r && typeof r.key==='string' && Number.isFinite(new Date(r.openedAt).getTime());}).filter(function(r,i,a){return a.findIndex(function(x){return x.key===r.key;})===i;}).slice(0,12):[];
+  if(!['all','starred','recent'].includes(navigation.section))navigation.section='all';
+  navigation.collapsed=!!navigation.collapsed;
+  var quick={key:null,tab:'overview',returnTo:null,sequence:[]};
+  function load(k, d) { try { return Object.assign(d, JSON.parse(localStorage.getItem(k) || '{}')); } catch (e) { return d; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* Preferences are optional when browser storage is unavailable. */ } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+
+  function stage(s) { var i = (s || '').indexOf(' - '); return i > 0 ? s.slice(0, i) : (s || ''); }
+  function detail(s) { var i = (s || '').indexOf(' - '); return i > 0 ? s.slice(i + 3) : ''; }
+  function statusTone(value){
+    var current=stage(value).toLowerCase();
+    if(current==='done')return 'done';if(current==='blocked')return 'blocked';
+    if(/^waiting/.test(current))return 'waiting';if(/^(reviewing|fixing review|testing)$/.test(current))return 'review';
+    if(/^(implementing|shipping|in progress|partly done|dry run)$/.test(current))return 'doing';return 'todo';
+  }
+  function pill(p) { return '<span class="pill status-'+statusTone(p.status)+'">'+esc(stage(p.status) || 'Not started')+'</span>'; }
+  function prs(text, gh) { var h = esc(text); return gh ? h.replace(/#(\d+)\b/g, function (m, n) { return '<a class="pr" target="_blank" href="' + esc(gh) + '/pull/' + n + '">#' + n + '</a>'; }) : h; }
+  function key(p) { return p.repo + '/' + p.name; }
+  function counts(p) { var c = { todo: 0, doing: 0, done: 0, partial: 0, blocked: 0 }; p.steps.forEach(function (s) { c[s.status]++; }); return c; }
+  function pct(p) { var c = counts(p); return p.steps.length ? Math.round(c.done * 100 / p.steps.length) : 0; }
+  function ago(t) { var m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
+  function hhmm(t) {return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t));}
+  function dayLabel(t) {
+    var d=new Date(t),today=dateKey(D.now || new Date()),yesterday=new Date(today+'T12:00:00+07:00');yesterday.setUTCDate(yesterday.getUTCDate()-1);
+    if(dateKey(d)===today)return 'Today';if(dateKey(d)===dateKey(yesterday))return 'Yesterday';
+    return d.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'2-digit',timeZone:'Asia/Ho_Chi_Minh'});
+  }
+  function color(name) { var palette = ['#1558BC','#4C6B1F','#803FA5','#206A83','#943D73','#AE4B04'], h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % palette.length; return palette[h]; }
+  function initials(name) { var w = (name || '?').replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/); return ((w[0] || '?')[0] + ((w[1] || '')[0] || '')).toUpperCase(); }
+  function isWaiting(p) { return /^waiting for owner/i.test(p.status || ''); }
+  var ACTIVE = /^(planning|implementing|reviewing|fixing review|testing)$/i;
+  function isStale(p) { return D.stale ? !!D.stale[key(p)] : ACTIVE.test(stage(p.status)) && (Date.now() - new Date(p.mtime)) >= 120 * 60000; }
+  function plans() { return D.state.plans.slice().sort(function (a, b) { return new Date(b.mtime) - new Date(a.mtime); }); }
+  function planByKey(k) { return D.state.plans.find(function (p) { return key(p) === k; }); }
+  function icon(name){
+    var paths={star:'m12 3 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9Z',sidebar:'M9 4v16M4 4h16v16H4Z',close:'m6 6 12 12M18 6 6 18',preview:'M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6'};
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+paths[name]+'"/></svg>';
+  }
+  function starButton(p,id){var on=navigation.starred.includes(key(p)),label=(on?'Unstar ':'Star ')+p.name;return '<button'+(id?' id="'+id+'"':'')+' class="icon-btn star-toggle" data-star-plan="'+esc(key(p))+'" aria-pressed="'+on+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+icon('star')+'</button>';}
+  function recordPlanVisit(k){
+    if(!planByKey(k))return;
+    navigation.recent=[{key:k,openedAt:new Date().toISOString()}].concat(navigation.recent.filter(function(r){return r.key!==k;})).slice(0,12);
+    save('wb-navigation',navigation);
+  }
+  function sidebarPlans(){
+    if(navigation.section==='recent')return navigation.recent.map(function(r){return planByKey(r.key);}).filter(Boolean);
+    var list=plans();if(navigation.section==='starred')list=list.filter(function(p){return navigation.starred.includes(key(p));});
+    return list;
+  }
+  function renderSidebar(){
+    var side=$('plan-sidebar'),toggle=$('sidebar-toggle');if(!side)return;
+    var active=document.activeElement,activeId=active && active.id && active.id.startsWith('sidebar-')?active.id:null;
+    side.hidden=navigation.collapsed;
+    if(toggle){toggle.innerHTML=icon('sidebar');toggle.setAttribute('aria-expanded',String(!navigation.collapsed));toggle.title=navigation.collapsed?'Show plans':'Hide plans';}
+    var current=quick.key || (ui.view.startsWith('plan:')?ui.view.slice(5):''),list=sidebarPlans(),counts={all:plans().length,starred:plans().filter(function(p){return navigation.starred.includes(key(p));}).length,recent:navigation.recent.filter(function(r){return !!planByKey(r.key);}).length};
+    var html='<div class="sidebar-head">Plans<small class="work-meta">'+counts.all+'</small></div><div class="sidebar-collections" role="group" aria-label="Plan collections">'+[['all','All'],['starred','Starred'],['recent','Recent']].map(function(a){return '<button id="sidebar-collection-'+a[0]+'" data-plan-collection="'+a[0]+'" aria-pressed="'+(navigation.section===a[0])+'">'+a[1]+' '+counts[a[0]]+'</button>';}).join('')+'</div><nav class="sidebar-items" aria-label="'+(navigation.section==='all'?'All plans':navigation.section==='starred'?'Starred plans':'Recently viewed plans')+'">'+list.map(function(p){var recent=navigation.recent.find(function(r){return r.key===key(p);});return '<div class="sidebar-plan'+(key(p)===current?' current':'')+(stage(p.status)==='Done'?' is-done':'')+'"><button id="sidebar-plan-'+encodeURIComponent(key(p))+'" class="sidebar-plan-link" data-preview-plan="'+esc(key(p))+'" title="Quick view: '+esc(p.name)+'"'+(key(p)===current?' aria-current="page"':'')+'><span><i class="plan-state-dot status-'+statusTone(p.status)+'" aria-hidden="true"></i>'+esc(p.name)+'</span><small>'+esc(p.repo)+(navigation.section==='recent' && recent?' · viewed '+ago(recent.openedAt):'')+'</small></button>'+starButton(p,'sidebar-star-'+encodeURIComponent(key(p)))+'</div>';}).join('')+(list.length?'':'<div class="sidebar-empty">'+(navigation.section==='starred'?'Star plans to keep them here.':navigation.section==='recent'?'Plans appear here after you open them.':'No plans yet.')+'</div>')+'</nav>';
+    if(side.innerHTML!==html){var old=side.querySelector && side.querySelector('.sidebar-items'),scroll=old?old.scrollTop:0;side.innerHTML=html;var next=side.querySelector && side.querySelector('.sidebar-items');if(next)next.scrollTop=scroll;}
+    if(activeId){var nextFocus=$(activeId) || $('sidebar-collection-'+navigation.section);if(nextFocus)nextFocus.focus({preventScroll:true});}
+  }
+  function openQuickPlan(k,keepSequence){
+    if(!planByKey(k))return;
+    var dialog=$('quick-plan');if(!dialog)return;
+    if(!quick.key)quick.returnTo=document.activeElement;
+    if(!keepSequence){var list=sidebarPlans();if(!list.some(function(p){return key(p)===k;}))list=plans();quick.sequence=list.map(key);}
+    if(columnMenu)dismissColumnMenu(false);
+    quick.key=k;if(!keepSequence)quick.tab='overview';recordPlanVisit(k);renderQuickPlan(true);renderSidebar();
+    if(!dialog.open)dialog.showModal();if($('quick-close'))$('quick-close').focus();
+  }
+  function closeQuickPlan(restore){
+    if(!quick.key)return;var back=quick.returnTo;quick.key=null;quick.returnTo=null;quick.sequence=[];
+    var dialog=$('quick-plan');if(dialog && dialog.open)dialog.close();renderSidebar();
+    if(restore!==false){var target=back && back.isConnected!==false?back:(back && back.id && $(back.id)) || $('sidebar-toggle');if(target && target.focus)target.focus({preventScroll:true});}
+  }
+  function quickRowsTable(p,rows){
+    if(!rows.length)return '';
+    var groups=groupedPlanRows(p,rows);
+    return '<table class="quick-table"><thead><tr><th scope="col">Work</th><th scope="col">Agent</th><th scope="col">Status</th></tr></thead><tbody>'+groups.map(function(g){return (g.milestone?'<tr class="quick-group-row"><td colspan="3">'+esc(g.milestone.title)+'</td></tr>':'')+g.rows.map(function(r){var s=r.s;return '<tr><td><button class="work-link" data-open-task="'+esc(key(p))+'" data-task-index="'+r.index+'" data-task-revision="'+esc(p.revision || '')+'">'+esc(s.text)+'</button>'+executionDisclosure(s,p.gh,p,'quick','')+'</td><td>'+stepExecution(s,true)+'</td><td><span class="tag s-'+s.status+'">'+esc(TASK_STATUSES[s.status] || s.status)+'</span></td></tr>';}).join('');}).join('')+'</tbody></table>';
+  }
+  function quickChecklist(p){
+    var rows=scopedPlanRows(p,''),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
+    return (open.length?quickRowsTable(p,open):'<div class="plan-no-open">No open checklist tasks.</div>')+completedPlanWork(p,done,'quick',quickRowsTable(p,done),'');
+  }
+  function quickOverview(p){return planSummary(p,'quick');}
+  function renderQuickPlan(reset){
+    if(!quick.key)return;var host=$('quick-plan-content');if(!host)return;
+    var scroll=$('quick-plan-scroll'),top=!reset && scroll?scroll.scrollTop:0,active=document.activeElement;
+    var focus=active && active.id && (active.id.startsWith('quick-') || active.id.startsWith('plan-disclosure-'))?active.id:null,p=planByKey(quick.key);
+    if(!p){host.innerHTML='<div class="quick-header"><h2 id="quick-plan-title">Plan unavailable</h2><button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view">'+icon('close')+'</button></div><div class="quick-scroll"><p>This plan is no longer in the current data. Refresh to check again.</p></div>';if($('quick-close'))$('quick-close').focus();return;}
+    var body=quick.tab==='checklist'?quickChecklist(p):quick.tab==='activity'?feedHTML(feedFor(p),false,100,true):quickOverview(p);
+    var checked=D.state.generatedAt,reason=$('error')?$('error').textContent:'',remaining=p.steps.filter(function(s){return s.status!=='done';}).length;
+    var header='<div class="quick-header"><div class="quick-title"><small>Quick view · '+esc(p.repo)+'</small><h2 id="quick-plan-title">'+esc(p.name)+'</h2></div><span class="quick-state">'+pill(p)+'</span>'+starButton(p,'quick-star')+'<button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view" title="Close (Esc)">'+icon('close')+'</button></div><div class="quick-role-line">'+planRoles(p)+'</div>';
+    var tabs='<div class="quick-tabs" role="tablist" aria-label="Quick view tabs">'+[['overview','Summary'],['checklist','Work'],['activity','Activity']].map(function(a){return '<button role="tab" id="quick-tab-'+a[0]+'" data-quick-tab="'+a[0]+'" aria-selected="'+(quick.tab===a[0])+'" aria-controls="quick-plan-scroll" tabindex="'+(quick.tab===a[0]?'0':'-1')+'">'+a[1]+(a[0]==='checklist'?' '+remaining:'')+'</button>';}).join('')+'</div>';
+    var footer='<div class="quick-footer"><button class="icon-btn" id="quick-prev" data-quick-step="-1" aria-label="Previous plan" title="Previous plan (Alt+Up)">←</button><button class="icon-btn" id="quick-next" data-quick-step="1" aria-label="Next plan" title="Next plan (Alt+Down)">→</button><button class="btn" id="quick-refresh" data-quick-refresh>Refresh</button><small>'+esc(checked?'Checked '+hhmm(checked):'No successful progress check yet')+'</small><button class="btn quick-open-full" id="quick-full" data-quick-full>Open full plan ↗</button></div>';
+    host.innerHTML=header+tabs+'<div class="quick-error" id="quick-error" role="status"'+(!reason?' hidden':'')+'>'+esc(reason)+'</div><div class="quick-scroll" id="quick-plan-scroll" role="tabpanel" aria-labelledby="quick-tab-'+quick.tab+'" tabindex="0">'+body+'</div>'+footer;
+    if($('quick-plan-scroll'))$('quick-plan-scroll').scrollTop=top;
+    if($('quick-refresh')){$('quick-refresh').disabled=!!refreshing;$('quick-refresh').textContent=refreshing?'Checking…':'Refresh';}
+    ['quick-prev','quick-next'].forEach(function(id){if($(id))$(id).disabled=quick.sequence.filter(function(k){return !!planByKey(k);}).length<2;});
+    if(focus && $(focus))$(focus).focus({preventScroll:true});
+  }
+  function togglePlanStar(k){
+    if(!planByKey(k))return;var on=navigation.starred.includes(k);
+    navigation.starred=on?navigation.starred.filter(function(v){return v!==k;}):navigation.starred.concat(k);save('wb-navigation',navigation);renderSidebar();
+    document.querySelectorAll('[data-star-plan]').forEach(function(b){if(b.getAttribute('data-star-plan')!==k)return;var label=(on?'Star ':'Unstar ')+planByKey(k).name;b.setAttribute('aria-pressed',String(!on));b.setAttribute('aria-label',label);b.title=label;});
+  }
+  function stepQuickPlan(direction){
+    if(![-1,1].includes(direction))return;
+    var list=quick.sequence.map(planByKey).filter(Boolean),active=document.activeElement,focus=active && ['quick-prev','quick-next'].includes(active.id)?active.id:null;
+    var index=list.findIndex(function(p){return key(p)===quick.key;});if(list.length>1){openQuickPlan(key(list[(index+direction+list.length)%list.length]),true);if(focus && $(focus))$(focus).focus();}
+  }
+  function msState(m) { if (m.state) return m.state; var all = m.steps.length && m.steps.every(function (s) { return s.status === 'done'; }); if (all) return 'done'; if (m.steps.some(function (s) { return s.status === 'blocked'; })) return 'blocked'; if (m.steps.some(function (s) { return s.status === 'doing' || s.status === 'done'; })) return 'doing'; return 'todo'; }
+  function stampTime(e) { var k = e.key || ''; if (!k) return null; var y = k.slice(0, 4), mo = k.slice(4, 6), d = k.slice(6, 8), hm = k.slice(8); return new Date(y + '-' + mo + '-' + d + 'T' + (hm === '9999' ? '00:00' : hm.slice(0, 2) + ':' + hm.slice(2)) + ':00+07:00'); }
+
+  // Waiting-for-you items: plans waiting for the owner and open questions.
+  function waitingItems() {
+    var out = [];
+    plans().forEach(function (p) {
+      if (isWaiting(p)) out.push({ p: p, text: detail(p.status) || 'Waiting for your decision' });
+      p.questions.forEach(function (q) { if (q.open) out.push({ p: p, text: 'Question: ' + q.ask }); });
+    });
+    return out;
+  }
+
+  // Activity for a plan: recorded events, plus dated decisions and questions not yet in the log.
+  function feedFor(p) {
+    var ev = D.activity.filter(function (e) { return !p || (e.repo === p.repo && e.plan === p.name); });
+    var known = {}; ev.forEach(function (e) { known[e.repo + '/' + e.plan + '|' + e.kind + '|' + e.text] = 1; });
+    (p ? [p] : D.state.plans).forEach(function (pl) {
+      var who = pl.slot && pl.slot.by ? pl.slot.by : pl.owner || pl.repo;
+      pl.decisions.forEach(function (d) { var t = stampTime(d); if (t && !known[key(pl) + '|decision|' + d.text]) ev.push({ ts: t, repo: pl.repo, plan: pl.name, kind: 'decision', text: d.text, actor: who }); });
+      pl.questions.forEach(function (q) { var t = stampTime(q); if (t && !known[key(pl) + '|question|' + q.ask]) ev.push({ ts: t, repo: pl.repo, plan: pl.name, kind: 'question', text: q.ask, extra: q.open ? '' : q.answer, actor: who }); });
+    });
+    return ev.sort(function (a, b) { return new Date(b.ts) - new Date(a.ts); });
+  }
+
+  var LABEL = { decision: 'Decision', question: 'Question', answer: 'Answered', milestone: 'Milestone done', waiting: 'Waiting for you', blocked: 'Blocked', stale: 'Stale', partial: 'Partly done' };
+  function msgBody(e, gh) {
+    switch (e.kind) {
+      case 'execution': return '<span class="x">executors assigned</span> '+esc(e.text);
+      case 'execution-report': return '<span class="x">'+prs(e.extra,gh)+'</span> '+prs(e.text,gh);
+      case 'step-assignment': return '<span class="x">task assigned · '+esc(e.extra)+'</span> '+prs(e.text,gh);
+      case 'assignment': return '<span class="x">coordinator assigned</span> '+esc(e.text);
+      case 'new': return '<span class="x">opened the plan</span>' + (e.extra ? ' · ' + prs(e.extra, gh) : '');
+      case 'closed': return '<span class="x">closed the plan</span>';
+      case 'status': return '<span class="x">moved</span> <b>' + prs(e.text, gh) + '</b>' + (detail(e.extra) ? '<div class="x">' + prs(detail(e.extra), gh) + '</div>' : '');
+      case 'done': return '<span class="ok">✓ done</span> ' + prs(e.text, gh);
+      case 'doing': return '<span class="x">started</span> ' + prs(e.text, gh);
+      case 'answer': return '<div class="blk k-answer"><div class="k">' + LABEL.answer + '</div>' + prs(e.text, gh) + '<div class="x">→ ' + prs(e.extra, gh) + '</div></div>';
+      case 'question': return '<div class="blk k-question"><div class="k">' + LABEL.question + '</div>' + prs(e.text, gh) + (e.extra && !/^open/i.test(e.extra) ? '<div class="x">→ ' + prs(e.extra, gh) + '</div>' : '') + '</div>';
+      case 'milestone': return '<div class="blk k-milestone"><div class="k">' + LABEL.milestone + '</div><b>' + prs(e.text, gh) + '</b>' + (e.extra ? '<div>' + prs(e.extra, gh) + '</div>' : '') + '</div>';
+      case 'waiting': return '<div class="blk k-waiting"><div class="k">' + LABEL.waiting + '</div>' + prs(detail(e.extra) || e.extra || e.text, gh) + '</div>';
+      default: return '<div class="blk k-' + e.kind + '"><div class="k">' + (LABEL[e.kind] || e.kind) + '</div>' + prs(e.text, gh) + '</div>';
+    }
+  }
+  function feedHTML(list, showChannel, limit, ignoreQuery) {
+    var q = (ignoreQuery ? '' : ui.q || '').toLowerCase(), out = [], lastDay = '';
+    list.filter(function (e) { return !q || (e.plan + ' ' + e.text + ' ' + (e.extra || '')).toLowerCase().indexOf(q) >= 0; }).slice(0, limit || 400).forEach(function (e) {
+      var d = dayLabel(e.ts); if (d !== lastDay) { out.push('<div class="day">' + d + '</div>'); lastDay = d; }
+      var p = planByKey(e.repo + '/' + e.plan) || {};
+      var actor=e.actor || p.owner || e.repo,contextActor=!showChannel && ([p.name,p.repo,'agent'].includes(actor) || actor===e.agent);
+      out.push('<div class="msg'+(contextActor?' context-actor':'')+'">'+(contextActor?'':'<div class="av" aria-hidden="true" style="background:'+color(actor)+'">'+esc(initials(actor))+'</div>')+'<div><div class="mh">'+(contextActor?'':'<b>'+esc(actor)+'</b>')+(e.agent?agentChain({agent:e.agent,executors:e.executors}):'') +
+        (showChannel ? '<span class="ch" data-go="plan:' + esc(e.repo + '/' + e.plan) + '"># ' + esc(e.plan) + '</span>' : '') + '<time>' + hhmm(e.ts) + '</time></div><div class="mb">' + msgBody(e, p.gh) + '</div></div></div>');
+    });
+    return out.length ? '<div class="feed">' + out.join('') + '</div>' : '<div class="empty">No activity yet</div>';
+  }
+
+  var LAYOUTS = { summary:'Summary', list:'List', board:'Board', timeline:'Timeline' };
+  function renderNav() {
+    var w = plans().filter(needsAttention).length;
+    $('nav').innerHTML = Object.keys(LAYOUTS).map(function(name){
+      return '<button class="item '+(ui.layout===name?'on':'')+'" data-layout="'+name+'" aria-pressed="'+(ui.layout===name)+'">'+LAYOUTS[name]+'</button>';
+    }).join('')+'<button class="item '+(ui.view==='waiting'?'on':'')+'" data-go="waiting">Needs attention'+(w?'<span class="badge">'+w+'</span>':'')+'</button>';
+  }
+
+  // ---------- views ----------
+  function topBar(title, sub, taskRows) {
+    if (viewOnly) return;
+    $('top').innerHTML = '<h1>' + title + '</h1>' + (sub ? '<span class="sub" id="plan-count">' + sub + '</span>' : '') +
+      '<input class="search" id="q" aria-label="Search work" placeholder="'+(taskRows?'Search tasks':'Search work')+'" value="' + esc(ui.q) + '">'+(taskRows?'':agentFilter())+'<button class="btn" id="refresh">Refresh</button>';
+  }
+  var COLUMNS = ['To do', 'In progress', 'Review & test', 'Waiting', 'Done'];
+  var COLUMN_STAGES = ['Planning', 'Implementing', 'Reviewing', 'Waiting for owner', 'Done'];
+  var PLAN_STAGES = ['Planning', 'Implementing', 'Reviewing', 'Fixing review', 'Testing', 'Waiting for CI', 'Waiting for owner', 'Shipping', 'Blocked', 'Done'];
+  var dragged = null, saving = false;
+  function columnOf(p) {
+    var s = stage(p.status).toLowerCase();
+    if (s === 'done') return 4;
+    if (isWaiting(p) || s === 'blocked' || s === 'waiting for ci') return 3;
+    if (/^(reviewing|fixing review|testing)$/.test(s)) return 2;
+    if (/^(implementing|shipping|in progress|partly done|dry run)$/.test(s)) return 1;
+    if (s !== 'planning' && counts(p).blocked) return 3;
+    return 0;
+  }
+  function owner(p) { return p.slot && p.slot.by || p.owner || p.repo; }
+  function needsAttention(p) {return isWaiting(p) || counts(p).blocked || stage(p.status)==='Blocked' || isStale(p) || p.questions.some(function(q){return q.open;});}
+  function taskCard(p) {
+    var c=counts(p), who=owner(p), waiting=p.questions.filter(function(q){return q.open;}).length;
+    return '<article class="task-card status-'+statusTone(p.status)+'" draggable="'+(!saving && !!p.revision)+'" data-plan="'+esc(key(p))+'" data-go="plan:'+esc(key(p))+'">' +
+      '<div class="task-heading"><div class="task-repo" title="'+esc(p.repo)+'">'+esc(p.repo)+'</div><time class="task-edited" title="'+esc(p.mtime)+'">'+ago(p.mtime)+'</time>'+starButton(p)+'</div>' +
+      '<button class="task-title" data-preview-plan="'+esc(key(p))+'" title="Quick view: '+esc(p.name)+'">'+esc(p.name)+'</button>' +
+      '<div class="task-status">'+pill(p)+(isStale(p)?'<span class="pill t-bad">Stale</span>':'')+(waiting?'<span class="pill t-pending">'+waiting+' open question'+(waiting>1?'s':'')+'</span>':'')+'</div>' +
+      (detail(p.status)?'<div class="stage-detail">'+prs(detail(p.status),p.gh)+'</div>':'') +
+      (p.next?'<div class="task-next">'+prs(p.next,p.gh)+'</div>':'') +
+      '<div class="task-progress"><div class="bar" role="progressbar" aria-label="Steps done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct(p)+'"><i style="width:'+pct(p)+'%"></i></div><span class="mono">'+c.done+'/'+p.steps.length+'</span></div>' +
+      '<div class="task-footer">'+agentChain(p)+'<span class="assignee" title="'+esc(who)+'"><span class="av" aria-hidden="true" style="background:'+color(who)+'">'+esc(initials(who))+'</span><span class="owner">'+esc(who)+'</span></span></div></article>';
+  }
+  var AGENTS = ['Codex','Anti','Claude','Unknown'];
+  if(!['all'].concat(AGENTS).includes(ui.agent)) ui.agent='all';
+  function agentName(p) { return AGENTS.includes(p.agent) ? p.agent : 'Unknown'; }
+  function executorsOf(p) {
+    if(!Array.isArray(p.executors) || p.executors.some(function(a){return !AGENTS.slice(0,3).includes(a);}))return null;
+    return AGENTS.slice(0,3).filter(function(a){return p.executors.includes(a);});
+  }
+  function executorValue(p) {var list=executorsOf(p);return list===null?'Unknown':list.length?list.join(', '):'None';}
+  function agentMatches(p,name) {
+    var list=executorsOf(p);
+    return agentName(p)===name || (list===null?name==='Unknown':list.includes(name)) || (p.steps || []).some(function(s){return (executorsOf(s) || []).includes(name) || taskAgentMatches({s:s},name);});
+  }
+  function agentBadge(p) {
+    var name=agentName(p), icons={Codex:'codex.png',Anti:'anti.png',Claude:'claude.svg'};
+    var icon=icons[name]?'<img class="agent-icon agent-icon-'+name.toLowerCase()+'" src="/icons/'+icons[name]+'" alt="" aria-hidden="true">':'<span class="agent-unknown" aria-hidden="true">?</span>';
+    return '<span class="agent-chip" title="'+esc(p.agentSource || (name==='Unknown'?'Agent not specified':name))+'">'+icon+'<span>'+name+'</span></span>';
+  }
+  function executorBadges(p) {
+    var list=executorsOf(p);
+    if(list===null)return '<span class="role-none" title="No execution report received">Not reported</span>';
+    if(!list.length)return '<span class="role-none">Not reported</span>';
+    if(list.length===1)return agentBadge({agent:list[0],agentSource:p.executorSource || 'Task execution metadata'});
+    return '<span class="agent-chip agent-multi" title="'+esc(list.join(', '))+'"><span class="agent-stack" aria-hidden="true">'+list.map(function(a){return agentBadge({agent:a});}).join('')+'</span><span>Multi</span></span>';
+  }
+  function stepExecution(s,compact){
+    var active=s.execution && s.execution.activeAgents,shown=active && active.length?{executors:active,executorSource:'Currently reported working'}:s;
+    var history=s.executionHistory,source=s.execution?'Reported by executing client':history?'Verified session history: '+history.verifiedAt+' · '+history.summary:'No execution report received';
+    return '<span class="execution-agent" title="'+esc(source)+'">'+executorBadges(shown)+'</span>'+(!compact && !s.execution && history?'<small class="history-mark" title="'+esc(source)+'">History</small>':'');
+  }
+  function executionNote(s){
+    if(!s.execution)return '';
+    return '<small class="execution-note" title="'+esc(s.execution.reportedAt+' · '+(s.execution.result || 'Execution started'))+'">Reported '+ago(s.execution.reportedAt)+(s.execution.result?' · '+prs(s.execution.result,''):'')+'</small>';
+  }
+  function samePlanText(a,b){return !!a && !!b && String(a).normalize('NFC').trim().replace(/\s+/g,' ')===String(b).normalize('NFC').trim().replace(/\s+/g,' ');}
+  function planDisclosureKey(p,scope,name){return scope+'|'+key(p)+'|'+name;}
+  function disclosure(token,label,body,cls,auto){
+    return '<details class="'+cls+'" data-plan-disclosure="'+esc(token)+'"'+(auto?' data-disclosure-auto="1"':'')+(auto || ui.planDetails[token]?' open':'')+'><summary id="plan-disclosure-'+encodeURIComponent(token)+'">'+label+'</summary>'+body+'</details>';
+  }
+  function executionDisclosure(s,gh,p,scope,q){
+    var record=s.execution || s.executionHistory;if(!record)return '';
+    var text=s.execution?s.execution.result:s.executionHistory.summary,at=s.execution?s.execution.reportedAt:s.executionHistory.verifiedAt;
+    var label=s.execution?'Latest report':'Verified history',time=at && Number.isFinite(new Date(at).getTime())?' · '+ago(at):'';
+    if(!text || samePlanText(text,s.text))return '<small class="report-disclosure">'+label+time+'</small>';
+    var token=planDisclosureKey(p,scope,'report:'+(Number.isInteger(s.line)?'L'+s.line:'I'+p.steps.indexOf(s)));
+    return disclosure(token,esc(label+time),'<div class="report-body">'+prs(text,gh)+'</div>','report-disclosure',!!q && text.toLowerCase().includes(q.toLowerCase()));
+  }
+  function planRoles(p){
+    var list=executorsOf(p);
+    if(list && list.length===1 && list[0]===agentName(p))return '<span class="plan-roles"><small>Agent</small>'+agentBadge(p)+'</span>';
+    return '<span class="plan-roles"><span class="role-control"><small>Coordinator</small>'+agentBadge(p)+'</span><span class="role-arrow" aria-hidden="true">→</span><span class="role-control"><small>Executed by</small>'+executorBadges(p)+'</span></span>';
+  }
+  function scopedPlanRows(p,q){
+    q=(q || '').toLowerCase();return taskRows([p]).filter(function(r){return !q || [r.s.text,executorValue(r.s),taskResult(r.s)].join(' ').toLowerCase().includes(q);}).sort(function(a,b){return SORDER[a.s.status]-SORDER[b.s.status] || a.index-b.index;});
+  }
+  function rowMilestone(p,s){
+    if(s.milestone)return (p.milestones || []).find(function(m){return m.id===s.milestone;});
+    return (p.milestones || []).find(function(m){return m.steps.some(function(t){return t===s || (Number.isInteger(s.line) && s.line>0 && t.line===s.line);});});
+  }
+  function groupedPlanRows(p,rows){
+    var groups=orderedMilestones(p).map(function(m){return {milestone:m,rows:rows.filter(function(r){return rowMilestone(p,r.s)===m;})};}).filter(function(g){return g.rows.length;});
+    var loose=rows.filter(function(r){return !rowMilestone(p,r.s);});if(loose.length)groups.push({milestone:null,rows:loose});return groups;
+  }
+  function planRowGroups(p,rows,scope,q){
+    return groupedPlanRows(p,rows).map(function(g){
+      var m=g.milestone,summary=m && m.summary;
+      var repeated=summary && ([p.goal,p.next,detail(p.status)].concat(p.steps.map(taskResult))).some(function(t){return samePlanText(summary,t);});
+      var ownsNotes=!m || g.rows.some(function(r){return r.s.status!=='done';}) || !p.steps.some(function(s){return s.status!=='done' && rowMilestone(p,s)===m;});
+      var notes=summary && !repeated && ownsNotes?disclosure(planDisclosureKey(p,scope,'milestone:'+m.id),'Milestone notes','<div class="report-body">'+prs(summary,p.gh)+'</div>','plan-notes',false):'';
+      return '<section class="ms">'+(m?'<div class="ms-h"><span class="id">'+esc(m.id)+'</span><b>'+esc(m.title)+'</b></div>':'')+stepsHTML(g.rows.map(function(r){return r.s;}),p.gh,p,{scope:scope,q:q})+notes+'</section>';
+    }).join('');
+  }
+  function completedPlanWork(p,rows,scope,body,q){
+    if(!rows.length)return '';
+    return disclosure(planDisclosureKey(p,scope,'completed'),'Completed <span class="completed-count">'+rows.length+'</span>','<div class="plan-completed-body">'+body+'</div>','plan-completed',!!q);
+  }
+  function planWork(p,scope,q){
+    var rows=scopedPlanRows(p,q),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
+    var columns='<div class="checklist-columns"><span>Work'+(q?' <small>'+open.length+' matching</small>':'')+'</span><span title="Recorded task agents; coordinator identity is separate">Agent</span><span>Status</span></div>';
+    var content=open.length?columns+planRowGroups(p,open,scope,q):'<div class="plan-no-open">'+(q?'No matching open tasks.':'No open checklist tasks.')+'</div>';
+    return '<div class="plan-open-work">'+content+'</div>'+completedPlanWork(p,done,scope,planRowGroups(p,done,scope,q),q);
+  }
+  function planInsight(p,scope,remaining){
+    if(!p.next && !detail(p.status))return '';
+    var blocked=stage(p.status)==='Blocked',done=stage(p.status)==='Done' && !remaining;
+    var reason=blocked?detail(p.status):'',text=reason || p.next || detail(p.status),label=blocked?'Blocker':done?'Recorded next step':'Next action';
+    var glyph='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 5v6m0 2v2"/></svg>';
+    var button=remaining===1 && p.next?'<button class="insight-link" data-plan-section="checklist" data-section-plan="'+esc(key(p))+'">View the open task →</button>':'';
+    return '<aside class="plan-insight'+(blocked?' is-blocked':done?' is-recorded':'')+'" aria-label="'+label+'"><div class="insight-label">'+glyph+label+'</div><p>'+prs(text,p.gh)+'</p>'+(reason && p.next && !samePlanText(reason,p.next)?'<div class="insight-next"><small>Next action</small><p>'+prs(p.next,p.gh)+'</p></div>':'')+button+'</aside>';
+  }
+  function planSummary(p,scope){
+    var rows=scopedPlanRows(p,''),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
+    var purpose=p.goal && !samePlanText(p.goal,p.next)?'<p class="plan-purpose"><span class="plan-purpose-label">Goal</span>'+prs(p.goal,p.gh)+'</p>':'';
+    var current='';
+    if(open.length && !(open.length===1 && p.next))current='<h2 class="plan-work-title">Current work <small>'+open.length+' open</small></h2><ul class="focus-work-list">'+open.slice(0,3).map(function(r){return '<li><button class="work-link" data-open-task="'+esc(key(p))+'" data-task-index="'+r.index+'" data-task-revision="'+esc(p.revision || '')+'">'+esc(r.s.text)+'</button><span class="tag s-'+r.s.status+'">'+esc(TASK_STATUSES[r.s.status])+'</span></li>';}).join('')+'</ul><button class="section-link" data-plan-section="checklist" data-section-plan="'+esc(key(p))+'">View '+open.length+' open tasks →</button>';
+    if(!open.length)current='<div class="plan-no-open">No open checklist tasks.</div>';
+    var questions=p.questions.filter(function(q){return q.open && !samePlanText(q.ask,p.next) && !samePlanText(q.ask,p.goal);});
+    var asks=questions.length?'<aside class="plan-insight"><div class="insight-label">Needs your decision</div>'+questions.slice(0,2).map(function(q){return '<p>'+prs(q.ask,p.gh)+'</p>';}).join('')+'<button class="insight-link" data-plan-section="questions" data-section-plan="'+esc(key(p))+'">View questions →</button></aside>':'';
+    var extra=detail(p.status),notes=extra && stage(p.status)!=='Blocked' && ![p.next,p.goal].concat(p.steps.map(taskResult)).some(function(t){return samePlanText(extra,t);})?disclosure(planDisclosureKey(p,scope,'status-detail'),'Recorded status detail','<div class="report-body">'+prs(extra,p.gh)+'</div>','plan-notes',false):'';
+    var completed=scope==='quick'?quickRowsTable(p,done):planRowGroups(p,done,scope,'');
+    return '<div class="plan-summary">'+purpose+planInsight(p,scope,open.length)+asks+current+completedPlanWork(p,done,scope,completed,'')+notes+'<div class="plan-context-meta">'+(scope==='quick'?'':'<span>'+esc(p.repo)+'</span>')+'<time title="'+esc(p.mtime)+'">Plan edited '+ago(p.mtime)+'</time></div></div>';
+  }
+  function agentChain(p) {
+    var list=executorsOf(p),label='Coordinator: '+agentName(p)+'; executors: '+executorValue(p);
+    if(list && list.length===1 && list[0]===agentName(p))return '<span class="role-chain" title="'+esc(label)+'">'+agentBadge(p)+'</span>';
+    return '<span class="role-chain" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+agentBadge(p)+'<span class="role-arrow" aria-hidden="true">→</span>'+executorBadges(p)+'</span>';
+  }
+  function agentFilter() {
+    var all=plans();
+    return '<select class="agent-filter" data-agent-filter aria-label="Filter by agent"><option value="all"'+(ui.agent==='all'?' selected':'')+'>All agents ('+all.length+')</option>'+AGENTS.map(function(a){
+      var count=all.filter(function(p){return agentMatches(p,a);}).length;
+      return '<option value="'+a+'"'+(ui.agent===a?' selected':'')+'>'+a+' ('+count+')</option>';
+    }).join('')+'</select>';
+  }
+  function workCell(p) {
+    return '<button class="work-link" data-go="plan:'+esc(key(p))+'">'+esc(p.name)+'</button><div class="work-meta">'+esc(p.repo)+'</div>';
+  }
+  function progressCell(p) {
+    var done=counts(p).done;
+    return '<div class="list-progress"><div class="bar" role="progressbar" aria-label="Steps done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct(p)+'"><i style="width:'+pct(p)+'%"></i></div><span class="mono">'+done+'/'+p.steps.length+'</span></div>';
+  }
+  var TASK_STATUSES={all:'All statuses',doing:'In progress',todo:'To do',blocked:'Blocked',partial:'Partial',done:'Done'};
+  var TASK_COLUMNS={work:'Work',plan:'Plan',agent:'Agent',status:'Status',result:'Latest result',updated:'Updated'};
+  var taskCollator=new Intl.Collator('vi',{numeric:true,sensitivity:'base'}),columnMenu=null;
+  if(!ui.taskSort || !Object.hasOwn(TASK_COLUMNS,ui.taskSort.column) || !['asc','desc'].includes(ui.taskSort.direction))ui.taskSort=null;
+  function taskRows(ps){
+    var rows=[];
+    ps.forEach(function(p){(p.steps || []).forEach(function(s,i){rows.push({p:p,s:s,index:i});});});
+    return rows;
+  }
+  function taskAgents(s){
+    var active=s.execution && s.execution.activeAgents;
+    return active && active.length?active:executorsOf(s);
+  }
+  function taskAgentMatches(row,name){var agents=taskAgents(row.s);return agents && agents.length?agents.includes(name):name==='Unknown';}
+  function taskNeedsAttention(row){return ['blocked','partial'].includes(row.s.status) || (row.s.status!=='done' && needsAttention(row.p));}
+  function taskTime(s){return s.execution && s.execution.reportedAt || s.executionHistory && s.executionHistory.verifiedAt || '';}
+  function taskResult(s){return s.execution && s.execution.result || s.executionHistory && s.executionHistory.summary || '';}
+  function taskColumnValue(row,column){
+    if(column==='work')return row.s.text;
+    if(column==='plan')return row.p.name+' · '+row.p.repo;
+    if(column==='agent')return (taskAgents(row.s) || []).join(', ');
+    if(column==='status')return SORDER[row.s.status];
+    if(column==='result')return taskResult(row.s);
+    return taskTime(row.s)?new Date(taskTime(row.s)).getTime():null;
+  }
+  function compareTaskRows(a,b){
+    if(ui.taskSort){
+      var av=taskColumnValue(a,ui.taskSort.column),bv=taskColumnValue(b,ui.taskSort.column),am=av===null || av==='',bm=bv===null || bv==='';
+      if(am!==bm)return am?1:-1;
+      var order=typeof av==='number' && typeof bv==='number'?av-bv:taskCollator.compare(String(av || ''),String(bv || ''));
+      if(order)return ui.taskSort.direction==='asc'?order:-order;
+    }else{
+      var order=SORDER[a.s.status]-SORDER[b.s.status] || new Date(taskTime(b.s) || b.p.mtime)-new Date(taskTime(a.s) || a.p.mtime);
+      if(order)return order;
+    }
+    return taskCollator.compare(key(a.p),key(b.p)) || a.index-b.index;
+  }
+  function taskDateMatches(s){
+    var filter=ui.taskDates,at=taskTime(s);
+    if(filter.mode==='missing')return !at;
+    if(!at)return filter.mode==='all' && !filter.from && !filter.to;
+    var day=dateKey(at);return (!filter.from || day>=filter.from) && (!filter.to || day<=filter.to);
+  }
+  function filteredTaskRows(rows){
+    return rows.filter(function(row){
+      var s=row.s,p=row.p,m=(p.milestones || []).find(function(m){return m.id===s.milestone;});
+      var text=[s.text,TASK_STATUSES[s.status],p.name,p.repo,s.milestone,m && m.title,(taskAgents(s) || []).join(' '),s.execution && s.execution.result,s.executionHistory && s.executionHistory.summary].join(' ').toLowerCase();
+      return (ui.taskStatus==='all' || s.status===ui.taskStatus) && (ui.agent==='all' || taskAgentMatches(row,ui.agent)) && (!ui.q || text.includes(ui.q.toLowerCase())) && (ui.view!=='waiting' || taskNeedsAttention(row)) &&
+        (ui.taskPlans===null || ui.taskPlans.includes(key(p))) && (!ui.taskWork || s.text.toLowerCase().includes(ui.taskWork.toLowerCase())) && (!ui.taskResult || taskResult(s).toLowerCase().includes(ui.taskResult.toLowerCase())) && taskDateMatches(s);
+    }).sort(compareTaskRows);
+  }
+  function columnFiltered(column){
+    return column==='work'?!!ui.taskWork:column==='plan'?ui.taskPlans!==null:column==='agent'?ui.agent!=='all':column==='status'?ui.taskStatus!=='all':column==='result'?!!ui.taskResult:ui.taskDates.mode!=='all' || !!ui.taskDates.from || !!ui.taskDates.to;
+  }
+  function resetTaskColumn(column){
+    if(column==='work')ui.taskWork='';else if(column==='plan')ui.taskPlans=null;else if(column==='agent')ui.agent='all';else if(column==='status')ui.taskStatus='all';else if(column==='result')ui.taskResult='';else ui.taskDates={mode:'all',from:'',to:''};
+  }
+  function openColumnMenu(column){
+    if(!Object.hasOwn(TASK_COLUMNS,column))return;
+    if(columnMenu && columnMenu.column===column){dismissColumnMenu(true);return;}
+    var value=column==='work'?ui.taskWork:column==='plan'?(ui.taskPlans===null?null:ui.taskPlans.slice()):column==='agent'?ui.agent:column==='status'?ui.taskStatus:column==='result'?ui.taskResult:Object.assign({},ui.taskDates);
+    columnMenu={column:column,value:value,query:'',error:''};render(true);
+    if($('column-first-input'))$('column-first-input').focus();
+  }
+  function dismissColumnMenu(focus){
+    if(!columnMenu)return;var column=columnMenu.column;columnMenu=null;render(true);
+    if(focus && $('column-trigger-'+column))$('column-trigger-'+column).focus();
+  }
+  function applyColumnMenu(){
+    if(!columnMenu)return false;var c=columnMenu.column,v=columnMenu.value;
+    if(c==='updated' && v.from && v.to && v.from>v.to){columnMenu.error='From must be on or before To.';render(true);return false;}
+    if(c==='work')ui.taskWork=v.trim();else if(c==='plan')ui.taskPlans=v===null?null:v.slice();else if(c==='agent')ui.agent=v;else if(c==='status')ui.taskStatus=v;else if(c==='result')ui.taskResult=v.trim();else ui.taskDates=Object.assign({},v);
+    save('wb-ui',ui);dismissColumnMenu(true);return true;
+  }
+  function sortTaskColumn(column,direction){
+    if(!Object.hasOwn(TASK_COLUMNS,column) || !['asc','desc','default'].includes(direction))return;
+    ui.taskSort=direction==='default'?null:{column:column,direction:direction};columnMenu=null;save('wb-ui',ui);render(true);
+  }
+  function columnSelect(field,options,value){
+    return '<select id="column-first-input" data-column-field="'+field+'" aria-label="Filter '+TASK_COLUMNS[field]+'">'+options.map(function(o){return '<option value="'+esc(o[0])+'"'+(o[0]===value?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select>';
+  }
+  function columnPopover(column,rows){
+    if(!columnMenu || columnMenu.column!==column)return '';
+    var value=columnMenu.value,body='',title=TASK_COLUMNS[column];
+    if(column==='plan'){
+      var options=plans().filter(function(p){return !columnMenu.query || (p.name+' '+p.repo).toLowerCase().includes(columnMenu.query.toLowerCase());});
+      body='<input id="column-first-input" type="search" data-column-plan-search placeholder="Find plans" aria-label="Find plans" value="'+esc(columnMenu.query)+'"><div class="column-selection-actions"><button data-column-plans="all">Select all</button><button data-column-plans="none">Clear selection</button></div><div class="column-plan-options">'+options.map(function(p){
+        return '<label><input id="column-plan-'+encodeURIComponent(key(p))+'" type="checkbox" data-column-plan-choice="'+esc(key(p))+'"'+(value===null || value.includes(key(p))?' checked':'')+'><span>'+esc(p.name)+'<small>'+esc(p.repo)+'</small></span><small>'+p.steps.length+'</small></label>';
+      }).join('')+(options.length?'':'<p class="work-meta">No plans match this search.</p>')+'</div>';
+    }else if(column==='agent')body=columnSelect(column,[['all','All agents']].concat(AGENTS.map(function(a){return [a,a+' ('+rows.filter(function(r){return taskAgentMatches(r,a);}).length+')'];})),value);
+    else if(column==='status')body=columnSelect(column,Object.keys(TASK_STATUSES).map(function(s){return [s,TASK_STATUSES[s]+' ('+(s==='all'?rows.length:rows.filter(function(r){return r.s.status===s;}).length)+')'];}),value);
+    else if(column==='updated')body=columnSelect(column,[['all','All dates'],['recorded','With recorded date'],['missing','Not recorded']],value.mode)+'<div class="column-date-range"><label>From<input id="column-date-from" type="date" data-column-date="from" value="'+esc(value.from)+'"'+(value.mode==='missing'?' disabled':'')+'></label><label>To<input id="column-date-to" type="date" data-column-date="to" value="'+esc(value.to)+'"'+(value.mode==='missing'?' disabled':'')+'></label></div><small class="work-meta">Execution or history date · Vietnam time</small>';
+    else body='<input id="column-first-input" type="search" data-column-field="'+column+'" aria-label="Filter '+title+'" placeholder="Contains text" value="'+esc(value)+'">';
+    var asc=column==='updated'?'Oldest first':column==='status'?'Workflow order':'Sort A → Z',desc=column==='updated'?'Newest first':column==='status'?'Reverse workflow':'Sort Z → A';
+    return '<div id="task-column-popover" class="column-popover" role="dialog" aria-label="'+title+' filter and sort"><div class="column-sort-actions"><button data-column-sort="'+column+'" data-direction="asc">↑ '+asc+'</button><button data-column-sort="'+column+'" data-direction="desc">↓ '+desc+'</button><button data-column-sort="'+column+'" data-direction="default">Default task order</button></div><div class="column-filter-body"><strong>Filter '+title+'</strong>'+body+'</div>'+(columnMenu.error?'<p class="column-error" role="alert">'+esc(columnMenu.error)+'</p>':'')+'<div class="column-footer"><button data-column-clear="'+column+'">Clear filter</button><button data-column-cancel>Cancel</button><button class="column-apply" data-column-apply>Apply</button></div></div>';
+  }
+  function taskColumnHeaders(rows){
+    return Object.keys(TASK_COLUMNS).map(function(c){
+      var sorted=ui.taskSort && ui.taskSort.column===c,open=columnMenu && columnMenu.column===c,filtered=columnFiltered(c);
+      return '<th scope="col" class="'+(open?'column-open ':'')+(filtered?'column-filtered':'')+'" aria-sort="'+(sorted?(ui.taskSort.direction==='asc'?'ascending':'descending'):'none')+'"><button id="column-trigger-'+c+'" class="column-trigger" data-column-menu="'+c+'" aria-haspopup="dialog" aria-expanded="'+!!open+'"><span>'+TASK_COLUMNS[c]+'</span>'+(sorted?'<span aria-hidden="true">'+(ui.taskSort.direction==='asc'?'↑':'↓')+'</span>':'')+(filtered?'<span class="column-filter-dot" aria-label="Filter active"></span>':'')+'<span class="column-chevron" aria-hidden="true">⌄</span></button>'+columnPopover(c,rows)+'</th>';
+    }).join('');
+  }
+  function groupedTaskRows(rows){
+    var map=new Map();rows.forEach(function(r){var k=key(r.p);if(!map.has(k))map.set(k,{key:k,plan:r.p,rows:[]});map.get(k).rows.push(r);});
+    return Array.from(map.values()).sort(function(a,b){var order=taskCollator.compare(a.plan.name,b.plan.name) || taskCollator.compare(a.plan.repo,b.plan.repo);return ui.taskSort && ui.taskSort.column==='plan' && ui.taskSort.direction==='desc'?-order:order;});
+  }
+  function taskTableBody(rows){
+    if(ui.taskGroup!=='plan')return '<tbody>'+rows.map(taskListRow).join('')+'</tbody>';
+    return groupedTaskRows(rows).map(function(g){
+      var collapsed=ui.collapsedPlans[g.key]===true,id='task-group-'+encodeURIComponent(g.key);
+      return '<tbody class="task-group-heading"><tr><td colspan="6"><div><button class="task-group-toggle" data-task-group-toggle="'+esc(g.key)+'" aria-expanded="'+!collapsed+'" aria-controls="'+id+'"><span aria-hidden="true">'+(collapsed?'›':'⌄')+'</span>'+esc(g.plan.name)+'</button><span class="work-meta">'+esc(g.plan.repo)+' · '+g.rows.length+' tasks</span><button class="task-group-open" data-go="plan:'+esc(g.key)+'">Open plan ↗</button></div></td></tr></tbody><tbody id="'+id+'"'+(collapsed?' hidden':'')+'>'+(!collapsed?g.rows.map(taskListRow).join(''):'')+'</tbody>';
+    }).join('');
+  }
+  function taskGroupToolbar(){
+    return '<div class="task-group-toolbar"><label>Group by <select data-task-group aria-label="Group tasks"><option value="none"'+(ui.taskGroup==='none'?' selected':'')+'>None</option><option value="plan"'+(ui.taskGroup==='plan'?' selected':'')+'>Plan</option></select></label>'+(ui.taskGroup==='plan'?'<button class="btn" data-task-groups="expand">Expand all</button><button class="btn" data-task-groups="collapse">Collapse all</button>':'')+(ui.taskSort?'<span class="work-meta">Sorted by '+TASK_COLUMNS[ui.taskSort.column]+' '+(ui.taskSort.direction==='asc'?'↑':'↓')+(ui.taskGroup==='plan' && ui.taskSort.column!=='plan'?' within each plan':'')+'</span>':'')+'</div>';
+  }
+  function setTaskGroups(collapsed){
+    groupedTaskRows(filteredTaskRows(taskRows(plans()))).forEach(function(g){ui.collapsedPlans[g.key]=collapsed;});
+    save('wb-ui',ui);render(true);
+  }
+  function taskListRow(row){
+    var p=row.p,s=row.s,at=taskTime(s),history=!s.execution && !!s.executionHistory;
+    var result=s.execution && s.execution.result || s.executionHistory && s.executionHistory.summary || '';
+    var attrs=' data-open-task="'+esc(key(p))+'" data-task-index="'+row.index+'" data-task-revision="'+esc(p.revision || '')+'"';
+    return '<tr><td class="task-list-work"><button class="work-link task-work-link"'+attrs+' title="'+esc(s.text)+'">'+esc(s.text)+'</button></td>'+
+      '<td class="task-list-plan"><button class="work-link" data-preview-plan="'+esc(key(p))+'" title="'+esc('Quick view · Plan status: '+p.status+' · Coordinator: '+agentName(p))+'">'+esc(p.name)+'</button><span class="work-meta">'+esc(p.repo)+(s.milestone?' · '+esc(s.milestone):'')+'</span></td>'+
+      '<td class="task-list-agent">'+stepExecution(s)+'</td><td class="task-list-status"><span class="tag s-'+s.status+'">'+esc(TASK_STATUSES[s.status] || s.status)+'</span></td>'+
+      '<td class="task-list-result">'+(result?'<span class="task-result-text" title="'+esc(result)+'">'+prs(result,p.gh)+'</span>':'<span class="work-meta">No result recorded</span>')+'</td>'+
+      '<td class="updated-cell">'+(at?'<time title="'+esc(at)+'">'+ago(at)+'</time><span class="work-meta">'+(history?'History verified':'Execution report')+'</span>':'<span class="work-meta">Not recorded</span>')+'</td></tr>';
+  }
+  function viewList(ps){
+    var all=taskRows(ps),rows=filteredTaskRows(all),sub=rows.length+' of '+all.length+' tasks';
+    topBar(ui.view==='waiting'?'Needs attention':'List',sub,all);
+    if($('plan-count'))$('plan-count').textContent=sub;
+    if(!viewOnly)$('tabs').innerHTML='';
+    var extra=ui.taskPlans!==null || !!ui.taskWork || !!ui.taskResult || columnFiltered('updated');
+    var empty=ui.taskStatus==='doing' && ui.agent==='all' && !ui.q && !extra && ui.view!=='waiting'?'No tasks in progress':'No matching tasks';
+    return filterNotice(all.length,rows.length,'tasks')+taskGroupToolbar()+'<div class="table-wrap task-list-wrap"><table class="work-table task-list-table"><caption class="sr-only">Individual checklist tasks with parent plans and recorded execution</caption><thead><tr>'+taskColumnHeaders(all)+'</tr></thead>'+
+      (rows.length?taskTableBody(rows):'<tbody><tr><td colspan="6"><div class="empty"><h2>'+empty+'</h2><p>'+all.length+' checklist tasks are available.</p>'+(ui.taskStatus!=='all'?'<button class="btn" data-task-status-all>Show all statuses</button>':'')+'</div></td></tr></tbody>')+'</table></div>';
+  }
+  var dayFormatter=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'});
+  function dateKey(value) {
+    var d=new Date(value);
+    if(!Number.isFinite(d.getTime())) return '';
+    var parts=dayFormatter.formatToParts(d), out={};
+    parts.forEach(function(p){out[p.type]=p.value;});
+    return out.year+'-'+out.month+'-'+out.day;
+  }
+  function calendarMonth() {
+    var value=ui.month;
+    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(value || '')) value=dateKey(D.now || new Date()).slice(0,7);
+    return value;
+  }
+  function monthDays(month) {
+    var a=month.split('-').map(Number), n=new Date(Date.UTC(a[0],a[1],0)).getUTCDate();
+    return Array.from({length:n},function(_,i){return month+'-'+String(i+1).padStart(2,'0');});
+  }
+  function timelineEntries(p) {
+    var items=feedFor(p).map(function(e){return {day:dateKey(e.ts),kind:e.kind,text:e.text,ts:e.ts};});
+    // The file mtime proves an edit, not a creation or completion.
+    if(dateKey(p.mtime)) items.push({day:dateKey(p.mtime),kind:'updated',text:'Latest plan edit',ts:p.mtime});
+    return items.filter(function(e){return e.day;});
+  }
+  function viewTimeline(ps) {
+    var month=calendarMonth(), days=monthDays(month), today=dateKey(D.now || new Date());
+    var label=new Date(month+'-15T12:00:00+07:00').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'Asia/Ho_Chi_Minh'});
+    var dayHeaders=days.map(function(day){
+      var d=new Date(day+'T12:00:00+07:00'), weekend=[0,6].includes(d.getUTCDay());
+      return '<th class="timeline-day '+(weekend?'weekend ':'')+(day===today?'today':'')+'" scope="col" title="'+day+'">'+day.slice(8)+'</th>';
+    }).join('');
+    return '<div class="timeline-toolbar"><div><strong>'+label+'</strong><span class="work-meta">Recorded activity by day · Vietnam time</span></div><div class="timeline-actions"><button class="btn" data-month="-1" aria-label="Previous month">←</button><button class="btn" data-month="today">Today</button><button class="btn" data-month="1" aria-label="Next month">→</button></div></div>'+
+      '<div class="timeline-legend"><span class="legend-dot"></span>Recorded event <span class="legend-edit"></span>Latest plan edit</div>'+
+      '<div class="timeline-scroll"><table class="timeline-table"><caption class="sr-only">Daily recorded plan activity for '+label+'</caption><thead><tr><th class="timeline-work" scope="col">Work</th><th class="timeline-status" scope="col">Status</th><th class="timeline-agent" scope="col">Coordinator → executors</th>'+dayHeaders+'</tr></thead><tbody>'+
+      ps.map(function(p){
+        var grouped={};timelineEntries(p).forEach(function(e){if(!grouped[e.day])grouped[e.day]=[];grouped[e.day].push(e);});
+        return '<tr><td class="timeline-work">'+workCell(p)+'</td><td class="timeline-status">'+statusSelect(p)+'</td><td class="timeline-agent">'+agentChain(p)+'</td>'+
+          days.map(function(day){
+            var entries=grouped[day] || [], recorded=entries.filter(function(e){return e.kind!=='updated';}), edited=entries.some(function(e){return e.kind==='updated';});
+            var d=new Date(day+'T12:00:00+07:00'), classes='timeline-day '+([0,6].includes(d.getUTCDay())?'weekend ':'')+(day===today?'today':'');
+            var title=entries.map(function(e){return e.kind==='updated'?e.text:e.kind+': '+e.text;}).join('\n');
+            var mark=recorded.length?'<button class="timeline-dot" data-open-activity="'+esc(key(p))+'" data-day="'+day+'" title="'+esc(title)+'" aria-label="'+esc(p.name)+' · '+day+' · '+recorded.length+' recorded events">'+recorded.length+'</button>':(edited?'<span class="timeline-edit" title="'+esc(title)+'" aria-label="'+esc(p.name)+' · last edited '+day+'"></span>':'');
+            return '<td class="'+classes+'">'+mark+'</td>';
+          }).join('')+'</tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  function statusSummary(ps) {
+    var colors=['var(--ds-text-subtlest)','var(--ds-link)','var(--ds-text-discovery)','var(--ds-text-warning)','var(--ds-text-success)'];
+    var values=COLUMNS.map(function(_,i){return ps.filter(function(p){return columnOf(p)===i;}).length;}), total=ps.length, offset=0, length=2*Math.PI*42;
+    var circles=values.map(function(n,i){
+      var segment=total?n/total*length:0;
+      var svg='<circle cx="60" cy="60" r="42" fill="none" stroke="'+colors[i]+'" stroke-width="12" stroke-dasharray="'+segment+' '+(length-segment)+'" stroke-dashoffset="'+(-offset)+'" transform="rotate(-90 60 60)"/>';
+      offset+=segment;return svg;
+    }).join('');
+    return '<div class="status-overview"><svg class="status-chart" viewBox="0 0 120 120" role="img" aria-label="'+total+' plans by current status"><circle cx="60" cy="60" r="42" fill="none" stroke="var(--ds-background-neutral-pressed)" stroke-width="12"/>'+circles+'<text x="60" y="59" text-anchor="middle" class="chart-count">'+total+'</text><text x="60" y="76" text-anchor="middle" class="chart-label">plans</text></svg><ul class="status-legend">'+values.map(function(n,i){return '<li><span class="legend-swatch" style="background:'+colors[i]+'"></span><span>'+COLUMNS[i]+'</span><strong>'+n+'</strong></li>';}).join('')+'</ul></div>';
+  }
+  function agentWorkload(ps,name){
+    var rows=taskRows(ps).filter(function(r){return taskAgentMatches(r,name);}),keys=new Set(rows.map(function(r){return key(r.p);}));
+    return {plans:ps.filter(function(p){return agentMatches(p,name) || keys.has(key(p));}),tasks:rows.length,
+      coordinating:ps.filter(function(p){return agentName(p)===name;}).length,
+      active:rows.filter(function(r){return r.s.execution && (r.s.execution.activeAgents || []).includes(name);}).length};
+  }
+  function viewSummary(ps) {
+    var now=new Date(D.now || Date.now()).getTime(), cutoff=now-7*86400000;
+    var done=ps.filter(function(p){return stage(p.status)==='Done';}).length, needs=ps.filter(needsAttention).length;
+    var updated=ps.filter(function(p){var t=new Date(p.executionUpdatedAt || p.mtime).getTime();return t>=cutoff && t<=now;}).length;
+    var stats=[['Active plans',ps.length-done,'Current'],['Done',done,'Current'],['Updated',updated,'Last 7 days'],['Needs attention',needs,'Current']];
+    var keys=new Set(ps.map(key)), history=feedFor(null).filter(function(e){return keys.has(e.repo+'/'+e.plan);}).slice(0,8);
+    var total=ps.reduce(function(n,p){return n+p.steps.length;},0), completed=ps.reduce(function(n,p){return n+counts(p).done;},0);
+    return '<div class="summary"><div class="summary-stats">'+stats.map(function(s){return '<div class="summary-stat"><span>'+s[0]+'</span><strong>'+s[1]+'</strong><small>'+s[2]+'</small></div>';}).join('')+'</div><div class="summary-grid">'+
+      '<section class="summary-panel"><h2>Status overview</h2><p class="work-meta">Current state of your plans</p>'+statusSummary(ps)+'</section>'+
+      '<section class="summary-panel"><h2>Recent activity</h2><p class="work-meta">Recorded changes across matching plans</p><div class="summary-feed">'+feedHTML(history,true,8,true)+'</div></section>'+
+      '<section class="summary-panel"><h2>Agent workload</h2><p class="work-meta">Plan participation and task agents, including verified history.</p><div class="agent-workload">'+AGENTS.map(function(a){
+        var count=agentWorkload(ps,a),planLabel=count.plans.length+' plan'+(count.plans.length===1?'':'s'),taskLabel=count.tasks+' task'+(count.tasks===1?'':'s');
+        return '<button class="workload-row" data-agent-view="'+a+'"'+(!count.plans.length?' disabled':'')+'>'+agentBadge({agent:a})+'<span class="workload-bar" title="'+planLabel+' of '+ps.length+' matching plans"><i style="width:'+(ps.length?count.plans.length/ps.length*100:0)+'%"></i></span><span class="workload-counts"><strong title="Plan participation and tasks matching the Agent column in List; historical tasks are included">'+planLabel+' · '+taskLabel+'</strong><small title="Coordinating counts plans. Active tasks require an open execution report; historical evidence does not indicate live activity.">'+count.coordinating+' coordinating · '+count.active+' active task'+(count.active===1?'':'s')+'</small></span></button>';
+      }).join('')+'</div></section>'+
+      '<section class="summary-panel"><h2>Step progress</h2><p class="work-meta">Completed checklist work across matching plans</p><div class="summary-progress"><strong>'+completed+' <span>/ '+total+'</span></strong><div class="bar"><i style="width:'+(total?completed/total*100:0)+'%"></i></div></div><h3>Needs attention</h3>'+
+      (ps.filter(needsAttention).slice(0,5).map(function(p){return '<div class="attention-row">'+workCell(p)+agentChain(p)+'</div>';}).join('') || '<p class="work-meta">Nothing needs attention</p>')+'</section></div></div>';
+  }
+  function handleViewAction(e) {
+    if(e.target.closest('a,select')) return false;
+    var star=e.target.closest('[data-star-plan]'),preview=e.target.closest('[data-preview-plan]'),collection=e.target.closest('[data-plan-collection]'),quickTab=e.target.closest('[data-quick-tab]'),quickStep=e.target.closest('[data-quick-step]');
+    if(star){togglePlanStar(star.getAttribute('data-star-plan'));return true;}
+    if(preview){openQuickPlan(preview.getAttribute('data-preview-plan'));return true;}
+    if(collection){var section=collection.getAttribute('data-plan-collection');if(['all','starred','recent'].includes(section)){navigation.section=section;save('wb-navigation',navigation);renderSidebar();}return true;}
+    if(e.target.closest('[data-sidebar-toggle]')){navigation.collapsed=!navigation.collapsed;save('wb-navigation',navigation);renderSidebar();return true;}
+    if(e.target.closest('[data-quick-close]') || (quick.key && e.target.id==='quick-plan')){closeQuickPlan();return true;}
+    if(quickTab){var tab=quickTab.getAttribute('data-quick-tab');if(['overview','checklist','activity'].includes(tab)){quick.tab=tab;renderQuickPlan(true);}return true;}
+    if(quickStep){stepQuickPlan(Number(quickStep.getAttribute('data-quick-step')));return true;}
+    if(e.target.closest('[data-quick-refresh]')){refresh();return true;}
+    if(e.target.closest('[data-quick-full]')){var k=quick.key,selectedTab=quick.tab==='overview'?'summary':quick.tab;if(planByKey(k)){closeQuickPlan(false);ui.view='plan:'+k;ui.tab=selectedTab;ui.q='';ui.activityDay='';ui.focusTask=null;save('wb-ui',ui);render();$('view').scrollTop=0;}return true;}
+    var section=e.target.closest('[data-plan-section]');
+    if(section){var targetTab=section.getAttribute('data-plan-section'),sectionKey=section.getAttribute('data-section-plan');if(!['checklist','questions'].includes(targetTab) || !planByKey(sectionKey))return true;if(quick.key===sectionKey && targetTab==='checklist'){quick.tab='checklist';renderQuickPlan(true);}else{if(quick.key)closeQuickPlan(false);ui.view='plan:'+sectionKey;ui.tab=targetTab;ui.q='';ui.focusTask=null;save('wb-ui',ui);render();$('view').scrollTop=0;}return true;}
+    var column=e.target.closest('[data-column-menu]'),sort=e.target.closest('[data-column-sort]'),clear=e.target.closest('[data-column-clear]'),selection=e.target.closest('[data-column-plans]'),group=e.target.closest('[data-task-group-toggle]'),groups=e.target.closest('[data-task-groups]');
+    if(column){openColumnMenu(column.getAttribute('data-column-menu'));return true;}
+    if(sort){sortTaskColumn(sort.getAttribute('data-column-sort'),sort.getAttribute('data-direction'));return true;}
+    if(clear){resetTaskColumn(clear.getAttribute('data-column-clear'));save('wb-ui',ui);dismissColumnMenu(true);return true;}
+    if(e.target.closest('[data-column-cancel]')){dismissColumnMenu(true);return true;}
+    if(e.target.closest('[data-column-apply]')){applyColumnMenu();return true;}
+    if(selection && columnMenu && columnMenu.column==='plan'){columnMenu.value=selection.getAttribute('data-column-plans')==='all'?null:[];render(true);return true;}
+    if(group){var k=group.getAttribute('data-task-group-toggle');ui.collapsedPlans[k]=!ui.collapsedPlans[k];save('wb-ui',ui);render(true);return true;}
+    if(groups){setTaskGroups(groups.getAttribute('data-task-groups')==='collapse');return true;}
+    var task=e.target.closest('[data-open-task]');
+    if(task){columnMenu=null;if(quick.key)closeQuickPlan(false);openTask(task);return true;}
+    if(e.target.closest('[data-task-status-all]')){ui.taskStatus='all';save('wb-ui',ui);render();return true;}
+    if(e.target.closest('[data-clear-filters]')) {
+      if(ui.layout==='list'){Object.keys(TASK_COLUMNS).forEach(resetTaskColumn);columnMenu=null;}
+      ui.agent='all';ui.q='';ui.view='home';ui.activityDay='';
+      save('wb-ui',ui);render();return true;
+    }
+    var layout=e.target.closest('[data-layout]'), month=e.target.closest('[data-month]'), activity=e.target.closest('[data-open-activity]'), agent=e.target.closest('[data-agent-view]');
+    if(layout) {
+      var value=layout.getAttribute('data-layout');
+      if(!Object.hasOwn(LAYOUTS,value))return true;
+      columnMenu=null;ui.layout=value;if(ui.view.indexOf('plan:')===0)ui.q='';ui.view='home';
+      ui.activityDay='';save('wb-ui',ui);render();$('view').scrollTop=0;$('view').scrollLeft=0;return true;
+    }
+    if(month) {
+      var direction=month.getAttribute('data-month');
+      if(direction==='today') ui.month=dateKey(D.now || new Date()).slice(0,7);
+      else {
+        var bits=calendarMonth().split('-').map(Number), date=new Date(Date.UTC(bits[0],bits[1]-1+Number(direction),15));
+        ui.month=date.toISOString().slice(0,7);
+      }
+      save('wb-ui',ui);render(true);return true;
+    }
+    if(activity) {ui.view='plan:'+activity.getAttribute('data-open-activity');ui.tab='activity';ui.activityDay=activity.getAttribute('data-day');ui.q='';save('wb-ui',ui);render();return true;}
+    if(e.target.closest('[data-clear-day]')) {ui.activityDay='';save('wb-ui',ui);render(true);return true;}
+    if(agent) {
+      var selected=agent.getAttribute('data-agent-view');
+      var count=agentWorkload(filteredPlans(plans()),selected);
+      if(!count.plans.length)return true;
+      Object.keys(TASK_COLUMNS).forEach(resetTaskColumn);columnMenu=null;
+      ui.taskPlans=count.plans.map(key);ui.agent=count.tasks?selected:'all';
+      if(!count.tasks)ui.taskGroup='plan';
+      ui.layout='list';ui.view='home';ui.q='';ui.activityDay='';save('wb-ui',ui);render();return true;
+    }
+    return false;
+  }
+  function filterNotice(total,matching,unit) {
+    unit=unit || 'plans';
+    var labels=[];
+    if(unit==='tasks' && ui.taskStatus!=='all')labels.push('Status: '+TASK_STATUSES[ui.taskStatus]);
+    if(unit==='tasks'){
+      if(ui.taskPlans!==null)labels.push('Plans: '+(ui.taskPlans.length?ui.taskPlans.map(function(k){var p=planByKey(k);return p?p.name+' ('+p.repo+')':k;}).join(', '):'None selected'));
+      if(ui.taskWork)labels.push('Work: '+ui.taskWork);
+      if(ui.taskResult)labels.push('Result: '+ui.taskResult);
+      if(columnFiltered('updated'))labels.push('Updated: '+(ui.taskDates.mode==='missing'?'Not recorded':(ui.taskDates.from || 'Any date')+' to '+(ui.taskDates.to || 'Any date')+(ui.taskDates.mode==='recorded'?' (recorded)':'')));
+    }
+    if(ui.agent!=='all')labels.push('Agent: '+ui.agent);
+    if(ui.view==='waiting')labels.push('Needs attention');
+    if(ui.q)labels.push('Search: '+ui.q);
+    if(!labels.length)return '';
+    return '<div class="filter-notice" role="status"><span>Filters: '+esc(labels.join(' · '))+' · '+matching+' of '+total+' '+unit+'</span><button class="btn" data-clear-filters>Clear filters</button></div>';
+  }
+  function filteredPlans(ps){
+    return ps.filter(function(p){
+      var text=[p.name,p.repo,p.status,p.next,p.goal,owner(p),agentName(p),executorValue(p)].concat(p.steps.map(function(s){return s.text+' '+executorValue(s);}),p.decisions.map(function(d){return d.text;}),p.questions.map(function(q){return q.ask+' '+q.answer;})).join(' ').toLowerCase();
+      return (!ui.q || text.includes(ui.q.toLowerCase())) && (ui.agent==='all' || agentMatches(p,ui.agent)) && (ui.view!=='waiting' || needsAttention(p));
+    });
+  }
+  function viewHome() {
+    if(ui.layout==='list')return viewList(plans());
+    var all=plans(), ps=filteredPlans(all);
+    topBar(ui.view==='waiting'?'Needs attention':LAYOUTS[ui.layout], ps.length+' of '+all.length+' plans');
+    if($('plan-count')) $('plan-count').textContent=ps.length+' of '+all.length+' plans';
+    if(!viewOnly) $('tabs').innerHTML='';
+    var notice=filterNotice(all.length,ps.length);
+    if(all.length && !ps.length) {
+      var unknown=all.every(function(p){return agentName(p)==='Unknown';});
+      return notice+'<div class="empty"><h2>No matching work</h2><p>'+all.length+' plans are available. Clear filters to show all plans.</p>'+(unknown?'<p>These plans have no reported agent yet. Agent identity appears when a client reports execution.</p>':'')+'</div>';
+    }
+    if(ui.layout==='summary') return notice+viewSummary(ps);
+    if (!all.length) return '<div class="empty">No active plan</div>';
+    if (ui.layout==='timeline') return notice+viewTimeline(ps);
+    return notice+'<div class="board">'+COLUMNS.map(function(title,i){var list=ps.filter(function(p){return columnOf(p)===i;});return '<section class="column" data-column="'+i+'" aria-label="'+esc(title)+'"><h2>'+esc(title)+' <span>'+list.length+'</span></h2>'+list.map(taskCard).join('')+(list.length?'':'<div class="empty-column">No work</div>')+'</section>';}).join('')+'</div>';
+  }
+  function viewWaiting() {return viewHome();}
+
+  function orderedMilestones(p) {
+    var rank = function (m) { var s = msState(m); return s === 'done' ? 1 : s === 'todo' ? 2 : 0; };
+    return p.milestones.map(function (m, i) { return [m, i]; }).sort(function (a, b) { return rank(a[0]) - rank(b[0]) || (rank(a[0]) !== 2 ? b[1] - a[1] : a[1] - b[1]); }).map(function (x) { return x[0]; });
+  }
+  var SORDER = { doing: 0, blocked: 1, partial: 2, todo: 3, done: 4 }, TAG = { doing: 'Doing', blocked: 'Blocked', partial: 'Partial', todo: 'To do', done: 'Done' }, BOX = { done: '✓', doing: '↻', blocked: '×', partial: '!', todo: '' };
+  var pendingTaskJump=false;
+  function focusedTask(p){
+    var focus=ui.focusTask;
+    if(!p || !focus || focus.key!==key(p))return null;
+    var candidates=p.steps.filter(function(s){return s.text===focus.text && (s.milestone || '')===focus.milestone;});
+    if(p.revision===focus.revision){var same=p.steps[focus.index];return candidates.includes(same)?same:null;}
+    return candidates.length===1?candidates[0]:null;
+  }
+  function openTask(button){
+    var p=planByKey(button.getAttribute('data-open-task')),index=Number(button.getAttribute('data-task-index'));
+    var revision=button.getAttribute('data-task-revision'),s=p && p.steps[index];
+    if(!p || !s || !Number.isInteger(index) || (revision && revision!==p.revision)){showError('This task changed. Refresh the list and open it again.');get();return;}
+    ui.focusTask={key:key(p),index:index,text:s.text,milestone:s.milestone || '',revision:p.revision};
+    if(s.status==='done')ui.planDetails[planDisclosureKey(p,'full','completed')]=true;
+    ui.view='plan:'+key(p);ui.tab='checklist';ui.q='';ui.activityDay='';pendingTaskJump=true;save('wb-ui',ui);render();
+  }
+  function stepsHTML(list, gh, p,opts) {
+    opts=opts || {};
+    return list.map(function (s, i) { return [s, i]; }).sort(function (a, b) { return SORDER[a[0].status] - SORDER[b[0].status] || a[1] - b[1]; }).map(function (x) {
+      var s = x[0],selected=p && focusedTask(p),focused=selected && (selected===s || (Number.isInteger(s.line) && s.line>0 && selected.line===s.line));
+      return '<div class="st '+(p?'has-agent ':'')+(focused?'task-focused ':'')+'s-' + s.status + '"'+(Number.isInteger(s.line) && s.line>0?' id="task-line-'+s.line+'"':'')+(focused?' tabindex="-1" aria-current="step"':'')+'><span class="box">' + BOX[s.status] + '</span><div class="tx">' + prs(s.text, gh) + (p?executionDisclosure(s,gh,p,opts.scope || 'full',opts.q):executionNote(s)) + '</div>'+(p?'<div class="step-agent">'+stepExecution(s,true)+'</div>':'')+'<span class="tag">' + TAG[s.status] + '</span></div>';
+    }).join('');
+  }
+  function viewPlan(k) {
+    var p = planByKey(k);
+    if (!p) { ui.view = 'home'; return viewHome(); }
+    var c = counts(p), spec = p.spec ? 'vscode://file/' + encodeURI((/^[a-z]:/i.test(p.spec) ? p.spec : p.root + '/' + p.spec).replace(/\\/g, '/')) : '';
+    if (!viewOnly) $('top').innerHTML = '<div class="plan-header"><div class="plan-heading"><button class="btn" data-go="home">← '+LAYOUTS[ui.layout]+'</button><h1>'+esc(p.name)+'</h1>'+starButton(p)+statusSelect(p)+planRoles(p)+'</div><div class="plan-toolbar">'+(spec?'<a class="btn source-link" href="'+spec+'">Plan document ↗</a>':'')+'<input class="search" id="q" aria-label="Search this plan" placeholder="Search tasks and reports…" value="'+esc(ui.q)+'"><button class="btn" id="refresh">Refresh</button></div></div>';
+    var openQ = p.questions.filter(function (q) { return q.open; }).length;
+    var tabs = [['summary','Summary',''],['checklist', 'Work', p.steps.length-c.done], ['decisions', 'Decisions', p.decisions.length || ''], ['questions', 'Questions', openQ?openQ+' open':p.questions.length || ''], ['activity', 'Activity', '']].filter(function(t){return t[0]!=='decisions' && t[0]!=='questions' || (t[0]==='decisions'?p.decisions.length:p.questions.length);});
+    if(!tabs.some(function(t){return t[0]===ui.tab;}))ui.tab='summary';
+    if (!viewOnly) $('tabs').innerHTML = '<div class="tabs">' + tabs.map(function (t) { return '<button class="tab ' + (ui.tab === t[0] ? 'on' : '') + '" data-tab="' + t[0] + '">' + t[1] + (t[2] !== '' ? ' <span>' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
+    var q = (ui.q || '').toLowerCase(), hit = function (s) { return !q || String(s).toLowerCase().indexOf(q) >= 0; };
+    if(ui.tab==='summary')return q?planWork(p,'full',q):planSummary(p,'full');
+    if (ui.tab === 'checklist') {
+      return planWork(p,'full',q);
+    }
+    if (ui.tab === 'decisions') {
+      var ds = p.decisions.slice().sort(function (a, b) { return a.key < b.key ? 1 : a.key > b.key ? -1 : 0; }).filter(function (d) { return hit(d.text); });
+      return ds.length ? '<div class="list">' + ds.map(function (d) { return '<div class="li"><time class="mono">' + esc(d.when) + '</time><div>' + prs(d.text, p.gh) + '</div></div>'; }).join('') + '</div>' : '<div class="empty">No decisions recorded</div>';
+    }
+    if (ui.tab === 'questions') {
+      var qs = p.questions.slice().sort(function (a, b) { return a.key < b.key ? 1 : a.key > b.key ? -1 : 0; }).filter(function (x) { return hit(x.ask + ' ' + x.answer); });
+      return qs.length ? '<div class="list">' + qs.map(function (x) { return '<div class="li"><time class="mono">' + esc(x.when) + '</time><div>' + prs(x.ask, p.gh) + (x.open ? ' <span class="pill t-pending">open</span>' : '<div class="a">' + prs(x.answer, p.gh) + '</div>') + '</div></div>'; }).join('') + '</div>' : '<div class="empty">No questions</div>';
+    }
+    var history=feedFor(p);
+    if(ui.activityDay) history=history.filter(function(e){return dateKey(e.ts)===ui.activityDay;});
+    return (ui.activityDay?'<div class="history-filter">'+esc(ui.activityDay)+' <button class="btn" data-clear-day>Show all activity</button></div>':'')+feedHTML(history, false);
+  }
+
+  var viewOnly = false, searchTimer,lastVisitedRoute=null;
+  function render(onlyView) {
+    var scroll = $('view').scrollTop, horizontal = $('view').scrollLeft, navScroll = $('nav').scrollTop;
+    var input = $('q'), focused = input && document.activeElement === input;
+    var start = focused ? input.selectionStart : 0, end = focused ? input.selectionEnd : 0;
+    var active=document.activeElement,menuFocus=columnMenu && active && active.id && active.id.startsWith('column-')?{id:active.id,start:active.selectionStart,end:active.selectionEnd}:null;
+    var planFocus=active && active.id && active.id.startsWith('plan-disclosure-')?active.id:null;
+    viewOnly = !!onlyView;
+    if(ui.view.startsWith('plan:') && planByKey(ui.view.slice(5))){if(lastVisitedRoute!==ui.view){recordPlanVisit(ui.view.slice(5));lastVisitedRoute=ui.view;}}else lastVisitedRoute=null;
+    if (!viewOnly) renderNav();
+    var v = ui.view, html = v === 'waiting' ? viewWaiting() : v.indexOf('plan:') === 0 ? viewPlan(v.slice(5)) : viewHome();
+    $('view').className = 'view' + (ui.view.indexOf('plan:')===0 ? ' detail' : '');
+    $('view').innerHTML = html;
+    $('view').scrollTop = scroll; $('view').scrollLeft = horizontal; $('nav').scrollTop = navScroll;
+    if (!viewOnly) {
+      var checked=D.state.generatedAt;
+      $('upd').textContent = checked?'Checked '+hhmm(checked):'';
+      $('upd').title=checked?'Last successful progress check: '+checked:'No successful progress check yet';
+      var qEl = $('q'); if (qEl) qEl.oninput = function () {
+        ui.q = qEl.value; save('wb-ui', ui); clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () { render(true); }, 150);
+      };
+      var r = $('refresh'); if (r) r.onclick = refresh;
+      if (focused && qEl) { qEl.focus(); qEl.setSelectionRange(start, end); }
+    }
+    viewOnly = false;
+    renderSidebar();renderQuickPlan(false);
+    if(planFocus && $(planFocus))$(planFocus).focus({preventScroll:true});
+    if(menuFocus && $(menuFocus.id)){
+      var el=$(menuFocus.id);el.focus({preventScroll:true});
+      if(typeof menuFocus.start==='number' && el.setSelectionRange)el.setSelectionRange(menuFocus.start,menuFocus.end);
+    }
+    if(pendingTaskJump){
+      pendingTaskJump=false;var selected=focusedTask(planByKey(ui.view.slice(5))),row=selected && Number.isInteger(selected.line)?$('task-line-'+selected.line):null;
+      if(row){row.scrollIntoView({block:'center'});row.focus({preventScroll:true});}
+    }
+  }
+  function statusSelect(p) {
+    var current = stage(p.status), options = PLAN_STAGES.slice();
+    if (options.indexOf(current) < 0) options.unshift(current);
+    return '<select class="status-select status-'+statusTone(current)+'" aria-label="Plan status" data-status="'+esc(key(p))+'"'+(saving || !p.revision?' disabled':'')+'>'+options.map(function(s){
+      return '<option class="status-'+statusTone(s)+'" value="'+esc(s)+'"'+(s===current?' selected':'')+'>'+esc(s)+'</option>';
+    }).join('')+'</select>';
+  }
+  var suppressClickUntil = 0;
+  function clearDrop() {
+    document.querySelectorAll('.drop-target').forEach(function(el){el.classList.remove('drop-target');});
+  }
+  function endDrag() {
+    dragged = null;
+    suppressClickUntil = Date.now() + 250;
+    clearDrop();
+    document.querySelectorAll('.dragging').forEach(function(el){el.classList.remove('dragging');});
+  }
+  async function savePlanField(k, field, target, revision, stepLine) {
+    var p = planByKey(k);
+    if (!p || saving) return;
+    if (field==='status' && (PLAN_STAGES.indexOf(target)<0 || stage(p.status)===target)) return;
+    if(field!=='status')return;
+    if (!revision) { showError('Refresh the board before moving this plan.'); return; }
+    saving = true;
+    $('save-state').textContent = 'Saving…';
+    showError('');
+    render(true);
+    try {
+      var body={repo:p.repo,plan:p.name,revision:revision,status:target};
+      var response = await fetch('/api/plans/'+field, {method:'POST', headers:{'Content-Type':'application/json','X-Workboard':'1'},
+        body:JSON.stringify(body)});
+      var result = await response.json();
+      if (!response.ok) throw Error(result.error || 'Could not save change.');
+      saving = false;
+      await get();
+      $('save-state').textContent = 'Moved to '+target;
+      if(result.error) showError('Status saved. Refresh failed: '+result.error);
+    } catch(e) {
+      saving = false;
+      await get();
+      $('save-state').textContent = '';
+      showError(e.message);
+    } finally {
+      saving = false;
+      render();
+    }
+  }
+  function moveStatus(k,target,revision){return savePlanField(k,'status',target,revision);}
+  function columnInput(target){
+    if(!columnMenu)return false;
+    if(target.closest('[data-column-plan-search]')){columnMenu.query=target.value;render(true);return true;}
+    var date=target.closest('[data-column-date]');
+    if(date && columnMenu.column==='updated'){columnMenu.value[date.getAttribute('data-column-date')]=target.value;columnMenu.error='';return true;}
+    var field=target.closest('[data-column-field]');
+    if(!field)return false;
+    if(columnMenu.column==='updated'){
+      if(!['all','recorded','missing'].includes(target.value))return true;
+      columnMenu.value.mode=target.value;
+      if(target.value==='missing'){columnMenu.value.from='';columnMenu.value.to='';}
+      render(true);
+    }else columnMenu.value=target.value;
+    return true;
+  }
+  document.addEventListener('toggle',function(e){
+    if(!e.target.getAttribute)return;var token=e.target.getAttribute('data-plan-disclosure');
+    if(!token || e.target.getAttribute('data-disclosure-auto'))return;
+    if(ui.planDetails[token]!==!!e.target.open){ui.planDetails[token]=!!e.target.open;save('wb-ui',ui);}
+  },true);
+  document.addEventListener('input',function(e){columnInput(e.target);});
+  document.addEventListener('change',function(e){
+    var choice=e.target.closest('[data-column-plan-choice]');
+    if(choice && columnMenu && columnMenu.column==='plan'){
+      var k=choice.getAttribute('data-column-plan-choice');
+      if(columnMenu.value===null)columnMenu.value=plans().map(key);
+      columnMenu.value=columnMenu.value.filter(function(v){return v!==k;});
+      if(e.target.checked)columnMenu.value.push(k);
+      return;
+    }
+    if(columnInput(e.target))return;
+    if(e.target.closest('[data-task-group]')){
+      if(!['none','plan'].includes(e.target.value))return;
+      ui.taskGroup=e.target.value;columnMenu=null;save('wb-ui',ui);render(true);return;
+    }
+    if(e.target.closest('[data-agent-filter]')) {ui.agent=e.target.value;save('wb-ui',ui);render(true);return;}
+    var select=e.target.closest('[data-status]');
+    if(!select) return;
+    var p=planByKey(select.getAttribute('data-status'));
+    if(p) {
+      var target=select.value;
+      select.className='status-select status-'+statusTone(target);
+      select.disabled=true;
+      moveStatus(key(p),target,p.revision).finally(function(){select.disabled=false;});
+    }
+  });
+  document.addEventListener('dragstart',function(e){
+    var card=e.target.closest('[data-plan]');
+    if(!card || saving || e.target.closest('a,input,select,textarea')) {e.preventDefault();return;}
+    var p=planByKey(card.getAttribute('data-plan'));
+    if(!p || !p.revision) {e.preventDefault();return;}
+    dragged={key:key(p),column:columnOf(p),revision:p.revision};
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',key(p));
+    card.classList.add('dragging');
+  });
+  document.addEventListener('dragover',function(e){
+    var column=e.target.closest('[data-column]');
+    if(!dragged || saving || !column || Number(column.getAttribute('data-column'))===dragged.column) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect='move';
+    clearDrop();
+    column.classList.add('drop-target');
+  });
+  document.addEventListener('dragleave',function(e){
+    var column=e.target.closest('[data-column]');
+    if(column && !column.contains(e.relatedTarget)) column.classList.remove('drop-target');
+  });
+  document.addEventListener('drop',function(e){
+    var column=e.target.closest('[data-column]'), source=dragged;
+    if(!source || !column) return;
+    e.preventDefault();
+    var index=Number(column.getAttribute('data-column'));
+    endDrag();
+    if(index!==source.column && COLUMN_STAGES[index]) moveStatus(source.key,COLUMN_STAGES[index],source.revision);
+    else get();
+  });
+  document.addEventListener('dragend',function(){endDrag();get();});
+  var refreshing=null;
+  function refresh() {
+    if(refreshing)return refreshing;
+    if($('quick-refresh')){$('quick-refresh').disabled=true;$('quick-refresh').textContent='Checking…';}
+    $('save-state').textContent='Checking progress…';
+    refreshing=(async function(){
+      try{
+        var response=await fetch('/api/refresh',{method:'POST',cache:'no-store',headers:{'X-Workboard':'1'}});
+        var result=response.status===204?{}:await response.json();
+        if(!response.ok || result.error)throw Error(result.error || 'Progress refresh failed');
+        var latest=await get();
+        if(!latest)throw Error('Could not read refreshed progress');
+        if(latest.error)throw Error(latest.error);
+        $('save-state').textContent='Progress updated';
+      }catch(e){showError(e.message);$('save-state').textContent='Progress check failed';}
+      finally{refreshing=null;if($('quick-refresh')){$('quick-refresh').disabled=false;$('quick-refresh').textContent='Refresh';}}
+    })();
+    return refreshing;
+  }
+  document.addEventListener('pointerdown',function(e){
+    if(!columnMenu || e.target.closest('.column-popover,[data-column-menu]'))return;
+    var column=columnMenu.column;columnMenu=null;
+    var popup=$('task-column-popover'),trigger=$('column-trigger-'+column);
+    if(popup)popup.remove();
+    if(trigger){trigger.setAttribute('aria-expanded','false');trigger.closest('th').classList.remove('column-open');}
+  });
+  document.addEventListener('click', function (ev) {
+    if(Date.now()<suppressClickUntil) return;
+    if(handleViewAction(ev)) return;
+    var go = ev.target.closest('[data-go]'), tab = ev.target.closest('[data-tab]');
+    if (Date.now() < suppressClickUntil || ev.target.closest('a,select')) return;
+    if (go) { columnMenu=null;var v = go.getAttribute('data-go'); if(v==='waiting' && ui.view==='waiting')v='home'; if (v !== ui.view) { ui.view = v; ui.q = ''; ui.activityDay='';ui.focusTask=null;if(v==='waiting' && ui.layout==='list')ui.taskStatus='all'; if (v.indexOf('plan:') === 0) ui.tab = 'summary'; } save('wb-ui', ui); render(); $('view').scrollTop = 0; }
+    else if (tab) { ui.tab = tab.getAttribute('data-tab'); save('wb-ui', ui); render(); }
+  });
+
+  function showError(reason) {
+    $('error').hidden = !reason; $('error').textContent = reason || ''; $('error').title = reason || '';
+    if($('quick-error')){$('quick-error').hidden=!reason;$('quick-error').textContent=reason || '';}
+  }
+  function connection(online) { $('live').className = online ? 'live' : 'live off'; $('connection').textContent = online ? '' : 'Reconnecting…'; }
+  function get() { if(dragged || saving) return Promise.resolve(); return fetch('/api/state', { cache: 'no-store' }).then(function (r) { if(!r.ok) throw Error('State request failed: '+r.status); return r.json(); }).then(function (j) {
+    if (dragged || saving) return;
+    if (!j.state || !Array.isArray(j.state.plans) || !Array.isArray(j.activity)) throw Error(j.error || 'Invalid state response');
+    D = j; showError(D.error); render();return j;
+  }).catch(function (e) { showError(e.message);return null; }); }
+  function connect() {
+    var es = new EventSource('/events');
+    es.onopen = function () { connection(true); get(); };
+    es.onmessage = function () { get(); };
+    es.onerror = function () { connection(false); };
+  }
+  function jumpHash() {
+    if (location.hash.indexOf('#plan=') === 0) {
+      try { ui.view = 'plan:' + decodeURIComponent(location.hash.slice(6).replace(/\+/g, ' ')); ui.tab = 'summary'; ui.q = ''; save('wb-ui',ui); } catch(e) { /* An invalid external fragment leaves the current view intact. */ }
+    }
+  }
+  window.addEventListener('hashchange',function(){jumpHash();render();});
+  if($('quick-plan'))$('quick-plan').addEventListener('cancel',function(e){e.preventDefault();closeQuickPlan();});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='F5'){e.preventDefault();if(!e.repeat)refresh();return;}
+    if(quick.key){
+      if(e.key==='Escape'){e.preventDefault();closeQuickPlan();return;}
+      if(e.ctrlKey && e.key.toLowerCase()==='k'){e.preventDefault();if($('quick-plan-scroll'))$('quick-plan-scroll').focus();return;}
+      if(e.altKey && ['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();stepQuickPlan(e.key==='ArrowDown'?1:-1);return;}
+      var tab=e.target.closest && e.target.closest('[data-quick-tab]');
+      if(tab && ['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+        e.preventDefault();var tabs=['overview','checklist','activity'],i=tabs.indexOf(quick.tab);
+        quick.tab=tabs[e.key==='Home'?0:e.key==='End'?2:(i+(e.key==='ArrowRight'?1:-1)+3)%3];renderQuickPlan(true);if($('quick-tab-'+quick.tab))$('quick-tab-'+quick.tab).focus();return;
+      }
+    }
+    if(e.key==='Escape' && columnMenu){e.preventDefault();dismissColumnMenu(true);return;}
+    if(e.key==='Enter' && columnMenu && e.target.tagName==='INPUT' && e.target.type!=='checkbox'){e.preventDefault();applyColumnMenu();return;}
+    var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+    if (e.ctrlKey && e.key.toLowerCase()==='k') {e.preventDefault(); if($('q')) {$('q').focus();$('q').select();} return;}
+    if (e.key==='Escape' && ui.view.indexOf('plan:')===0) {ui.view='home';ui.q='';ui.activityDay='';save('wb-ui',ui);render();return;}
+    if (typing) return;
+    if (e.altKey && (e.key==='ArrowUp' || e.key==='ArrowDown')) {
+      e.preventDefault(); var ps=plans(), i=ps.findIndex(function(p){return ui.view==='plan:'+key(p);});
+      if(ps.length) {i=(i+(e.key==='ArrowDown'?1:-1)+ps.length)%ps.length;ui.view='plan:'+key(ps[i]);ui.q='';ui.tab='summary';save('wb-ui',ui);render();$('view').scrollTop=0;}
+    } else if (!e.ctrlKey && !e.altKey && !e.metaKey && e.key.toLowerCase()==='r') { e.preventDefault();refresh(); }
+  });
+  jumpHash(); get(); connect();
+  setInterval(get, 30000); // server owns the same stale rule used by toasts
+})();
+</script>
+</body>
+</html>
