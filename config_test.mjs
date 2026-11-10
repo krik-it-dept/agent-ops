@@ -35,12 +35,15 @@ test('Collector reads enabled projects from AGENT_OPS_CONFIG and keeps same-name
   }finally{rmSync(root,{recursive:true,force:true});}
 });
 
-test('Precedence is flag, then config, then legacy environment only without a config',()=>{
+test('Precedence is flag, then environment, then config, then default (same as the Go app)',()=>{
   const {root,config}=fixture();
   try{
-    const viaConfig=resolveSettings({},env({AGENT_OPS_CONFIG:config,KRIK_REPOS_DIR:join(root,'oss'),KRIK_STATE_FILE:join(root,'ignored.json')}));
+    const viaConfig=resolveSettings({},env({AGENT_OPS_CONFIG:config}));
     assert.deepEqual(viaConfig.projects.map(p=>p.id),['work','oss','gone']);
     assert.equal(viaConfig.stateFile,join(root,'data','state','tong-hop-chung.json'));
+    const viaEnv=resolveSettings({},env({AGENT_OPS_CONFIG:config,KRIK_REPOS_DIR:join(root,'oss'),KRIK_STATE_FILE:join(root,'env.json'),KRIK_SLOTS_FILE:join(root,'slots.json')}));
+    assert.deepEqual(viaEnv.projects.map(p=>p.id),[projectIdFor(join(root,'oss'))]);
+    assert.equal(viaEnv.stateFile,join(root,'env.json'));assert.equal(viaEnv.slotsFile,join(root,'slots.json'));
     const viaFlag=resolveSettings({'repos-dir':join(root,'work'),'state-file':join(root,'flag.json')},env({AGENT_OPS_CONFIG:config}));
     assert.deepEqual(viaFlag.projects.map(p=>[p.id,p.kind]),[[projectIdFor(join(root,'work')),'folder']]);
     assert.equal(viaFlag.stateFile,join(root,'flag.json'));

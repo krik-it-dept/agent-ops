@@ -17,7 +17,7 @@ On first launch Agent Ops opens a short setup: add one or more project folders, 
 
 Settings are stored in `<data-dir>/config.json` and shared with the reporting helpers (`task-sync.mjs`, `task-report.mjs`), which find it through `AGENT_OPS_CONFIG` or the default data folder, so agents need no path flags. An installation upgraded from a version without settings keeps its existing repositories folder, state file and slots file: they are written into `config.json` on the first start. A corrupt `config.json` is renamed to `config.json.corrupt-<time>` and reported, never silently replaced.
 
-Precedence for each value is flag, then environment variable, then `config.json`, then the default:
+Precedence for each value is flag, then environment variable, then `config.json`, then the default. The app and the Node helpers (`tasks-overview.mjs`, `task-sync.mjs`, `task-report.mjs`) use this same order, so a `KRIK_*` variable set in an agent's shell overrides `config.json` for that helper exactly as it would for the app; leave these variables unset unless you mean to override the configured projects or state file everywhere. One upgrade exception: a `--repos-dir`, `--state-file` or `--slots-file` value equal to the first release's built-in path is treated as migration input, not as an override, because releases before settings passed those paths on every restart:
 
 | Flag | Environment | Default |
 | --- | --- | --- |

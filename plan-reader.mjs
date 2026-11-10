@@ -101,7 +101,9 @@ export function readPlan(file) {
 // release package file list, which the in-app updater validates, is unchanged). The desktop app passes
 // AGENT_OPS_CONFIG to its children; an agent running a helper directly uses the
 // default location, so no machine-specific flags are needed.
-// Precedence: flag > config.json > KRIK_* environment (only without a config) > default.
+// Precedence, identical to the Go app (config() and initSettings):
+// flag > KRIK_* environment > config.json > default. The app's own children get
+// the app's resolved values through flags and environment, so both sides agree.
 export function defaultDataDir(env=process.env){
   return join(env.LOCALAPPDATA || join(homedir(),'AppData','Local'),'krik-workboard');
 }
@@ -135,13 +137,12 @@ export function resolveSettings(options={},env=process.env){
   const configFile=configPath(env);
   // Read lazily: explicit flags never depend on (or fail because of) the config file.
   let cached;const config=()=>cached===undefined?(cached=readConfig(configFile)):cached;
+  const reposOverride=options['repos-dir'] || env.KRIK_REPOS_DIR;
   let projects=[];
-  if(options['repos-dir'])projects=[overrideProject(options['repos-dir'])];
+  if(reposOverride)projects=[overrideProject(reposOverride)];
   else if(config())projects=config().projects.filter(p=>p.enabled).map(p=>({...p,path:resolve(p.path)}));
-  else if(env.KRIK_REPOS_DIR)projects=[overrideProject(env.KRIK_REPOS_DIR)];
-  const legacyEnv=name=>config()?'':(env[name] || '');
-  const stateFile=resolve(options['state-file'] || config()?.stateFile || legacyEnv('KRIK_STATE_FILE') || join(dirname(configFile),'state','tong-hop-chung.json'));
-  const slotsSource=options['slots-file'] || config()?.slotsFile || legacyEnv('KRIK_SLOTS_FILE');
+  const stateFile=resolve(options['state-file'] || env.KRIK_STATE_FILE || config()?.stateFile || join(dirname(configFile),'state','tong-hop-chung.json'));
+  const slotsSource=options['slots-file'] || env.KRIK_SLOTS_FILE || config()?.slotsFile;
   return {configFile,projects,stateFile,slotsFile:slotsSource?resolve(slotsSource):''};
 }
 

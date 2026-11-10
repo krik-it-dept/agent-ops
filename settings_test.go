@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -490,5 +491,83 @@ func TestReenabledProjectDoesNotReseedHistory(t *testing.T) {
 	call(t, handleProject, "PATCH", "/api/projects/"+id, map[string]any{"enabled": true})
 	if lines() != logged {
 		t.Fatal("history was seeded again after a restart", lines(), logged)
+	}
+}
+
+// The Go app and the Node helpers (task-sync, task-report, the collector) must
+// resolve projects, state file and slots file in the same order:
+// flag > KRIK_* environment > config.json > default.
+func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
+	dir := settingsFixture(t)
+	oldArgs, oldFlags := os.Args, flag.CommandLine
+	t.Cleanup(func() {
+		os.Args, flag.CommandLine = oldArgs, oldFlags
+		explicitRepos, explicitState, explicitSlots = false, false, false
+	})
+	configured := mkRepo(t, filepath.Join(dir, "configured"), "plan")
+	envRepos := mkRepo(t, filepath.Join(dir, "env-repos", "app"), "plan")
+	cfg := defaultAppConfig()
+	cfg.SetupComplete = true
+	cfg.StateFile, cfg.SlotsFile = filepath.Join(dir, "config-state.json"), filepath.Join(dir, "config-slots.json")
+	cfg.Projects = []Project{
+		{ID: projectIDFor(configured), Path: configured, Name: "configured", Kind: "repo", Enabled: true},
+		{ID: "off", Path: filepath.Join(dir, "off"), Name: "off", Kind: "folder", Enabled: false},
+	}
+	if err := writeAppConfig(configFilePath(dataDir), cfg); err != nil {
+		t.Fatal(err)
+	}
+	reader, _ := filepath.Abs("plan-reader.mjs")
+	script := `const {resolveSettings}=await import(process.argv[1]);` +
+		`const s=resolveSettings(JSON.parse(process.argv[2]));` +
+		`process.stdout.write(JSON.stringify({projects:s.projects.map(p=>p.id),state:s.stateFile,slots:s.slotsFile}))`
+	type resolved struct {
+		Projects []string `json:"projects"`
+		State    string   `json:"state"`
+		Slots    string   `json:"slots"`
+	}
+	cases := []struct {
+		name  string
+		env   map[string]string
+		flags map[string]string
+	}{
+		{"config", nil, nil},
+		{"environment beats config", map[string]string{"KRIK_REPOS_DIR": filepath.Dir(envRepos), "KRIK_STATE_FILE": filepath.Join(dir, "env-state.json"), "KRIK_SLOTS_FILE": filepath.Join(dir, "env-slots.json")}, nil},
+		{"environment for one value", map[string]string{"KRIK_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil},
+		{"flag beats environment", map[string]string{"KRIK_STATE_FILE": filepath.Join(dir, "env-state.json"), "KRIK_REPOS_DIR": filepath.Dir(envRepos)},
+			map[string]string{"state-file": filepath.Join(dir, "flag-state.json"), "repos-dir": configured}},
+	}
+	for _, c := range cases {
+		for _, name := range []string{"KRIK_REPOS_DIR", "KRIK_STATE_FILE", "KRIK_SLOTS_FILE"} {
+			t.Setenv(name, c.env[name])
+		}
+		args := []string{"test", "--data-dir", dataDir}
+		for k, v := range c.flags {
+			args = append(args, "--"+k, v)
+		}
+		flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+		os.Args = args
+		config()
+		initSettings()
+		goSide := resolved{State: stateFile, Slots: slotsFile}
+		for _, p := range effectiveProjects() {
+			goSide.Projects = append(goSide.Projects, p.ID)
+		}
+		options, _ := json.Marshal(c.flags)
+		if c.flags == nil {
+			options = []byte("{}")
+		}
+		cmd := exec.Command("node", "--input-type=module", "-e", script, "file:///"+filepath.ToSlash(reader), string(options))
+		cmd.Env = append(os.Environ(), "AGENT_OPS_CONFIG="+configFilePath(dataDir))
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatal(c.name, err)
+		}
+		var nodeSide resolved
+		if err := json.Unmarshal(out, &nodeSide); err != nil {
+			t.Fatal(c.name, err, string(out))
+		}
+		if strings.Join(goSide.Projects, ",") != strings.Join(nodeSide.Projects, ",") || !strings.EqualFold(goSide.State, nodeSide.State) || !strings.EqualFold(goSide.Slots, nodeSide.Slots) {
+			t.Fatalf("%s: Go %+v, Node %+v", c.name, goSide, nodeSide)
+		}
 	}
 }
