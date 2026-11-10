@@ -135,27 +135,13 @@ func removeSetupIntegrations() error {
 	appCfg = cfg
 	cfgMu.Unlock()
 	for _, target := range cfg.Integrations {
-		// Disabled targets still have managed files; enable only in memory for
-		// the existing guarded removal action, then restore the preference.
-		if !target.Enabled {
-			cfgMu.Lock()
-			for i := range appCfg.Integrations {
-				if appCfg.Integrations[i].ID == target.ID {
-					appCfg.Integrations[i].Enabled = true
-				}
-			}
-			cfgMu.Unlock()
-		}
+		// Settings cleanup also supports disabled folders; preserve that setting.
 		var removeErr error
 		if target.InstructionBlock {
 			removeErr = applyIntegration(target.ID, "instructions-off", time.Now())
 		}
 		if removeErr == nil {
 			removeErr = applyIntegration(target.ID, "remove", time.Now())
-		}
-		if !target.Enabled {
-			disabled := false
-			removeErr = errors.Join(removeErr, editIntegrationTarget(target.ID, targetInput{Enabled: &disabled}))
 		}
 		if removeErr != nil {
 			return fmt.Errorf("AI integration retained; uninstall stopped: %w", removeErr)
