@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 )
 
 var errClientFileChanged = errors.New("the file changed while Agent Ops was editing it; nothing was written")
@@ -371,10 +372,10 @@ func (n *jsonNode) encode(buf *bytes.Buffer, indent string) {
 	}
 }
 
-// removeHooksMatching drops every Claude hook whose command contains marker. A
-// rule, event list or the hooks object is dropped only when this removal emptied
-// it. It returns the number of hooks removed.
-func removeHooksMatching(root *jsonNode, marker string) int {
+// removeHooksMatching drops every Claude hook whose command contains all of
+// markers. A rule, event list or the hooks object is dropped only when this
+// removal emptied it. It returns the number of hooks removed.
+func removeHooksMatching(root *jsonNode, markers []string) int {
 	if root == nil || !root.object {
 		return 0
 	}
@@ -401,7 +402,7 @@ func removeHooksMatching(root *jsonNode, marker string) int {
 			}
 			left := []*jsonNode{}
 			for _, h := range inner.items {
-				if cmd, ok := h.get2("command"); ok && strings.Contains(cmd, marker) {
+				if cmd, ok := h.get2("command"); ok && containsAll(cmd, markers) {
 					removed++
 					continue
 				}
@@ -432,14 +433,28 @@ func (n *jsonNode) get2(key string) (string, bool) {
 	return n.get(key).str()
 }
 
+func containsAll(s string, parts []string) bool {
+	for _, p := range parts {
+		if !strings.Contains(s, p) {
+			return false
+		}
+	}
+	return len(parts) > 0
+}
+
 // settingsWithoutHooks returns the settings file content without the hooks whose
-// command contains marker, keeping key order, a BOM and the line ending style.
-func settingsWithoutHooks(original []byte, marker string) ([]byte, int, error) {
+// command contains all of markers, keeping key order, a BOM and the line ending
+// style. A file that is not valid UTF-8 is refused: re-encoding it would replace
+// the invalid bytes.
+func settingsWithoutHooks(original []byte, markers ...string) ([]byte, int, error) {
+	if !utf8.Valid(original) {
+		return nil, 0, errors.New("not valid UTF-8")
+	}
 	root, err := parseJSONNode(original)
 	if err != nil {
 		return nil, 0, err
 	}
-	n := removeHooksMatching(root, marker)
+	n := removeHooksMatching(root, markers)
 	if n == 0 {
 		return original, 0, nil
 	}

@@ -219,7 +219,9 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		if original == nil {
 			continue
 		}
-		updated, n, err := settingsWithoutHooks(original, "task-sync.mjs")
+		// Only the shape the reporting installer wrote: a hook the owner wrote
+		// that calls task-sync.mjs another way stays.
+		updated, n, err := settingsWithoutHooks(original, legacyHookScript, legacyHookFlag)
 		if err != nil {
 			r.fail("%s is not valid JSON; remove its task-sync.mjs hooks by hand", file)
 			continue

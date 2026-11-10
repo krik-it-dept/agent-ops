@@ -390,3 +390,19 @@ func TestEmbeddedSkillIsStaticAndVersioned(t *testing.T) {
 		t.Fatal("front matter")
 	}
 }
+
+// Only the hook shape the reporting installer wrote is removed; an owner hook
+// that runs task-sync.mjs another way stays.
+func TestMigrationRemovesOnlyTheInstallerHookShape(t *testing.T) {
+	original := []byte(`{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"node C:/rt/task-sync.mjs --claude-hook"},{"type":"command","command":"node C:/owner/task-sync.mjs status --plan x"}]}]}}`)
+	out, n, err := settingsWithoutHooks(original, legacyHookScript, legacyHookFlag)
+	if err != nil || n != 1 {
+		t.Fatal(err, n)
+	}
+	if !strings.Contains(string(out), "task-sync.mjs status --plan x") || strings.Contains(string(out), "--claude-hook") {
+		t.Fatalf("%s", out)
+	}
+	if _, n, _ := settingsWithoutHooks(original); n != 0 {
+		t.Fatal("no marker must match nothing")
+	}
+}

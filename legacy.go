@@ -23,6 +23,9 @@ const (
 	// Managed instruction block markers written by the reporting installer.
 	legacyBlockStart = "<!-- workboard-task-reporting:start -->"
 	legacyBlockEnd   = "<!-- workboard-task-reporting:end -->"
+	// The command of a Claude hook the reporting installer wrote contains both.
+	legacyHookScript = "task-sync.mjs"
+	legacyHookFlag   = "--claude-hook"
 	// The reporting installer's record of what it wrote, in <profile>\.agents.
 	legacyIntegrationsFile = "workboard-integrations.json"
 	// Run history written by task-report.mjs next to the generated state file.
