@@ -253,6 +253,7 @@ func createInstallShortcut(path, exe string) error {
 // The cleanup worker has only explicit paths, checks them again after the parent
 // exits, and refuses reparse points. No command text contains interpolated paths.
 const cleanupScript = `
+trap { if ($env:AGENT_OPS_CLEANUP_LOG) { Add-Content -LiteralPath $env:AGENT_OPS_CLEANUP_LOG -Value ((Get-Date -Format o) + ' ' + $_) }; exit 1 }
 $parentProcess = Get-Process -Id ([int]$env:AGENT_OPS_PARENT) -ErrorAction SilentlyContinue
 if ($parentProcess) { if (!$parentProcess.WaitForExit(60000)) { throw 'Setup did not exit' } }
 foreach ($target in @($env:AGENT_OPS_DELETE, $env:AGENT_OPS_DELETE_DATA)) {
@@ -274,21 +275,55 @@ foreach ($target in @($env:AGENT_OPS_DELETE, $env:AGENT_OPS_DELETE_DATA)) {
 }
 `
 
+// cleanupLog records why a deferred removal failed; the worker runs hidden.
+func cleanupLog() string { return filepath.Join(os.TempDir(), "agent-ops-cleanup.log") }
+
 func scheduleInstallDelete(root, data string) error {
-	for _, p := range []string{root, data} {
-		if p == "" {
+	_, err := startInstallDelete(root, data, cleanupLog())
+	return err
+}
+
+// startInstallDelete starts the cleanup worker for root and, when set, data.
+// Paths are passed with long names: Windows PowerShell's GetFullPath expands
+// 8.3 short names (C:\Users\RUNNER~1), and the worker refuses a path that
+// changes when made full.
+func startInstallDelete(root, data, log string) (*exec.Cmd, error) {
+	paths := []*string{&root, &data}
+	for _, p := range paths {
+		if *p == "" {
 			continue
 		}
-		if !filepath.IsAbs(p) || filepath.Dir(p) == p {
-			return errors.New("Unsafe cleanup path")
+		if !filepath.IsAbs(*p) || filepath.Dir(*p) == *p {
+			return nil, errors.New("Unsafe cleanup path")
 		}
-		if err := plainUpdatePath(p); err != nil {
-			return err
+		if err := plainUpdatePath(*p); err != nil {
+			return nil, err
 		}
+		*p = longPathName(*p)
 	}
-	cmd := setupPowerShell(cleanupScript, map[string]string{"AGENT_OPS_DELETE": root, "AGENT_OPS_DELETE_DATA": data, "AGENT_OPS_PARENT": strconv.Itoa(os.Getpid())})
+	cmd := setupPowerShell(cleanupScript, map[string]string{"AGENT_OPS_DELETE": root, "AGENT_OPS_DELETE_DATA": data, "AGENT_OPS_PARENT": strconv.Itoa(os.Getpid()), "AGENT_OPS_CLEANUP_LOG": log})
 	cmd.Dir = os.TempDir()
-	return cmd.Start()
+	return cmd, cmd.Start()
+}
+
+// longPathName expands 8.3 short names; a path that cannot be resolved is
+// returned unchanged.
+func longPathName(p string) string {
+	from, err := windows.UTF16PtrFromString(p)
+	if err != nil {
+		return p
+	}
+	buf := make([]uint16, 1024)
+	for {
+		n, err := windows.GetLongPathName(from, &buf[0], uint32(len(buf)))
+		if err != nil || n == 0 {
+			return p
+		}
+		if int(n) < len(buf) {
+			return windows.UTF16ToString(buf[:n])
+		}
+		buf = make([]uint16, n)
+	}
 }
 func scheduleSetupCleanup(dir string) {
 	if setupHelperPath(filepath.Join(dir, "agent-ops.exe")) {

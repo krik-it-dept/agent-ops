@@ -1,12 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/windows"
 )
 
 func TestUninstallKeepsDataUnlessSelectedAndOnlyRemovesOwnedEntries(t *testing.T) {
@@ -114,29 +119,90 @@ func TestSetupCleanupChild(t *testing.T) {
 	if root == "" {
 		return
 	}
-	if err := scheduleInstallDelete(root, ""); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestDeferredSelfDeleteUsesOnlyTemporaryTarget(t *testing.T) {
-	base := t.TempDir()
-	target := filepath.Join(base, "installed runtime ' & spaces")
-	updatePut(t, filepath.Join(target, "app.exe"), []byte("app"))
-	exe, err := os.Executable()
+	cmd, err := startInstallDelete(root, "", os.Getenv("AGENT_OPS_TEST_CLEANUP_LOG"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(exe, "-test.run=^TestSetupCleanupChild$")
-	cmd.Env = append(os.Environ(), "AGENT_OPS_TEST_DELETE="+target)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		t.Fatal(err, string(output))
+	fmt.Printf("cleanup-pid=%d\n", cmd.Process.Pid)
+}
+
+// The cleanup worker waits for the process that scheduled it (here a child
+// test process) to exit, then removes only the given folder. The test waits
+// for the worker itself, so a slow runner cannot fail it and a refused path
+// shows the worker's reason. The short-name case is a temp folder under
+// C:\Users\RUNNER~1, as on CI.
+func TestDeferredSelfDeleteUsesOnlyTemporaryTarget(t *testing.T) {
+	for _, short := range []bool{false, true} {
+		t.Run(fmt.Sprint("short=", short), func(t *testing.T) {
+			base := t.TempDir()
+			target := filepath.Join(base, "installed runtime ' & spaces")
+			neighbour := filepath.Join(base, "neighbour", "keep.txt")
+			updatePut(t, filepath.Join(target, "app.exe"), []byte("app"))
+			updatePut(t, neighbour, []byte("keep"))
+			given := target
+			if short {
+				given = shortPathName(t, target)
+				if strings.EqualFold(given, target) {
+					t.Skip("this volume has no 8.3 short names")
+				}
+			}
+			log := filepath.Join(t.TempDir(), "cleanup.log")
+			exe, err := os.Executable()
+			if err != nil {
+				t.Fatal(err)
+			}
+			cmd := exec.Command(exe, "-test.run=^TestSetupCleanupChild$")
+			cmd.Env = append(os.Environ(), "AGENT_OPS_TEST_DELETE="+given, "AGENT_OPS_TEST_CLEANUP_LOG="+log)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				t.Fatal(err, string(output))
+			}
+			var pid int
+			if _, err = fmt.Sscanf(string(output[bytes.Index(output, []byte("cleanup-pid=")):]), "cleanup-pid=%d", &pid); err != nil {
+				t.Fatal(err, string(output))
+			}
+			if code, waited := waitProcessExit(pid, 3*time.Minute); !waited || code != 0 {
+				reason, _ := os.ReadFile(log)
+				t.Fatalf("cleanup worker exit %d (waited %v): %s", code, waited, reason)
+			}
+			if reason, _ := os.ReadFile(log); len(reason) > 0 {
+				t.Fatalf("cleanup worker reported: %s", reason)
+			}
+			if exists(target) {
+				t.Fatal("deferred removal did not finish")
+			}
+			if mread(t, neighbour) != "keep" {
+				t.Fatal("removal reached beyond its target")
+			}
+		})
 	}
-	deadline := time.Now().Add(15 * time.Second)
-	for exists(target) && time.Now().Before(deadline) {
-		time.Sleep(100 * time.Millisecond)
+}
+
+func shortPathName(t *testing.T, p string) string {
+	t.Helper()
+	from, _ := windows.UTF16PtrFromString(p)
+	buf := make([]uint16, 1024)
+	n, err := windows.GetShortPathName(from, &buf[0], uint32(len(buf)))
+	if err != nil || n == 0 {
+		t.Fatal("short path:", err)
 	}
-	if exists(target) {
-		t.Fatal("deferred removal did not finish")
+	return windows.UTF16ToString(buf[:n])
+}
+
+// waitProcessExit waits for a process that is not a child of this one. A
+// process already gone counts as exited with code 0; the log then tells.
+func waitProcessExit(pid int, timeout time.Duration) (uint32, bool) {
+	h, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	if err != nil {
+		return 0, true
 	}
+	defer windows.CloseHandle(h)
+	if ev, _ := windows.WaitForSingleObject(h, uint32(timeout/time.Millisecond)); ev != windows.WAIT_OBJECT_0 {
+		return 0, false
+	}
+	var code uint32
+	if windows.GetExitCodeProcess(h, &code) != nil {
+		return 1, true
+	}
+	return code, true
 }
