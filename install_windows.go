@@ -17,16 +17,29 @@ import (
 	"github.com/krik-it-dept/agent-ops/internal/pkgmanifest"
 )
 
-//go:embed tasks-overview.mjs plan-reader.mjs task-sync.mjs task-report.mjs NOTICE.md INSTALL.md integrations/install-task-reporting.mjs scripts/install.ps1
+//go:embed task-sync.mjs task-report.mjs NOTICE.md INSTALL.md scripts/install.ps1
 var installPayload embed.FS
+
+// packagePayload is the release package besides agent-ops.exe. The plan
+// collector runs inside the exe, so Node.js is not needed; the two .mjs files
+// are no-op stubs for task-sync/task-report commands of older sessions.
+// scripts/build.ps1 ($packageFiles) and scripts/install.ps1 ($files) list the
+// same files (TestPackageFileListsAgree).
+var packagePayload = []string{"task-sync.mjs", "task-report.mjs", "NOTICE.md", "INSTALL.md", "scripts/install.ps1"}
+
+// legacyStubs stay in the previous runtime folder after the one-time move:
+// sessions and instructions of earlier releases call them by that path.
+var legacyStubs = []string{"task-sync.mjs", "task-report.mjs"}
 
 const uninstallKey = `Software\Microsoft\Windows\CurrentVersion\Uninstall\AgentOps`
 
 var installRequested, uninstallRequested, installStartup bool
 var setupParent int
 
-// Same retired program files as the ZIP manifest; runtime JSON is never removed.
-var selfInstallRemovals = []string{"execution-roles.mjs", "execution-reports.mjs", "historical-executions.mjs", "agent-attribution.mjs", "skills/task-plan/SKILL.md"}
+// Program files of earlier releases that an install or update deletes, the same
+// as the ZIP manifest's "remove" list ($removedFiles in scripts/build.ps1,
+// $retired in scripts/install.ps1). Runtime JSON is never removed.
+var selfInstallRemovals = []string{"execution-roles.mjs", "execution-reports.mjs", "historical-executions.mjs", "agent-attribution.mjs", "skills/task-plan/SKILL.md", "tasks-overview.mjs", "plan-reader.mjs", "integrations/install-task-reporting.mjs"}
 
 type installLayout struct{ Root, Legacy, Data, Shortcut string }
 
@@ -144,7 +157,7 @@ func stageSelfInstaller(exe, stage string) (pkgmanifest.Manifest, error) {
 	if err = atomicUpdateFile(filepath.Join(stage, "agent-ops.exe"), b); err != nil {
 		return pkgmanifest.Manifest{}, err
 	}
-	for _, name := range []string{"tasks-overview.mjs", "plan-reader.mjs", "task-sync.mjs", "task-report.mjs", "NOTICE.md", "INSTALL.md", "integrations/install-task-reporting.mjs", "scripts/install.ps1"} {
+	for _, name := range packagePayload {
 		b, err = installPayload.ReadFile(name)
 		if err == nil {
 			err = atomicUpdateFile(filepath.Join(stage, filepath.FromSlash(name)), b)
@@ -279,13 +292,30 @@ func installSelf(l installLayout, stage string, manifest pkgmanifest.Manifest, s
 	}
 	// A whole-folder rename keeps unknown private files too. It removes the old
 	// location only after health succeeds, retaining a recovery copy beside it.
-	if _, e = os.Stat(l.Legacy); e == nil {
+	// The task-sync/task-report stubs are put back at the old path, which earlier
+	// sessions and instruction files still call; a folder holding only them is
+	// not moved again.
+	moveLegacy, e := legacyRuntimePresent(l.Legacy)
+	if e != nil {
+		return e
+	}
+	if moveLegacy {
 		backup := l.Legacy + ".backup-" + time.Now().Format("20060102-150405.000000000")
 		if err = os.Rename(l.Legacy, backup); err != nil {
 			return fmt.Errorf("Could not retain the legacy runtime backup: %w", err)
 		}
-	} else if !os.IsNotExist(e) {
-		return e
+		for _, name := range legacyStubs {
+			b, e := os.ReadFile(filepath.Join(stage, name))
+			if os.IsNotExist(e) {
+				continue
+			}
+			if e == nil {
+				e = atomicUpdateFile(filepath.Join(l.Legacy, name), b)
+			}
+			if e != nil {
+				return fmt.Errorf("Could not keep the %s stub at the previous location: %w", name, e)
+			}
+		}
 	}
 	// New registrations now own startup/activation. Old entries are retired only
 	// after the replacement has proved healthy.
@@ -386,12 +416,34 @@ func runInstallerCommand() (bool, error) {
 		os.RemoveAll(transaction)
 		return true, err
 	}
-	fx := nativeInstallEffects()
+	fx := nativeInstallEffects(l)
 	err = installSelf(l, stage, manifest, installStartup, fx)
 	if err != nil {
 		return true, fmt.Errorf("%w; recovery files retained at %s", err, transaction)
 	}
 	return true, os.RemoveAll(transaction)
+}
+
+// legacyRuntimePresent reports whether the previous runtime folder holds
+// anything besides the stubs left there by an earlier move.
+func legacyRuntimePresent(dir string) (bool, error) {
+	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		stub := false
+		for _, name := range legacyStubs {
+			stub = stub || (strings.EqualFold(entry.Name(), name) && entry.Type().IsRegular())
+		}
+		if !stub {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func userHome() string { home, _ := os.UserHomeDir(); return home }

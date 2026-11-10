@@ -37,7 +37,7 @@ func (hkcu) SetDWORD(path, name string, value uint32) error {
 	return k.SetDWordValue(name, value)
 }
 
-func nativeInstallEffects() installEffects {
+func nativeInstallEffects(l installLayout) installEffects {
 	return installEffects{Registry: hkcu{}, Shortcut: createInstallShortcut, Stop: stopInstallProcesses,
 		Launch: func(exe string) (int, error) {
 			args := []string{}
@@ -55,7 +55,8 @@ func nativeInstallEffects() installEffects {
 			pid := cmd.Process.Pid
 			_ = cmd.Process.Release()
 			return pid, nil
-		}, Healthy: func(pid int) bool { return updateHealth("http://127.0.0.1:7790", appVersion, pid, 45*time.Second) },
+		}, // The app may have moved to another port; session.json names it and the secret.
+		Healthy: func(pid int) bool { return updateHealthSession(l.Data, appVersion, pid, 45*time.Second) },
 		Migrate: func(l installLayout) (*migrationResult, error) {
 			if migrationDone(l.Data) {
 				return nil, nil

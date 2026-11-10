@@ -2,8 +2,11 @@ package main
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -47,7 +50,10 @@ func setupFixture(t *testing.T) (installLayout, string, pkgmanifest.Manifest, *s
 	l := installLayout{Root: filepath.Join(base, "Programs", "AgentOps"), Legacy: filepath.Join(base, "previous runtime"), Data: filepath.Join(base, "data"), Shortcut: filepath.Join(base, "start menu", "Agent Ops.lnk")}
 	stage := filepath.Join(base, "transaction", "package")
 	updatePut(t, filepath.Join(stage, "agent-ops.exe"), []byte("new exe"))
-	updatePut(t, filepath.Join(stage, "collector.mjs"), []byte("new collector"))
+	updatePut(t, filepath.Join(stage, "NOTICE.md"), []byte("notice"))
+	for _, name := range legacyStubs {
+		updatePut(t, filepath.Join(stage, name), []byte("stub "+name))
+	}
 	manifest, err := pkgmanifest.Generate(stage, "v0.3.0", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -76,12 +82,21 @@ func TestSelfInstallMigratesOnlyAfterHealthAndKeepsData(t *testing.T) {
 	if err := installSelf(l, stage, m, false, fx); err != nil {
 		t.Fatal(err)
 	}
-	if exists(l.Legacy) {
+	if exists(filepath.Join(l.Legacy, "private.json")) {
 		t.Fatal("old location retained after success")
 	}
 	backups, _ := filepath.Glob(l.Legacy + ".backup-*")
 	if len(backups) != 1 || mread(t, filepath.Join(backups[0], "private.json")) != "private" {
 		t.Fatal("legacy backup missing", backups)
+	}
+	// Older sessions still call the stubs by the previous path.
+	for _, name := range legacyStubs {
+		if mread(t, filepath.Join(l.Legacy, name)) != "stub "+name {
+			t.Fatal("stub not kept at the previous location", name)
+		}
+	}
+	if entries, _ := os.ReadDir(l.Legacy); len(entries) != len(legacyStubs) {
+		t.Fatal("previous location holds more than the stubs", entries)
 	}
 	if mread(t, filepath.Join(l.Data, "config.json")) != "preferences" {
 		t.Fatal("data changed")
@@ -113,6 +128,10 @@ func TestSelfInstallMigratesOnlyAfterHealthAndKeepsData(t *testing.T) {
 	fx.Healthy = func(int) bool { return true }
 	if err := installSelf(l, stage2, m, false, fx); err != nil {
 		t.Fatal(err)
+	}
+	// A previous location holding only the stubs is not moved again.
+	if backups, _ = filepath.Glob(l.Legacy + ".backup-*"); len(backups) != 1 || !exists(filepath.Join(l.Legacy, "task-report.mjs")) {
+		t.Fatal("stub-only previous location moved again", backups)
 	}
 }
 
@@ -196,13 +215,59 @@ func TestSelfInstallerEmbeddedPayloadMatchesPackage(t *testing.T) {
 			t.Fatal("embedded payload differs", f.Path)
 		}
 	}
-	if len(names) != 9 {
-		t.Fatal(names)
+	if want := append([]string{"agent-ops.exe"}, packagePayload...); !sameSet(names, want) {
+		t.Fatal(names, want)
 	}
-	build := mread(t, "scripts/build.ps1")
+	for _, name := range names {
+		if strings.HasSuffix(name, ".mjs") && name != "task-sync.mjs" && name != "task-report.mjs" {
+			t.Fatal("Node runtime file in the package", name)
+		}
+	}
+}
+
+// psList reads a single-line PowerShell array assignment such as
+// $files = @('a','b') from a script.
+func psList(t *testing.T, script, variable string) []string {
+	t.Helper()
+	m := regexp.MustCompile(`(?m)^\s*\` + variable + ` = @\(([^)]*)\)`).FindStringSubmatch(mread(t, script))
+	if m == nil {
+		t.Fatalf("%s not found in %s", variable, script)
+	}
+	out := []string{}
+	for _, item := range strings.Split(m[1], ",") {
+		out = append(out, strings.Trim(strings.TrimSpace(item), "'"))
+	}
+	return out
+}
+
+func sameSet(a, b []string) bool {
+	x, y := append([]string{}, a...), append([]string{}, b...)
+	sort.Strings(x)
+	sort.Strings(y)
+	return reflect.DeepEqual(x, y)
+}
+
+// The self-installer, the ZIP build (package and update manifest) and the ZIP
+// installer install and retire the same files.
+func TestPackageFileListsAgree(t *testing.T) {
+	pkg := append([]string{"agent-ops.exe"}, packagePayload...)
+	if got := psList(t, "scripts/build.ps1", "$packageFiles"); !sameSet(got, pkg) {
+		t.Fatal("build.ps1 package", got, pkg)
+	}
+	// install.ps1 runs from the package and does not copy itself.
+	if got := psList(t, "scripts/install.ps1", "$files"); !sameSet(append(got, "scripts/install.ps1"), pkg) {
+		t.Fatal("install.ps1 files", got, pkg)
+	}
+	for _, script := range []struct{ file, variable string }{{"scripts/build.ps1", "$removedFiles"}, {"scripts/install.ps1", "$retired"}} {
+		if got := psList(t, script.file, script.variable); !sameSet(got, selfInstallRemovals) {
+			t.Fatal(script.file, got, selfInstallRemovals)
+		}
+	}
 	for _, name := range selfInstallRemovals {
-		if !strings.Contains(build, "'"+name+"'") {
-			t.Fatal("removal differs from ZIP manifest", name)
+		for _, kept := range pkg {
+			if strings.EqualFold(name, kept) {
+				t.Fatal("a package file is also removed", name)
+			}
 		}
 	}
 }
