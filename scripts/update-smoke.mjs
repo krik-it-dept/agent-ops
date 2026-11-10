@@ -1,4 +1,5 @@
-// Optional real-GitHub round trip after publishing VERSION. Never targets the live installation.
+// Optional real-GitHub round trip after publishing VERSION (anonymous HTTPS, no gh).
+// Never targets the live installation. scripts/update-e2e.mjs is the offline N-1 to N test.
 import assert from 'node:assert/strict';
 import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,readdirSync,rmSync,existsSync} from 'node:fs';
 import {dirname,join,resolve} from 'node:path';
@@ -34,7 +35,7 @@ try{
   assert.equal(readFileSync(plan,'utf8'),source);assert.equal(readFileSync(privateFile,'utf8'),'{"private":"keep"}');assert.equal(readFileSync(preference,'utf8'),'{"preference":"keep"}');
   const instructions=readFileSync(join(profile,'.codex','AGENTS.md'),'utf8');assert.ok(instructions.startsWith('# Owner instructions\nKeep the existing user rule.\n'));
   assert.ok(readFileSync(join(profile,'.agents','skills','task-plan','SKILL.md'),'utf8').includes(runtime.replaceAll('\\','/')));
-  console.log(JSON.stringify({update:'passed',from:'v0.0.0 test fixture',to:target,source:'private GitHub release',restart:'new process verified',tasks:'unchanged',privateData:'preserved',profile:'isolated and preserved'}));
+  console.log(JSON.stringify({update:'passed',from:'v0.0.0 test fixture',to:target,source:'public GitHub release',restart:'new process verified',tasks:'unchanged',privateData:'preserved',profile:'isolated and preserved'}));
 }finally{
   if(app && app.exitCode===null){const exited=new Promise(r=>app.once('exit',r));app.kill();await exited;}
   if(newPID){try{process.kill(newPID);}catch(e){if(e.code!=='ESRCH')throw e;}await until(async()=>{try{process.kill(newPID,0);return false;}catch{return true;}},Boolean,10000);}
