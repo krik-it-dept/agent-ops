@@ -571,3 +571,15 @@ func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 		}
 	}
 }
+
+func TestSettingsPutIsRejectedWhileRestartingForAnUpdate(t *testing.T) {
+	settingsFixture(t)
+	updateRestarting.Store(true)
+	t.Cleanup(func() { updateRestarting.Store(false) })
+	if w, _ := call(t, handleSettings, "PUT", "/api/settings", map[string]any{"notifications": false}); w.Code != http.StatusServiceUnavailable {
+		t.Fatal("settings were written during an update restart", w.Code)
+	}
+	if !appCfg.Notifications {
+		t.Fatal("the in-memory setting changed during an update restart")
+	}
+}

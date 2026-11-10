@@ -413,33 +413,38 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		syncStartupMenu()
 	}
 	if body.Notifications != nil || body.SetupComplete != nil {
+		if updateRestarting.Load() {
+			settingsFail(w, http.StatusServiceUnavailable, "Agent Ops is restarting for an update. Try again after it reconnects.")
+			return
+		}
+		// One read-modify-write under cfgMu, as in mutateConfig, so a concurrent
+		// project change is never written back to disk with a stale project list.
 		cfgMu.Lock()
-		next := appCfg
-		next.Projects = append([]Project{}, appCfg.Projects...)
-		readOnly := configReadOnly
-		cfgMu.Unlock()
-		if readOnly != "" {
+		if configReadOnly != "" {
+			readOnly := configReadOnly
+			cfgMu.Unlock()
 			settingsFail(w, http.StatusConflict, readOnly)
 			return
 		}
+		next := appCfg
+		next.Projects = append([]Project{}, appCfg.Projects...)
 		if body.Notifications != nil {
 			next.Notifications = *body.Notifications
 		}
 		if body.SetupComplete != nil {
 			if *body.SetupComplete && len(next.Projects) == 0 && reposDir == "" {
+				cfgMu.Unlock()
 				settingsFail(w, http.StatusBadRequest, "Add at least one project before finishing setup.")
 				return
 			}
 			next.SetupComplete = *body.SetupComplete
 		}
-		cfgMu.Lock()
 		if err := writeAppConfig(configFilePath(dataDir), next); err != nil {
 			cfgMu.Unlock()
 			settingsFail(w, http.StatusInternalServerError, "Could not save settings: "+err.Error())
 			return
 		}
-		// Keep project edits made concurrently; only these two fields change here.
-		appCfg.Notifications, appCfg.SetupComplete = next.Notifications, next.SetupComplete
+		appCfg = next
 		cfgMu.Unlock()
 		broadcast()
 	}
