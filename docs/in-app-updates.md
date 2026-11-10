@@ -1,6 +1,6 @@
 # In-app updates
 
-Agent Ops checks the latest stable release in the fixed private repository `krik-it-dept/agent-ops` shortly after startup and every six hours. Open **Updates** for the installed version, release notes and a manual check. New releases show **Update now**, **Skip this version** and **Cancel**. Only an explicit Update now request installs software. F5 remains the task-progress check.
+Agent Ops checks the latest stable release in the fixed private repository `krik-it-dept/agent-ops` shortly after startup and every six hours. A new release appears as a non-modal card at the bottom right and as **Update available** in the status bar; nothing opens a dialog by itself. The card offers **Update and restart**, **Skip this version** and **Dismiss** (remembered per version until a newer one ships). **Settings > About** shows the installed version, release notes and **Check for updates**. Only an explicit Update and restart request installs software. F5 remains the task-progress check.
 
 ## Authentication and integrity
 
@@ -15,8 +15,8 @@ SHA-256 detects corruption and mismatch with the trusted GitHub release. It does
 1. Download and validate into a new private directory under `<data-dir>/updates/` while the old app keeps running.
 2. Start the verified staged executable as a separate helper. It rechecks every staged file and confirms the exact parent process image before signaling readiness.
 3. Stop accepting status writes, finish an in-flight collector/status operation and exit the old process.
-4. Back up the fixed runtime allowlist, any existing legacy executable alias, and managed reporting-instruction files. Atomically replace runtime files and run the idempotent skill installer against the configured profile.
-5. Restart with the same resolved task roots, state file, slots, collector, loopback address, app-data directory and profile. Verify the new version, exact new PID and successful state collection.
+4. Back up the fixed runtime allowlist, any existing legacy executable alias, and managed reporting-instruction files. Atomically replace runtime files and run the idempotent skill installer against the configured profile. The installer records the sha256 of each part it writes (the two `task-plan/SKILL.md` copies, the Agent Ops hooks in `~/.claude/settings.json`, and each managed instruction block) in `~/.agents/workboard-integrations.json`. It replaces a part only while it still holds exactly what was last written, or, before any record exists, the text of an earlier release. A part you edited or removed is left alone, and the update result names it as "modified locally" or "removed locally".
+5. Restart with the same collector, loopback address, app-data directory and profile. Projects, the state file and the slots file come from `config.json`: only a `--repos-dir`, `--state-file` or `--slots-file` given explicitly (flag or `KRIK_*` environment) is passed on, and a value equal to a previous release's built-in path is treated as migration input and dropped. Verify the new version, exact new PID and successful state collection.
 6. If installation, instruction installation or startup fails, restore the saved files and restart the previous app. An incomplete recovery is reported honestly with the backup location retained.
 
 Task Markdown, execution/historical registries, activity, browser profile, navigation preferences and owner data are not replacement targets. Backups and a small result receipt stay under the data directory. There is no recursive cleanup of live runtime or task directories.
@@ -29,6 +29,6 @@ The open UI notices a changed server version, saves its current filters, plan/gr
 
 ## Validation
 
-Unit tests cover version ordering, private-release errors, CSRF/read boundaries, ZIP traversal/unknown entries/symlinks/duplicates, checksum and version mismatch, staged-file tampering, runtime/profile rollback, exact-process health and write rejection during restart. UI tests cover notes escaping, skip/cancel/apply, duplicate submission, expected disconnect and view restoration.
+Unit tests cover version ordering, private-release errors, CSRF/read boundaries, ZIP traversal/unknown entries/symlinks/duplicates, checksum and version mismatch, staged-file tampering, runtime/profile rollback, exact-process health and write rejection during restart. UI tests cover notes escaping, the non-modal card and status-bar item, dismiss/skip/apply, duplicate submission, expected disconnect and view restoration.
 
 `node scripts/smoke.mjs` validates the package without contacting GitHub. After publishing the version in VERSION, `node scripts/update-smoke.mjs` builds an isolated `v0.0.0` test instance of the updater, downloads the actual private release and exercises replacement/restart. This is a test fixture of the current updater, not a claim that historical releases already supported updates. Its profile, data, port and task roots are isolated from the live installation.

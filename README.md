@@ -10,7 +10,7 @@ A local Windows dashboard for a tech lead to follow work reported by Codex, Anti
 - A plan Summary with the recorded goal, next action, blockers and open decisions first. Completed work and detailed execution evidence are collapsed. Full-plan headings, tabs and content share the workspace gutter.
 - Starred/recent plans, quick view and agent icons. Navigation preferences survive refresh.
 - Separate coordinator and executor identities, including Claude delegating to Codex or Anti. Multiple contributors display as Multi; missing evidence stays unreported.
-- In-app release checks, escaped release notes, skip/cancel and a verified Update now action. The app replaces its files, maintains reporting instructions and restarts with automatic UI reload; failures restore the previous version. See [in-app updates](docs/in-app-updates.md).
+- In-app release checks, escaped release notes, skip/dismiss and a verified Update and restart action in a non-modal card. The app replaces its files, maintains reporting instructions and restarts with automatic UI reload; failures restore the previous version. See [in-app updates](docs/in-app-updates.md).
 
 F5 and Refresh run the local Node collector. They do not call a model or consume AI tokens. Clients report observed work; the app does not assign agents. An in-progress report is not an OS-process heartbeat.
 

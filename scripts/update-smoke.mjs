@@ -17,7 +17,7 @@ try{
   run('powershell.exe',[...ps,'-File',join(root,'scripts/build.ps1'),'-Version','v0.0.0','-OutputDir',build]);
   const pkg=join(build,readdirSync(build).find(n=>n.startsWith('package-'))),runtime=join(fixture,'runtime'),profile=join(fixture,'profile');
   put(join(profile,'.codex','AGENTS.md'),'# Owner instructions\nKeep the existing user rule.\n');
-  run('powershell.exe',[...ps,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile]);
+  run('powershell.exe',[...ps,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch']);
   const privateFile=join(runtime,'historical-executions.json'),dataDir=join(fixture,'data'),preference=join(dataDir,'owner-preference.json');put(privateFile,'{"private":"keep"}');put(preference,'{"preference":"keep"}');
   const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','check.md'),source='Agent: Codex\nStatus: Testing\nGoal: Isolated update verification\nNext: Verify update\n\n## M1: Work\n- [doing] Verify the app\n';put(plan,source);
   const slots=join(fixture,'slots.json'),state=join(fixture,'output','state.json');put(slots,'{}');mkdirSync(dirname(state),{recursive:true});

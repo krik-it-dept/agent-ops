@@ -10,6 +10,7 @@ import (
 	"crypto/sha1"
 	"embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -26,17 +27,24 @@ import (
 	"syscall"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"fyne.io/systray"
 	"golang.org/x/sys/windows/registry"
 )
 
 var (
-	addr       = "127.0.0.1:7790"
-	reposDir   = `D:\1_PROJECTS\_REPOS`
-	slotsFile  = `D:\1_PROJECTS\_WORKTREES\slots.json`
-	stateFile  = `D:\1_PROJECTS\tong-hop-chung.json`
+	addr = "127.0.0.1:7790"
+	// reposDir is set only by --repos-dir or KRIK_REPOS_DIR and then replaces the
+	// configured projects for this run. stateFile and slotsFile fall back to config.json.
+	reposDir   string
+	slotsFile  string
+	stateFile  string
 	scriptFile = defaultCollector()
+	// Values given by flag or environment; restarts preserve exactly these.
+	explicitRepos, explicitState, explicitSlots bool
+	// Legacy built-in paths received as launch values; used only for migration.
+	legacyLaunch legacyPaths
 )
 
 const (
@@ -93,6 +101,9 @@ type Plan struct {
 	AgentSource         string               `json:"agentSource"`
 	Revision            string               `json:"revision"`
 	Owner               string               `json:"owner"`
+	Project             string               `json:"project,omitempty"`
+	ProjectName         string               `json:"projectName,omitempty"`
+	Root                string               `json:"root,omitempty"`
 	Repo                string               `json:"repo"`
 	Name                string               `json:"name"`
 	Status              string               `json:"status"`
@@ -104,7 +115,20 @@ type Plan struct {
 	Steps               []Step               `json:"steps"`
 }
 type State struct {
-	Plans []Plan `json:"plans"`
+	Plans    []Plan         `json:"plans"`
+	Projects []ProjectState `json:"projects"`
+}
+
+// ProjectState is the collector's result for one enabled project.
+type ProjectState struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Path    string `json:"path"`
+	Kind    string `json:"kind"`
+	Status  string `json:"status"` // ok, missing or error
+	Message string `json:"message,omitempty"`
+	Repos   int    `json:"repos"`
+	Plans   int    `json:"plans"`
 }
 type ExecutionReport struct {
 	ID          string    `json:"id"`
@@ -119,13 +143,14 @@ type ExecutionReport struct {
 }
 
 func executionEvent(p Plan, r ExecutionReport) Event {
-	return Event{TS: r.At, Repo: p.Repo, Plan: p.Name, Kind: "execution-report", Text: r.Task.Text, Extra: r.Event + ": " + r.Result, Actor: r.Agent, Agent: r.Coordinator, Executors: []string{r.Agent}}
+	return Event{TS: r.At, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "execution-report", Text: r.Task.Text, Extra: r.Event + ": " + r.Result, Actor: r.Agent, Agent: r.Coordinator, Executors: []string{r.Agent}}
 }
 
 type Event struct {
 	Executors []string  `json:"executors"`
 	Agent     string    `json:"agent,omitempty"`
 	TS        time.Time `json:"ts"`
+	Project   string    `json:"project,omitempty"`
 	Repo      string    `json:"repo"`
 	Plan      string    `json:"plan"`
 	Kind      string    `json:"kind"` // new, closed, status, done, blocked, partial, decision, question, answer, milestone, waiting, stale
@@ -184,9 +209,9 @@ func config() {
 		}
 		return fallback
 	}
-	flag.StringVar(&reposDir, "repos-dir", env("KRIK_REPOS_DIR", reposDir), "Repository directory")
-	flag.StringVar(&slotsFile, "slots-file", env("KRIK_SLOTS_FILE", slotsFile), "Slots JSON file")
-	flag.StringVar(&stateFile, "state-file", env("KRIK_STATE_FILE", stateFile), "Generated state JSON file")
+	flag.StringVar(&reposDir, "repos-dir", "", "Folder of repositories; replaces the configured projects for this run")
+	flag.StringVar(&slotsFile, "slots-file", "", "Optional slots JSON file")
+	flag.StringVar(&stateFile, "state-file", "", `Generated state JSON file (default <data-dir>\state\tong-hop-chung.json)`)
 	flag.StringVar(&scriptFile, "script", env("KRIK_SCRIPT", scriptFile), "Overview Node script")
 	flag.StringVar(&addr, "addr", env("KRIK_ADDR", addr), "Loopback listen address")
 	flag.StringVar(&dataDir, "data-dir", filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard"), "Persistence directory")
@@ -198,13 +223,65 @@ func config() {
 	flag.BoolVar(&printVersion, "version", false, "Print the application version and exit")
 	flag.StringVar(&applyUpdateFile, "apply-update", "", "Internal verified update-helper manifest")
 	flag.Parse()
+	// Precedence: flag > environment > config.json (applied by initSettings) > default.
+	given := map[string]bool{}
+	flag.Visit(func(f *flag.Flag) { given[f.Name] = true })
+	for _, item := range []struct {
+		name, env string
+		value     *string
+	}{{"repos-dir", "KRIK_REPOS_DIR", &reposDir}, {"slots-file", "KRIK_SLOTS_FILE", &slotsFile}, {"state-file", "KRIK_STATE_FILE", &stateFile}} {
+		if !given[item.name] {
+			*item.value = os.Getenv(item.env)
+		}
+	}
 	// Restarting from a staging helper must preserve the resolved configuration,
 	// including when the original launch used relative paths.
 	for _, value := range []*string{&reposDir, &slotsFile, &stateFile, &scriptFile, &dataDir, &profileDir} {
+		if *value == "" {
+			continue
+		}
 		if absolute, err := filepath.Abs(*value); err == nil {
 			*value = absolute
 		}
 	}
+	// Releases before config.json always passed their built-in paths as flags, and an
+	// in-app update relaunches with the previous release's arguments. Those values are
+	// not user overrides: they only feed migration and are never passed on again.
+	legacyLaunch = legacyPaths{}
+	for _, item := range []struct {
+		value     *string
+		legacy    string
+		migration *string
+	}{{&reposDir, legacyDefaults.repos, &legacyLaunch.repos}, {&stateFile, legacyDefaults.state, &legacyLaunch.state}, {&slotsFile, legacyDefaults.slots, &legacyLaunch.slots}} {
+		if *item.value != "" && samePath(*item.value, item.legacy) {
+			*item.migration, *item.value = *item.value, ""
+		}
+	}
+	explicitRepos, explicitState, explicitSlots = reposDir != "", stateFile != "", slotsFile != ""
+}
+
+func samePath(a, b string) bool {
+	return a != "" && b != "" && strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
+}
+
+// launchArgs are the arguments a restart or in-app update relaunches with. Only
+// values given by flag or environment are passed on; everything else comes from
+// config.json, so a restart never pins the current config into flags.
+func launchArgs() []string {
+	args := []string{"--background", "--addr", addr, "--script", scriptFile, "--data-dir", dataDir, "--profile-dir", profileDir}
+	if explicitRepos {
+		args = append(args, "--repos-dir", reposDir)
+	}
+	if explicitState {
+		args = append(args, "--state-file", stateFile)
+	}
+	if explicitSlots {
+		args = append(args, "--slots-file", slotsFile)
+	}
+	if disableUpdateChecks {
+		args = append(args, "--no-update-check")
+	}
+	return args
 }
 
 func main() {
@@ -233,17 +310,15 @@ func main() {
 		return
 	}
 	_ = os.MkdirAll(dataDir, 0o755)
-	if addr == "127.0.0.1:7790" && dataDir == filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard") {
+	if defaultInstance() {
 		registerProtocol()
 		migrateStartup()
+		_ = registerToastApp(dataDir)
 	}
+	initSettings()
 	loadPersisted()
 	exe, _ := os.Executable()
-	args := []string{"--background", "--addr", addr, "--repos-dir", reposDir, "--slots-file", slotsFile, "--state-file", stateFile, "--script", scriptFile, "--data-dir", dataDir, "--profile-dir", profileDir}
-	if disableUpdateChecks {
-		args = append(args, "--no-update-check")
-	}
-	updates = newAppUpdater(filepath.Dir(exe), dataDir, profileDir, args)
+	updates = newAppUpdater(filepath.Dir(exe), dataDir, profileDir, launchArgs())
 	refresh(true)
 	go serve(ln)
 	go watch()
@@ -289,20 +364,22 @@ func signature() string {
 			fmt.Fprintf(h, "report|%s|%d|%d\n", file, st.Size(), st.ModTime().UnixNano())
 		}
 	}
-	dirs, _ := os.ReadDir(reposDir)
-	for _, d := range dirs {
-		files, _ := filepath.Glob(filepath.Join(reposDir, d.Name(), ".tasks", "*.md"))
-		for _, f := range files {
-			if strings.HasSuffix(f, "tong-hop.md") {
-				continue
-			}
-			if st, err := os.Stat(f); err == nil {
-				fmt.Fprintf(h, "%s|%d|%d\n", f, st.Size(), st.ModTime().UnixNano())
+	for _, p := range effectiveProjects() {
+		repos, err := projectRepos(p)
+		// A project appearing or disappearing (drive unplugged, folder renamed) changes the signature.
+		fmt.Fprintf(h, "project|%s|%v|%d\n", p.ID, err == nil, len(repos))
+		for _, repo := range repos {
+			for _, f := range planFiles(repo.Path) {
+				if st, err := os.Stat(f); err == nil {
+					fmt.Fprintf(h, "%s|%d|%d\n", f, st.Size(), st.ModTime().UnixNano())
+				}
 			}
 		}
 	}
-	if st, err := os.Stat(slotsFile); err == nil {
-		fmt.Fprintf(h, "slots|%d|%d\n", st.Size(), st.ModTime().UnixNano())
+	if slotsFile != "" {
+		if st, err := os.Stat(slotsFile); err == nil {
+			fmt.Fprintf(h, "slots|%d|%d\n", st.Size(), st.ModTime().UnixNano())
+		}
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
@@ -314,8 +391,10 @@ func watch() {
 		time.Sleep(2 * time.Second)
 		ticks++
 		mu.Lock()
-		retry := refreshError != "" && ticks%5 == 0
+		failed := refreshError != ""
 		mu.Unlock()
+		// Retry a failed collector every 10 s, but never while there is nothing to collect.
+		retry := failed && ticks%5 == 0 && len(effectiveProjects()) > 0
 		if s := signature(); s != last || retry {
 			last = s
 			refresh(false)
@@ -329,70 +408,182 @@ func hidden(cmd *exec.Cmd) *exec.Cmd {
 	return cmd
 }
 
+// planKey identifies a plan across projects; two repositories with the same folder
+// name in different projects stay distinct. Plans from before projects keep repo/plan.
+func planKey(p Plan) string {
+	if p.Project != "" {
+		return p.Project + "/" + p.Repo + "/" + p.Name
+	}
+	return p.Repo + "/" + p.Name
+}
+
+// collectorCommand runs tasks-overview.mjs. AGENT_OPS_CONFIG points every Node
+// helper at the same config.json; explicit overrides are passed as flags.
+func collectorCommand(ctx context.Context) *exec.Cmd {
+	args := []string{scriptFile, "--state-file", stateFile}
+	overrides := map[string]string{"AGENT_OPS_CONFIG": configFilePath(dataDir), "KRIK_STATE_FILE": stateFile, "KRIK_TASKS_OUT_DIR": filepath.Dir(stateFile), "KRIK_SLOTS_FILE": "", "KRIK_REPOS_DIR": ""}
+	if slotsFile != "" {
+		args = append(args, "--slots-file", slotsFile)
+		overrides["KRIK_SLOTS_FILE"] = slotsFile
+	}
+	if reposDir != "" {
+		args = append(args, "--repos-dir", reposDir)
+		overrides["KRIK_REPOS_DIR"] = reposDir
+	}
+	cmd := hidden(exec.CommandContext(ctx, "node", args...))
+	for _, v := range os.Environ() {
+		k, _, _ := strings.Cut(v, "=")
+		if _, ok := overrides[strings.ToUpper(k)]; !ok {
+			cmd.Env = append(cmd.Env, v)
+		}
+	}
+	for k, v := range overrides {
+		if v != "" {
+			cmd.Env = append(cmd.Env, k+"="+v)
+		}
+	}
+	return cmd
+}
+
+func collectorFailure(err error, output []byte) string {
+	if errors.Is(err, exec.ErrNotFound) {
+		return "Node.js was not found. Install Node.js 24, then restart Agent Ops."
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "Reading plans took longer than 30 seconds and was stopped. Retry, or disable a large project in Settings."
+	}
+	reason := strings.TrimSpace(string(output))
+	if len(reason) > 400 {
+		reason = reason[:400]
+	}
+	return strings.TrimSpace(fmt.Sprintf("Node failed: could not read plans (%v). %s", err, reason))
+}
+
+var (
+	// Projects whose plans were part of the last successful refresh. Plans of a
+	// project that appears are seeded quietly; plans of one that disappears are
+	// dropped quietly, so adding or removing a project never floods the activity feed.
+	lastProjects map[string]bool
+	// Projects whose history has been seeded into the activity log once. A project
+	// that returns (re-enabled, or its drive reconnected) is not seeded again, so
+	// toggling it never duplicates history. Persisted in seen-projects.json.
+	seenProjects map[string]bool
+	// Per-project results of the last collector run.
+	projectStates []ProjectState
+)
+
 func refresh(first bool) {
 	refreshMu.Lock()
 	defer refreshMu.Unlock()
 	if updateRestarting.Load() {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	cmd := hidden(exec.CommandContext(ctx, "node", scriptFile))
-	overrides := map[string]string{"KRIK_REPOS_DIR": reposDir, "KRIK_SLOTS_FILE": slotsFile, "KRIK_STATE_FILE": stateFile, "KRIK_TASKS_OUT_DIR": filepath.Dir(stateFile)}
-	for _, v := range os.Environ() {
-		k, _, _ := strings.Cut(v, "=")
-		if _, ok := overrides[k]; !ok {
-			cmd.Env = append(cmd.Env, v)
-		}
-	}
-	for k, v := range overrides {
-		cmd.Env = append(cmd.Env, k+"="+v)
-	}
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		reason := strings.TrimSpace(string(output))
-		if len(reason) > 400 {
-			reason = reason[:400]
-		}
-		setRefreshError(fmt.Sprintf("Node failed: %v %s", err, reason))
-		return
-	}
-	raw, err := os.ReadFile(stateFile)
-	if err != nil {
-		setRefreshError("Read state: " + err.Error())
-		return
-	}
 	var st State
-	if err := json.Unmarshal(raw, &st); err != nil {
-		setRefreshError("Invalid state JSON: " + err.Error())
-		return
+	var raw []byte
+	if len(effectiveProjects()) == 0 {
+		// Nothing to collect: no Node process, no error, an empty board.
+		st = State{Plans: []Plan{}, Projects: []ProjectState{}}
+		raw = []byte(`{"generatedAt":"` + time.Now().UTC().Format(time.RFC3339) + `","slots":{},"projects":[],"plans":[]}`)
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := os.MkdirAll(filepath.Dir(stateFile), 0o755); err != nil {
+			setRefreshError("Cannot create the state folder " + filepath.Dir(stateFile) + ": " + err.Error())
+			return
+		}
+		output, err := collectorCommand(ctx).CombinedOutput()
+		if err != nil {
+			if ctx.Err() != nil {
+				err = ctx.Err()
+			}
+			setRefreshError(collectorFailure(err, output))
+			return
+		}
+		raw, err = os.ReadFile(stateFile)
+		if err != nil {
+			setRefreshError("Read state: " + err.Error())
+			return
+		}
+		if err := json.Unmarshal(raw, &st); err != nil {
+			setRefreshError("Invalid state JSON: " + err.Error())
+			return
+		}
+		if err := validateState(st); err != nil {
+			setRefreshError("Invalid state JSON: " + err.Error())
+			return
+		}
+		// A project that exists but cannot be read keeps the last good state.
+		for _, ps := range st.Projects {
+			if ps.Status == "error" {
+				setRefreshError("Could not read project “" + ps.Name + "” (" + ps.Path + "): " + ps.Message)
+				return
+			}
+		}
 	}
-	if err := validateState(st); err != nil {
-		setRefreshError("Invalid state JSON: " + err.Error())
-		return
+	readable := map[string]bool{}
+	for _, ps := range st.Projects {
+		if ps.Status == "ok" {
+			readable[ps.ID] = true
+		}
 	}
 	mu.Lock()
 	rawState = raw
 	refreshError = ""
+	projectStates = st.Projects
 	_ = os.WriteFile(filepath.Join(dataDir, "state.json"), raw, 0o644)
 	cur := map[string]Plan{}
 	for _, p := range st.Plans {
-		cur[p.Repo+"/"+p.Name] = p
+		cur[planKey(p)] = p
 	}
-	var fresh []Event
+	var fresh, quiet []Event
 	if prev != nil {
-		fresh = diff(prev, cur)
+		before, changed, added := map[string]Plan{}, map[string]Plan{}, map[string]Plan{}
+		for k, p := range prev {
+			if p.Project == "" || (readable[p.Project] && (lastProjects == nil || lastProjects[p.Project])) {
+				before[k] = p
+			}
+		}
+		for k, p := range cur {
+			if p.Project == "" || lastProjects == nil || lastProjects[p.Project] {
+				changed[k] = p
+			} else if !seenProjects[p.Project] {
+				added[k] = p
+			}
+		}
+		fresh = diff(before, changed)
+		quiet = seed(added)
 	} else {
-		fresh = seed(cur)
+		quiet = seed(cur)
 	}
+	if seenProjects == nil {
+		seenProjects = map[string]bool{}
+	}
+	for id := range readable {
+		seenProjects[id] = true
+	}
+	// Plans that appear in this refresh (a project added or enabled, or a first run
+	// with no snapshot) are logged as stale once but never announced: the owner
+	// picked the folder, they did not just stop working on 15 plans.
+	quietStale := map[string]bool{}
+	for k, p := range cur {
+		if prev == nil || (p.Project != "" && lastProjects != nil && !lastProjects[p.Project]) {
+			quietStale[k] = true
+		}
+	}
+	lastProjects = readable
 	prev = cur
-	events = append(events, fresh...)
+	all := append(append([]Event{}, quiet...), fresh...)
+	events = append(events, all...)
 	if len(events) > maxEvents {
 		events = events[len(events)-maxEvents:]
 	}
-	persist(fresh)
+	persist(all)
+	staleNotices := recordStale(quietStale)
 	mu.Unlock()
-	checkStale()
+	if len(staleNotices) > 0 {
+		notify(staleNotices)
+		broadcast()
+	}
 	if !first {
 		notify(fresh)
 	}
@@ -406,7 +597,7 @@ func validateState(st State) error {
 	}
 	seen := map[string]bool{}
 	for _, p := range st.Plans {
-		key := p.Repo + "/" + p.Name
+		key := planKey(p)
 		if p.Repo == "" || p.Name == "" || p.Mtime.IsZero() || p.Steps == nil || p.Milestones == nil || p.Decisions == nil || p.Questions == nil {
 			return fmt.Errorf("incomplete plan %q", key)
 		}
@@ -466,17 +657,17 @@ func seed(cur map[string]Plan) []Event {
 		}
 		for _, d := range p.Decisions {
 			if t, ok := entryTime(d); ok {
-				out = append(out, Event{TS: t, Repo: p.Repo, Plan: p.Name, Kind: "decision", Text: d.Text, Extra: d.When, Actor: actor(p), Agent: p.Agent})
+				out = append(out, Event{TS: t, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "decision", Text: d.Text, Extra: d.When, Actor: actor(p), Agent: p.Agent})
 			}
 		}
 		for _, q := range p.Questions {
 			if t, ok := entryTime(q); ok {
-				out = append(out, Event{TS: t, Repo: p.Repo, Plan: p.Name, Kind: "question", Text: q.Ask, Extra: q.Answer, Actor: actor(p), Agent: p.Agent})
+				out = append(out, Event{TS: t, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "question", Text: q.Ask, Extra: q.Answer, Actor: actor(p), Agent: p.Agent})
 			}
 		}
 		for _, m := range p.Milestones {
 			if msDone(m) && strings.TrimSpace(m.Summary) != "" {
-				out = append(out, Event{TS: p.Mtime, Repo: p.Repo, Plan: p.Name, Kind: "milestone", Text: m.ID + ": " + m.Title, Extra: m.Summary, Actor: actor(p), Agent: p.Agent})
+				out = append(out, Event{TS: p.Mtime, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "milestone", Text: m.ID + ": " + m.Title, Extra: m.Summary, Actor: actor(p), Agent: p.Agent})
 			}
 		}
 	}
@@ -614,7 +805,7 @@ func diff(old, cur map[string]Plan) []Event {
 	now := time.Now()
 	var out []Event
 	add := func(p Plan, kind, text, extra string) {
-		out = append(out, Event{TS: now, Repo: p.Repo, Plan: p.Name, Kind: kind, Text: text, Extra: extra, Actor: actor(p), Agent: p.Agent, Executors: p.Executors})
+		out = append(out, Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: kind, Text: text, Extra: extra, Actor: actor(p), Agent: p.Agent, Executors: p.Executors})
 	}
 	for k, p := range cur {
 		o, ok := old[k]
@@ -718,7 +909,7 @@ func diff(old, cur map[string]Plan) []Event {
 	}
 	for k, o := range old {
 		if _, ok := cur[k]; !ok {
-			out = append(out, Event{TS: now, Repo: o.Repo, Plan: o.Name, Kind: "closed", Text: "Đóng plan", Actor: actor(o)})
+			out = append(out, Event{TS: now, Project: o.Project, Repo: o.Repo, Plan: o.Name, Kind: "closed", Text: "Đóng plan", Actor: actor(o)})
 		}
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Plan < out[j].Plan })
@@ -735,11 +926,27 @@ func isStale(p Plan, now time.Time) bool {
 }
 
 func staleEvents(cur map[string]Plan, seen map[string]time.Time, now time.Time) []Event {
-	var fresh []Event
+	fresh, _ := staleEventsQuiet(cur, seen, now, nil)
+	return fresh
+}
+
+// staleEventsQuiet returns every new stale event and, of those, the ones to
+// announce: plans named in quiet are recorded as seen but not announced.
+func staleEventsQuiet(cur map[string]Plan, seen map[string]time.Time, now time.Time, quiet map[string]bool) (fresh, announce []Event) {
+	// Plans of a project that is not read now (disabled or disconnected) keep their
+	// entry, so a returning project does not announce the same stale work again.
+	read := map[string]bool{}
+	for _, p := range cur {
+		read[p.Project] = true
+	}
 	for k := range seen {
-		if _, ok := cur[k]; !ok {
-			delete(seen, k)
+		if _, ok := cur[k]; ok {
+			continue
 		}
+		if project, rest, _ := strings.Cut(k, "/"); strings.Contains(rest, "/") && !read[project] {
+			continue
+		}
+		delete(seen, k)
 	}
 	for k, p := range cur {
 		if !isStale(p, now) {
@@ -749,13 +956,19 @@ func staleEvents(cur map[string]Plan, seen map[string]time.Time, now time.Time) 
 			continue
 		}
 		seen[k] = p.Mtime
-		fresh = append(fresh, Event{TS: now, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Workboard"})
+		e := Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Workboard"}
+		fresh = append(fresh, e)
+		if !quiet[k] {
+			announce = append(announce, e)
+		}
 	}
-	return fresh
+	return fresh, announce
 }
-func checkStale() {
-	mu.Lock()
-	fresh := staleEvents(prev, staleSeen, time.Now())
+
+// recordStale logs the plans that went stale since the last check, with mu held,
+// and returns the ones to announce. Plans in quiet are logged without a notice.
+func recordStale(quiet map[string]bool) []Event {
+	fresh, announce := staleEventsQuiet(prev, staleSeen, time.Now(), quiet)
 	events = append(events, fresh...)
 	if len(events) > maxEvents {
 		events = events[len(events)-maxEvents:]
@@ -763,9 +976,14 @@ func checkStale() {
 	if len(fresh) > 0 {
 		persist(fresh)
 	}
+	return announce
+}
+func checkStale() {
+	mu.Lock()
+	announce := recordStale(nil)
 	mu.Unlock()
-	if len(fresh) > 0 {
-		notify(fresh)
+	if len(announce) > 0 {
+		notify(announce)
 		broadcast()
 	}
 }
@@ -782,6 +1000,7 @@ func loadPersisted() {
 	if b, err := os.ReadFile(filepath.Join(dataDir, "snapshot.json")); err == nil {
 		_ = json.Unmarshal(b, &prev)
 	}
+	_ = upgradeActivityFile(knownProjects())
 	if b, err := os.ReadFile(filepath.Join(dataDir, "activity.jsonl")); err == nil {
 		for _, line := range bytes.Split(b, []byte("\n")) {
 			var e Event
@@ -799,6 +1018,11 @@ func loadPersisted() {
 	if staleSeen == nil {
 		staleSeen = map[string]time.Time{}
 	}
+	seenProjects = map[string]bool{}
+	if b, err := os.ReadFile(filepath.Join(dataDir, "seen-projects.json")); err == nil {
+		_ = json.Unmarshal(b, &seenProjects)
+	}
+	mapLegacyKeys(knownProjects())
 }
 
 func persist(fresh []Event) {
@@ -807,6 +1031,9 @@ func persist(fresh []Event) {
 	}
 	if b, err := json.Marshal(staleSeen); err == nil {
 		_ = os.WriteFile(filepath.Join(dataDir, "stale.json"), b, 0o644)
+	}
+	if b, err := json.Marshal(seenProjects); err == nil && seenProjects != nil {
+		_ = os.WriteFile(filepath.Join(dataDir, "seen-projects.json"), b, 0o644)
 	}
 	if len(fresh) == 0 {
 		return
@@ -827,6 +1054,7 @@ func persist(fresh []Event) {
 func serve(ln net.Listener) {
 	mux := http.NewServeMux()
 	updateRoutes(mux)
+	settingsRoutes(mux)
 	mux.HandleFunc("/api/plans/status", handlePlanStatus)
 	mux.HandleFunc("/api/plans/agent", handleReadOnlyAgent)
 	mux.HandleFunc("/api/plans/executor", handleReadOnlyAgent)
@@ -846,35 +1074,7 @@ func serve(ln net.Listener) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Write(indexHTML)
 	})
-	mux.HandleFunc("/api/state", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		mu.Lock()
-		ev := make([]Event, len(events))
-		copy(ev, events)
-		st := rawState
-		reason := refreshError
-		stale := map[string]bool{}
-		for k, p := range prev {
-			stale[k] = isStale(p, time.Now())
-		}
-		mu.Unlock()
-		sort.SliceStable(ev, func(i, j int) bool { return ev[i].TS.After(ev[j].TS) })
-		if len(ev) > maxEvents {
-			ev = ev[:maxEvents]
-		}
-		evJSON, _ := json.Marshal(ev)
-		if st == nil {
-			st = []byte(`{"plans":[],"slots":{}}`)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-store")
-		reasonJSON, _ := json.Marshal(reason)
-		staleJSON, _ := json.Marshal(stale)
-		fmt.Fprintf(w, `{"appVersion":%q,"state":%s,"activity":%s,"now":%q,"error":%s,"stale":%s}`, appVersion, st, evJSON, time.Now().Format(time.RFC3339), reasonJSON, staleJSON)
-	})
+	mux.HandleFunc("/api/state", handleState)
 	mux.HandleFunc("/api/refresh", handleRefresh)
 	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -913,6 +1113,40 @@ func serve(ln net.Listener) {
 	_ = server.Serve(ln)
 }
 
+func handleState(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	mu.Lock()
+	ev := make([]Event, len(events))
+	copy(ev, events)
+	st := rawState
+	reason := refreshError
+	stale := map[string]bool{}
+	for k, p := range prev {
+		stale[k] = isStale(p, time.Now())
+	}
+	summaries := projectSummaries()
+	warnings := stateWarnings(summaries)
+	mu.Unlock()
+	sort.SliceStable(ev, func(i, j int) bool { return ev[i].TS.After(ev[j].TS) })
+	if len(ev) > maxEvents {
+		ev = ev[:maxEvents]
+	}
+	evJSON, _ := json.Marshal(ev)
+	if st == nil {
+		st = []byte(`{"plans":[],"slots":{}}`)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	reasonJSON, _ := json.Marshal(reason)
+	staleJSON, _ := json.Marshal(stale)
+	projectsJSON, _ := json.Marshal(summaries)
+	warningsJSON, _ := json.Marshal(warnings)
+	fmt.Fprintf(w, `{"appVersion":%q,"state":%s,"activity":%s,"now":%q,"error":%s,"stale":%s,"setupRequired":%t,"projects":%s,"warnings":%s}`, appVersion, st, evJSON, time.Now().Format(time.RFC3339), reasonJSON, staleJSON, setupRequired(), projectsJSON, warningsJSON)
+}
+
 func broadcast() {
 	mu.Lock()
 	defer mu.Unlock()
@@ -933,14 +1167,27 @@ func activationPlan(uri string) string {
 	}
 	return u.Query().Get("plan")
 }
-func planURI(repo, plan string) string {
-	return "krik-workboard:open?" + url.Values{"plan": {repo + "/" + plan}}.Encode()
+func planURI(key string) string {
+	return "krik-workboard:open?" + url.Values{"plan": {key}}.Encode()
+}
+func eventKey(e Event) string {
+	if e.Project != "" {
+		return e.Project + "/" + e.Repo + "/" + e.Plan
+	}
+	return e.Repo + "/" + e.Plan
 }
 func openWindow() { openPlanWindow(activationPlan(activation)) }
 func openPlanWindow(plan string) {
-	target := "http://" + addr + "/"
+	fragment := ""
 	if plan != "" {
-		target += "#plan=" + url.QueryEscape(plan)
+		fragment = "plan=" + url.QueryEscape(plan)
+	}
+	openWindowAt(fragment)
+}
+func openWindowAt(fragment string) {
+	target := "http://" + addr + "/"
+	if fragment != "" {
+		target += "#" + fragment
 	}
 	for _, p := range []string{
 		`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
@@ -983,13 +1230,16 @@ func migrateStartup() {
 	defer k.Close()
 	v, _, err := k.GetStringValue(runName)
 	if err == nil && !strings.Contains(v, "--background") {
-		_ = k.SetStringValue(runName, v+" --background")
+		_ = k.SetStringValue(runName, strings.TrimSpace(v)+" --background")
 	}
 }
 
 var notifyKinds = map[string]string{"waiting": "Cần bạn xử lý", "blocked": "Bị chặn", "stale": "Đứng im", "question": "Câu hỏi mới"}
 
 func notify(fresh []Event) {
+	if !notificationsEnabled() {
+		return
+	}
 	for _, e := range fresh {
 		title, ok := notifyKinds[e.Kind]
 		if e.Kind == "execution-report" && strings.HasPrefix(e.Extra, "blocked:") {
@@ -1002,38 +1252,86 @@ func notify(fresh []Event) {
 		if e.Kind == "waiting" {
 			body = e.Extra
 		}
-		toast(title+" · "+e.Plan, body, planURI(e.Repo, e.Plan))
+		showToast(title+" · "+e.Plan, body, planURI(eventKey(e)))
 	}
 }
 
-func psq(s string) string { return strings.ReplaceAll(s, "'", "''") }
+// The toast script is a constant: plan text (written by agents, or committed in a
+// cloned repository) only reaches PowerShell as data in an environment variable,
+// never as script text. PowerShell treats typographic quotes as string delimiters,
+// so escaping quotes inside a script string is not a safe alternative.
+const (
+	toastEnv        = "AGENT_OPS_TOAST"
+	toastLoadScript = `[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null;` +
+		`[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null;` +
+		`$x = New-Object Windows.Data.Xml.Dom.XmlDocument; $x.LoadXml([Environment]::GetEnvironmentVariable('` + toastEnv + `'));`
+)
+
+// toastShowScript shows $x under one of two AUMIDs fixed in this program (the
+// registered app or PowerShell's), never under text that came from a plan.
+func toastShowScript(appID string) string {
+	if appID != toastAppID {
+		appID = powershellAppID
+	}
+	return `[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('` + appID + `').Show([Windows.UI.Notifications.ToastNotification]::new($x))`
+}
+
+func toastXML(title, body, target string) string {
+	return `<toast activationType="protocol" launch="` + xmlEsc(target) + `"><visual><binding template="ToastGeneric"><text>` +
+		xmlEsc(title) + `</text><text>` + xmlEsc(body) + `</text></binding></visual></toast>`
+}
+
+// toastCommand runs script with the toast XML in its environment.
+func toastCommand(ctx context.Context, script, xml string) *exec.Cmd {
+	cmd := hidden(exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command", script))
+	for _, v := range os.Environ() {
+		if k, _, _ := strings.Cut(v, "="); !strings.EqualFold(k, toastEnv) {
+			cmd.Env = append(cmd.Env, v)
+		}
+	}
+	cmd.Env = append(cmd.Env, toastEnv+"="+xml)
+	return cmd
+}
+
+// showToast is the notification seam; tests replace it to count notices.
+var showToast = toast
 
 func toast(title, body, target string) {
-	xml := fmt.Sprintf(`<toast activationType='protocol' launch='%s'><visual><binding template='ToastGeneric'><text>%s</text><text>%s</text></binding></visual></toast>`,
-		xmlEsc(target), xmlEsc(title), xmlEsc(body))
-	script := `[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null;` +
-		`[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null;` +
-		`$x = New-Object Windows.Data.Xml.Dom.XmlDocument; $x.LoadXml('` + psq(xml) + `');` +
-		`[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($x))`
+	xml := toastXML(title, body, target)
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		_ = hidden(exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command", script)).Run()
+		_ = toastCommand(ctx, toastLoadScript+toastShowScript(currentToastAppID()), xml).Run()
 	}()
 }
 
+// xmlEsc escapes markup and every quote character, drops characters XML 1.0
+// cannot carry, and caps the length so the environment block stays small.
 func xmlEsc(s string) string {
-	var b bytes.Buffer
+	var b strings.Builder
+	n := 0
 	for _, r := range s {
-		switch r {
-		case '<':
+		if n++; n > 1000 {
+			b.WriteString("…")
+			break
+		}
+		switch {
+		case r == '<':
 			b.WriteString("&lt;")
-		case '>':
+		case r == '>':
 			b.WriteString("&gt;")
-		case '&':
+		case r == '&':
 			b.WriteString("&amp;")
-		case '"':
+		case r == '"':
 			b.WriteString("&quot;")
+		case r == '\'':
+			b.WriteString("&apos;")
+		case r >= 0x2018 && r <= 0x201F:
+			fmt.Fprintf(&b, "&#x%X;", r)
+		case r == '\t' || r == '\n' || r == '\r':
+			b.WriteRune(r)
+		case r < 0x20 || r == 0xFFFE || r == 0xFFFF || r == utf8.RuneError:
+			continue
 		default:
 			b.WriteRune(r)
 		}
@@ -1041,14 +1339,16 @@ func xmlEsc(s string) string {
 	return b.String()
 }
 
-var mOpen, mRefresh, mStartup, mQuit *systray.MenuItem
+var mOpen, mRefresh, mSettings, mStartup, mQuit *systray.MenuItem
 
 func onReady() {
-	systray.SetIcon(iconICO())
+	trayTheme := taskbarIconName()
+	systray.SetIcon(trayIcon(trayTheme))
 	systray.SetTitle("Agent Ops")
 	systray.SetOnTapped(func() { openPlanWindow("") })
 	mOpen = systray.AddMenuItem("Open Agent Ops", "")
 	mRefresh = systray.AddMenuItem("Refresh now", "")
+	mSettings = systray.AddMenuItem("Settings…", "Projects, notifications and startup")
 	systray.AddSeparator()
 	mStartup = systray.AddMenuItemCheckbox("Start with Windows", "", startupEnabled())
 	systray.AddSeparator()
@@ -1056,20 +1356,24 @@ func onReady() {
 	trayReady.Store(true)
 	updateTray()
 	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
 		for {
 			select {
+			case <-ticker.C:
+				if next := taskbarIconName(); next != trayTheme {
+					trayTheme = next
+					systray.SetIcon(trayIcon(trayTheme))
+				}
 			case <-mOpen.ClickedCh:
 				openPlanWindow("")
 			case <-mRefresh.ClickedCh:
 				refresh(false)
+			case <-mSettings.ClickedCh:
+				openWindowAt("settings")
 			case <-mStartup.ClickedCh:
-				if mStartup.Checked() {
-					setStartup(false)
-					mStartup.Uncheck()
-				} else {
-					setStartup(true)
-					mStartup.Check()
-				}
+				setStartup(!mStartup.Checked())
+				syncStartupMenu()
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				os.Exit(0)
@@ -1127,10 +1431,4 @@ func setStartup(on bool) {
 	} else {
 		_ = k.DeleteValue(runName)
 	}
-}
-
-// iconICO shares the prebuilt artwork with the window and executable.
-func iconICO() []byte {
-	data, _ := iconFiles.ReadFile("web/icons/app.ico")
-	return data
 }

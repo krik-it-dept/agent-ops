@@ -52,7 +52,7 @@ func TestAgentMetadata(t *testing.T) {
 		t.Fatal(refreshError)
 	}
 	for _, tc := range cases {
-		p := prev["sample/"+tc.name]
+		p := prev[testKey("sample", tc.name)]
 		if p.Agent != tc.want || p.AgentSource != tc.source {
 			t.Fatalf("%s: %s (%s); want %s (%s)", tc.name, p.Agent, p.AgentSource, tc.want, tc.source)
 		}
@@ -80,8 +80,8 @@ func TestHistoricalAttribution(t *testing.T) {
 	os.WriteFile(mapping, mapped, 0600)
 	t.Setenv("KRIK_AGENT_MAP", mapping)
 	refresh(true)
-	if refreshError != "" || prev["sample/plan"].Agent != "Claude" {
-		t.Fatal(refreshError, prev["sample/plan"].Agent)
+	if refreshError != "" || prev[testKey("sample", "plan")].Agent != "Claude" {
+		t.Fatal(refreshError, prev[testKey("sample", "plan")].Agent)
 	}
 	if got, _ := os.ReadFile(path); !bytes.Equal(got, original) {
 		t.Fatal("attribution rewrote a plan")
@@ -89,12 +89,12 @@ func TestHistoricalAttribution(t *testing.T) {
 	// An explicit handoff always wins, and an unlabelled new version is not guessed.
 	os.WriteFile(path, append([]byte("Agent: Codex\n"), original...), 0600)
 	refresh(true)
-	if prev["sample/plan"].Agent != "Codex" {
+	if prev[testKey("sample", "plan")].Agent != "Codex" {
 		t.Fatal("history overrode an explicit agent")
 	}
 	os.WriteFile(path, append(original, []byte("\n- [todo] More work\n")...), 0600)
 	refresh(true)
-	if prev["sample/plan"].Agent != "Unknown" {
+	if prev[testKey("sample", "plan")].Agent != "Unknown" {
 		t.Fatal("stale history was reused")
 	}
 }

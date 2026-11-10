@@ -38,6 +38,9 @@ func TestLocalBoundaryRejectsRebindingAndCrossSiteReads(t *testing.T) {
 	if !strings.Contains(csp, "script-src 'sha256-") || strings.Contains(csp, "script-src 'unsafe-inline'") || w.Header().Get("X-Frame-Options") != "DENY" {
 		t.Fatal("unsafe browser boundary", csp)
 	}
+	if strings.Contains(csp, "https:") || !strings.Contains(csp, "style-src 'self' 'unsafe-inline';") || !strings.Contains(csp, "font-src 'self';") {
+		t.Fatal("the page must not allow styles or fonts from another origin", csp)
+	}
 }
 
 func TestRefreshRejectsCrossSiteWritesBeforeRunningCollector(t *testing.T) {

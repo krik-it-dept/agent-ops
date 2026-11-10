@@ -1,7 +1,9 @@
 param(
     [string]$RuntimeDir = (Join-Path $env:USERPROFILE '.claude\tools\workboard'),
     [string]$ProfileDir = $env:USERPROFILE,
-    [switch]$SkipSkills
+    [switch]$SkipSkills,
+    # Install without starting the app (isolated installs, smoke tests and scripted setups).
+    [switch]$NoLaunch
 )
 $ErrorActionPreference = 'Stop'
 $packageRoot = Split-Path $PSScriptRoot -Parent
@@ -26,6 +28,9 @@ foreach ($name in $files) {
     }
     New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
     Copy-Item -LiteralPath (Join-Path $packageRoot $name) -Destination $target -Force
+    # Copy-Item keeps the "downloaded from the internet" mark of a browser-downloaded ZIP, which
+    # would make SmartScreen warn on the installed exe and block the scripts. Clear it on the copy.
+    try { Unblock-File -LiteralPath $target } catch { Write-Warning "Could not clear the download mark on ${target}: $($_.Exception.Message)" }
 }
 if (!$SkipSkills) {
     & node (Join-Path $RuntimeDir 'integrations/install-task-reporting.mjs') --home $ProfileDir --runtime-dir $RuntimeDir
@@ -34,3 +39,15 @@ if (!$SkipSkills) {
 Write-Output "Installed: $(Join-Path $RuntimeDir 'agent-ops.exe')"
 Write-Output "Previous files, when present: $backup"
 Write-Output 'Existing task files, execution registries, app preferences and activity were preserved.'
+$installedExe = Join-Path $RuntimeDir 'agent-ops.exe'
+if ($NoLaunch) {
+    Write-Output "Not launched (-NoLaunch). Start it with: Start-Process `"$installedExe`""
+} else {
+    try {
+        $started = Start-Process -FilePath $installedExe -PassThru
+        Write-Output "Started Agent Ops (process $($started.Id)). Add your project folders in the setup window."
+    } catch {
+        Write-Warning "Installed, but could not start Agent Ops: $($_.Exception.Message)"
+        Write-Output "Start it with: Start-Process `"$installedExe`""
+    }
+}

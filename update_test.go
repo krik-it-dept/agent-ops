@@ -430,3 +430,41 @@ func TestUpdateHealthMustMatchVersionAndExactStartedProcess(t *testing.T) {
 		t.Fatal("accepted unrelated process image")
 	}
 }
+
+// The update result names integration files the installer kept because the owner
+// changed them; the installer runs against a temporary profile only.
+func TestUpdateResultReportsLocallyModifiedIntegrations(t *testing.T) {
+	home := filepath.Join(isolated(t), "profile")
+	install := func() []byte {
+		out, err := runUpdateCommand(context.Background(), "node", filepath.Join("integrations", "install-task-reporting.mjs"), "--home", home)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	if note := keptIntegrationsNote(install()); note != "" {
+		t.Fatal("a fresh install keeps nothing", note)
+	}
+	skill := filepath.Join(home, ".agents", "skills", "task-plan", "SKILL.md")
+	b, _ := os.ReadFile(skill)
+	updatePut(t, skill, append(b, []byte("\n## Owner section\n")...))
+	note := keptIntegrationsNote(install())
+	if !strings.Contains(note, skill+" (modified locally)") {
+		t.Fatal("the kept skill is not reported", note)
+	}
+	if after, _ := os.ReadFile(skill); !strings.Contains(string(after), "Owner section") {
+		t.Fatal("the owner's skill section was overwritten")
+	}
+}
+
+// A release built from the VERSION file must report that same version, or the
+// updater rejects the download. The source default has to follow VERSION.
+func TestSourceVersionMatchesVersionFile(t *testing.T) {
+	raw, err := os.ReadFile("VERSION")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := strings.TrimSpace(string(raw)); appVersion != want {
+		t.Fatalf("appVersion default %q does not match VERSION %q", appVersion, want)
+	}
+}

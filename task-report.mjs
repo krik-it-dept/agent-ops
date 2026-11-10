@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Run by the executing client at real lifecycle changes, never by the dashboard.
-import {readFileSync,realpathSync,mkdirSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync,existsSync} from 'node:fs';
-import {resolve,relative,sep,basename,dirname,join,isAbsolute} from 'node:path';
+import {readFileSync,mkdirSync,writeFileSync,renameSync,openSync,closeSync,unlinkSync,existsSync} from 'node:fs';
+import {resolve,basename,dirname,join,isAbsolute} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {spawnSync,spawn} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {readPlan} from './plan-reader.mjs';
 import {loadExecutionReports,reportDirectory,reportEvents,taskLocator,findReportedTask} from './execution-reports.mjs';
+import {resolveSettings,locatePlan,planNotFound,collectorRun,sameProjectPlan} from './plan-reader.mjs';
 
 const root=dirname(fileURLToPath(import.meta.url));
 const agents={codex:'Codex',anti:'Anti',antigravity:'Anti',claude:'Claude'};
@@ -23,12 +24,12 @@ export function reportTask(options){
  const agent=agents[String(options.agent || '').toLowerCase()],event=options.event;
  if(!agent || !reportEvents.includes(event) || !isAbsolute(options['plan-file'] || ''))throw Error('Use --agent Codex|Anti|Claude --plan-file <absolute plan> --event start|progress|done|blocked|stopped.');
  if(options.role && !['coordinator','executor'].includes(options.role))throw Error('Invalid reporter role.');
- const repos=realpathSync(resolve(options['repos-dir'] || process.env.KRIK_REPOS_DIR || 'D:/1_PROJECTS/_REPOS'));
- const file=realpathSync(options['plan-file']),parts=relative(repos,file).split(sep);
- if(parts.length!==3 || parts[0]==='..' || parts[1]!=='.tasks' || !parts[2].endsWith('.md') || basename(file).toLowerCase()==='tong-hop.md')throw Error('Report a task in the main checkout .tasks directory.');
+ const settings=resolveSettings(options),located=locatePlan(options['plan-file'],settings.projects);
+ if(!located)throw Error('Report a task in the main checkout .tasks directory. '+planNotFound(settings));
+ const file=located.file;
  const plan=readPlan(file);
  if(options.revision && options.revision!==plan.revision)throw Error('Plan changed. Re-read the task before reporting.');
- const state=resolve(options['state-file'] || process.env.KRIK_STATE_FILE || 'D:/1_PROJECTS/tong-hop-chung.json');
+ const state=settings.stateFile;
  const directory=reportDirectory(state);mkdirSync(directory,{recursive:true});
  const runId=options['run-id'] || (event==='start'?randomUUID():'');
  if(!/^[a-f0-9-]{36}$/i.test(runId))throw Error('Continue an existing --run-id returned by a start report.');
@@ -65,13 +66,13 @@ export function reportTask(options){
  }finally{closeSync(fd);unlinkSync(lock);}
  if(options['record-only']==='true')return {...record,stateFile:state,message:'task-report: '+agent+' '+event+' recorded; app watcher/F5 owns refresh; run-id '+runId};
  const script=resolve(options.script || join(root,'tasks-overview.mjs'));
- const slots=resolve(options['slots-file'] || process.env.KRIK_SLOTS_FILE || 'D:/1_PROJECTS/_WORKTREES/slots.json');
- const refresh=spawnSync(process.execPath,[script],{env:{...process.env,KRIK_REPOS_DIR:repos,KRIK_STATE_FILE:state,KRIK_TASKS_OUT_DIR:dirname(state),KRIK_SLOTS_FILE:slots},encoding:'utf8',windowsHide:true,timeout:30000});
+ const run=collectorRun(settings,options);
+ const refresh=spawnSync(process.execPath,[script,...run.args],{env:run.env,encoding:'utf8',windowsHide:true,timeout:30000});
  if(refresh.error || refresh.status!==0)throw Error('Report '+record.id+' (run-id '+runId+') recorded, but overview refresh failed: '+(refresh.error?.message || refresh.stderr));
  let snapshot;try{snapshot=JSON.parse(readFileSync(state,'utf8'));}catch(e){throw Error('Report recorded, but refreshed state is invalid: '+e.message);}
- const confirmed=snapshot.plans?.find(p=>p.repo===parts[0] && p.name===basename(file,'.md'))?.executionReports?.some(r=>r.id===record.id);
+ const confirmed=snapshot.plans?.find(p=>sameProjectPlan(p,located,basename(file,'.md')))?.executionReports?.some(r=>r.id===record.id);
  if(!confirmed)throw Error('Report recorded, but the refreshed state did not confirm it.');
- return {...record,stateFile:state,message:'task-report: '+agent+' '+event+' -> '+parts[0]+'/'+basename(file,'.md')+'; run-id '+runId};
+ return {...record,stateFile:state,message:'task-report: '+agent+' '+event+' -> '+located.repo+'/'+basename(file,'.md')+'; run-id '+runId};
 }
 export function resolveWorkerCommand(agent,command){
  const names={Codex:['codex'],Anti:['anti','antigravity'],Claude:['claude']};
@@ -99,8 +100,8 @@ export async function runTaskCLI(options,command,args){
  const plan=readPlan(options['plan-file']);if(!plan.points.some(p=>p.line===Number(options['step-line'])))throw Error('Select the actual source task before launching the CLI.');
  const parent=agents[String(plan.agentLabel || '').toLowerCase()],supplied=agents[String(options.coordinator || '').toLowerCase()],coordinator=parent || supplied;
  if(!coordinator || (options.coordinator && !supplied) || (parent && supplied && parent!==supplied))throw Error('Preserve the actual parent coordinator before launching the CLI.');
- const repos=realpathSync(resolve(options['repos-dir'] || process.env.KRIK_REPOS_DIR || 'D:/1_PROJECTS/_REPOS')),parts=relative(repos,realpathSync(options['plan-file'])).split(sep);
- if(parts.length!==3 || parts[0]==='..' || parts[1]!=='.tasks' || basename(options['plan-file']).toLowerCase()==='tong-hop.md')throw Error('Select a task in the main checkout .tasks directory.');
+ const settings=resolveSettings(options);
+ if(!locatePlan(options['plan-file'],settings.projects))throw Error('Select a task in the main checkout .tasks directory. '+planNotFound(settings));
  if(options.event || options['run-id'])throw Error('The CLI runner owns its execution lifecycle.');
  const shared={...options,agent,role:'executor',origin:'cli-runner','record-only':'true','run-id':randomUUID()};
  return new Promise((resolveRun,reject)=>{

@@ -26,7 +26,7 @@ const updateRepository = "krik-it-dept/agent-ops"
 const updateArchive = "agent-ops-windows-amd64.zip"
 const maxUpdateBytes = 128 << 20
 
-var appVersion = "v0.1.4"
+var appVersion = "v0.2.0"
 var appCommit = "development"
 var updates *appUpdater
 var updateRestarting atomic.Bool
@@ -118,6 +118,9 @@ func newAppUpdater(root, data, profile string, args []string) *appUpdater {
 		if result.Phase == "updated" && result.Version == appVersion {
 			u.state.Phase = "updated"
 			u.state.Message = "Updated to " + appVersion
+			if strings.HasPrefix(result.Message, u.state.Message) {
+				u.state.Message = result.Message
+			}
 		}
 		if result.Phase == "error" {
 			u.state.Phase = "error"

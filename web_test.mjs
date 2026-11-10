@@ -4,41 +4,78 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const html=readFileSync(new URL('./web/index.html',import.meta.url),'utf8');
 const source=html.match(/<script>([\s\S]*?)<\/script>/)[1];
-function harness(saved={},nav={}){
- const ids={}, handlers={}, timers=[], requests=[], streams=[],storage={'wb-ui':JSON.stringify(saved),'wb-navigation':JSON.stringify(nav)},writes=[];let context;
+function harness(saved={},nav={},stored={}){
+ const ids={}, handlers={}, timers=[], requests=[], streams=[],storage={'wb-ui':JSON.stringify(saved),'wb-navigation':JSON.stringify(nav),...stored},writes=[];let context;
  function element(id){return {id,innerHTML:'',textContent:'',className:'',hidden:false,isConnected:true,scrollTop:0,value:'',selectionStart:0,selectionEnd:0,attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v;},getAttribute(k){return this.attributes[k];},showModal(){this.open=true;},close(){this.open=false;},addEventListener(name,fn){this.listeners[name]=fn;},focus(){context.document.activeElement=this;},select(){this.selectionStart=0;this.selectionEnd=this.value.length;},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b;}};}
- ['view','top','tabs','nav','q','refresh','upd','error','live','connection','save-state','plan-sidebar','sidebar-toggle','quick-plan','quick-plan-content','quick-plan-scroll','quick-close','quick-tab-overview','quick-tab-checklist','quick-tab-activity','quick-star','quick-refresh','quick-full','quick-error','update-launcher','update-dialog','update-content','update-close','update-apply','update-skip','update-check'].forEach(id=>ids[id]=element(id));
- context=vm.createContext({console,Date,URL,encodeURI,encodeURIComponent,decodeURIComponent,setTimeout(fn){timers.push(fn);return timers.length;},clearTimeout(i){timers[i-1]=null;},setInterval(){},location:{hash:''},localStorage:{getItem(key){return storage[key] || null;},setItem(k,v){storage[k]=v;writes.push(k);}},window:{addEventListener(name,fn){handlers[name]=fn;}},document:{querySelectorAll(){return [];},activeElement:null,getElementById(id){return ids[id];},addEventListener(name,fn){handlers[name]=fn;}},fetch(path){requests.push(path);return Promise.resolve({ok:true,json:async()=>data([])});},EventSource:class{constructor(){streams.push(this);}}});
- const instrumented=source.replace('jumpHash(); get(); connect(); initUpdates();',`globalThis.api={updateUI,receiveUpdate,updateAction,openUpdateDialog,closeUpdateDialog,pollUpdates,initUpdates,navigation,quick,renderSidebar,sidebarPlans,openQuickPlan,closeQuickPlan,stepQuickPlan,togglePlanStar,recordPlanVisit,quickChecklist,taskRows,filteredTaskRows,taskAgentMatches,focusedTask,refresh,stepExecution,executorBadges, agentChain, agentMatches, executorValue, agentName, agentBadge, viewList, viewTimeline, viewSummary, timelineEntries, dateKey, monthDays, handleViewAction, moveStatus, statusSelect, planByKey, render, columnOf, owner, needsAttention, feedFor, orderedMilestones, stepsHTML, taskCard, prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui};`);
+ ['view','top','tabs','nav','q','refresh','upd','error','live','connection','save-state','plan-sidebar','sidebar-toggle','quick-plan','quick-plan-content','quick-plan-scroll','quick-close','quick-tab-overview','quick-tab-checklist','quick-tab-activity','quick-star','quick-refresh','quick-full','quick-error','update-card','update-segment','update-dismiss','update-minimize','update-retry','update-apply','update-skip','app-version','status-totals','error-raw','error-details','settings-check-updates','setup-keep','setup-skip-confirm','setup-choose','onboarding-card','settings-add','settings-nav-add','error-text','error-detail','error-retry','warnings','onboarding','settings','settings-open','settings-search','settings-main','settings-close','settings-choose','settings-path','setup-path','setup-next','setup-finish','setup-back','setup-skip'].forEach(id=>ids[id]=element(id));
+ context=vm.createContext({console,Date,URL,encodeURI,encodeURIComponent,decodeURIComponent,setTimeout(fn){timers.push(fn);return timers.length;},clearTimeout(i){timers[i-1]=null;},setInterval(){},location:{hash:''},localStorage:{getItem(key){return storage[key] || null;},setItem(k,v){storage[k]=v;writes.push(k);}},window:{addEventListener(name,fn){handlers[name]=fn;}},document:{querySelectorAll(){return [];},activeElement:null,documentElement:{attributes:{},setAttribute(k,v){this.attributes[k]=v;}},getElementById(id){return ids[id];},addEventListener(name,fn){handlers[name]=fn;}},fetch(path){requests.push(path);return Promise.resolve({ok:true,json:async()=>data([])});},EventSource:class{constructor(){streams.push(this);}}});
+ const instrumented=source.replace('jumpHash(); get(); connect(); initUpdates(); loadSettings();',`globalThis.api={updateUI,receiveUpdate,updateAction,showUpdateCard,dismissUpdateCard,renderUpdate,updateCardKind,applyTheme,shortcutsOn,setupGo,openSetup,errorUI,pollUpdates,initUpdates,navigation,quick,renderSidebar,sidebarPlans,openQuickPlan,closeQuickPlan,stepQuickPlan,togglePlanStar,recordPlanVisit,quickChecklist,taskRows,filteredTaskRows,taskAgentMatches,focusedTask,refresh,stepExecution,executorBadges, agentChain, agentMatches, executorValue, agentName, agentBadge, viewList, viewTimeline, viewSummary, timelineEntries, dateKey, monthDays, handleViewAction, moveStatus, statusSelect, planByKey, render, columnOf, owner, needsAttention, feedFor, orderedMilestones, stepsHTML, taskCard, prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui, setup, settingsUI, renderSetup, renderSettings, openSettings, closeSettings, loadSettings, addProject, chooseFolder, removeProject, toggleProject, saveSetting, finishSetup, handleSettingsAction, settingsInput, settingsChange, settingsKey, showWarnings, syncSetup, key, repoLabel, viewHome, get settingsData(){return settingsData;}, set settingsData(v){settingsData=v;}};`);
  vm.runInContext(instrumented,context);
  return {api:context.api,ids,context,handlers,requests,streams,storage,writes,flush(){timers.splice(0).forEach(fn=>fn&&fn());}};
 }
 function plan(status='Implementing',name='Cải thiện tìm kiếm'){return {repo:'workboard',name,owner:'Minh',revision:'a'.repeat(64),status,tone:'doing',step:1,mtime:new Date().toISOString(),gh:'https://github.com/krik/workboard',root:'C:/sample',goal:'Gọn hơn #12',spec:'plan.md',next:'Kiểm tra kết quả #12',slot:null,steps:[{status:'doing',text:'Kiểm tra tìm kiếm'},{status:'todo',text:'Xác minh #12'}],milestones:[],decisions:[{key:'202611090900',when:'09/11 09:00',text:'Giữ tiếng Việt'}],questions:[{key:'202611090930',when:'09/11 09:30',ask:'Chốt giao diện?',answer:'',open:true}]};}
 function data(plans){return {state:{plans,slots:{}},activity:[],stale:{},now:new Date().toISOString(),error:''};}
-test('Update prompt shows versions and escaped release notes without disturbing the current task view',()=>{
- const h=harness(),p=plan();setList(h,[p]);h.api.ui.taskStatus='blocked';h.api.ui.taskGroup='plan';h.ids.view.scrollTop=123;h.ids['update-launcher'].focus();
+const hit=(selector,attrs={})=>({closest(s){return s===selector?{getAttribute(name){return attrs[name] ?? null;}}:null;}});
+
+test('Every app logo uses the theme pair and both favicons are bundled RGBA PNGs',()=>{
+ for(const theme of ['light','dark']){
+  const png=readFileSync(new URL('./web/icons/app-'+theme+'.png',import.meta.url));
+  assert.equal(png.subarray(1,4).toString(),'PNG');
+  assert.equal(png.readUInt32BE(16),256);assert.equal(png.readUInt32BE(20),256);
+  assert.equal(png[25],6,'RGBA PNG');
+  assert.match(html,new RegExp('<link rel="icon"[^>]+href="/icons/app-'+theme+'\\.png[^>]+media="\\(prefers-color-scheme: '+theme+'\\)"'));
+ }
+ assert.doesNotMatch(html,/src="\/icons\/app\.png"/,'tile is reserved for native surfaces');
+ assert.match(html,/:root\[data-theme="dark"\] \.app-logo-light \{ display: none; \}/);
+ assert.match(html,/:root\[data-theme="dark"\] \.app-logo-dark \{ display: block; \}/);
+ assert.match(html,/:root:not\(\[data-theme="light"\]\):not\(\[data-theme="dark"\]\) \.app-logo-dark \{ display: block; \}/);
+ const h=harness();h.api.settingsData=settingsPayload([]);h.api.setData({...data([]),projects:[],setupRequired:false});
+ const paired=markup=>{
+  assert.match(markup,/class="app-logo-light" src="\/icons\/app-light\.png"/);
+  assert.match(markup,/class="app-logo-dark" src="\/icons\/app-dark\.png"/);
+ };
+ h.api.openSetup();paired(h.ids.onboarding.innerHTML);
+ h.api.setup.open=false;h.api.openSettings('about');paired(h.ids.settings.innerHTML);
+ h.api.closeSettings();h.api.render();paired(h.ids.view.innerHTML);
+ for(const theme of ['light','dark','system']){
+  h.api.applyTheme(theme);assert.equal(h.context.document.documentElement.attributes['data-theme'],theme);
+ }
+});
+test('An available update shows a non-modal card and status-bar item without moving focus or the task view',()=>{
+ const h=harness(),p=plan();setList(h,[p]);h.api.ui.taskStatus='blocked';h.api.ui.taskGroup='plan';h.ids.view.scrollTop=123;h.ids.q.focus();
  const before=JSON.stringify(h.api.ui);
  h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available',notes:'Fixed grouping <script>unsafe</script>'});
- assert.ok(h.ids['update-dialog'].open);assert.equal(h.api.updateUI.open,true);
- assert.match(h.ids['update-content'].innerHTML,/v0.1.3/);assert.match(h.ids['update-content'].innerHTML,/Current version v0.1.2/);
- assert.match(h.ids['update-content'].innerHTML,/&lt;script&gt;/);assert.doesNotMatch(h.ids['update-content'].innerHTML,/<script>/);
- assert.match(h.ids['update-content'].innerHTML,/Update now/);assert.match(h.ids['update-content'].innerHTML,/Skip this version/);
+ const card=h.ids['update-card'];
+ assert.equal(card.hidden,false);assert.equal(h.api.updateCardKind(),'available');assert.equal(h.context.document.activeElement,h.ids.q,'the card never takes focus');
+ assert.match(card.innerHTML,/Update available/);assert.match(card.innerHTML,/Agent Ops v0.1.3 is ready/);
+ assert.match(card.innerHTML,/&lt;script&gt;/);assert.doesNotMatch(card.innerHTML,/<script>/);
+ assert.match(card.innerHTML,/Update and restart/);assert.match(card.innerHTML,/Skip this version/);assert.match(card.innerHTML,/aria-label="Dismiss"/);
+ assert.equal((card.innerHTML.match(/data-update-action="apply"/g) || []).length,1,'one update button');
+ assert.equal(h.ids['update-segment'].hidden,false);assert.match(h.ids['update-segment'].innerHTML,/Update available/);assert.equal(h.ids['app-version'].textContent,'v0.1.2');
  assert.equal(JSON.stringify(h.api.ui),before);assert.equal(h.ids.view.scrollTop,123);
- h.api.closeUpdateDialog();assert.equal(h.context.document.activeElement,h.ids['update-launcher']);
- h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});assert.equal(h.api.updateUI.open,false);
- h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.4',available:true,skipped:true,phase:'available'});assert.equal(h.api.updateUI.open,false);
+ h.handlers.click({target:hit('[data-update-dismiss]')});assert.equal(card.hidden,true);assert.equal(JSON.parse(h.storage['wb-update']).dismissed,'v0.1.3');
+ assert.equal(h.ids['update-segment'].hidden,false,'the status-bar item stays after dismissing');
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});assert.equal(card.hidden,true,'a dismissed version does not reopen');
+ const fresh=harness({},{},{'wb-update':h.storage['wb-update']});fresh.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});assert.equal(fresh.ids['update-card'].hidden,true,'dismissal survives a reload');
+ fresh.handlers.click({target:hit('[data-update-segment]')});assert.equal(fresh.ids['update-card'].hidden,false,'the status-bar item reopens the card');
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.4',available:true,phase:'available'});assert.equal(card.hidden,false,'a newer version shows again');
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.5',available:true,skipped:true,phase:'available'});assert.equal(h.ids['update-segment'].hidden,true);
 });
 
-test('Skip sends the selected release with CSRF protection and an apply cannot be closed or sent twice',async()=>{
+test('Skip sends the selected release with CSRF protection; an apply cannot be sent twice and only minimizes',async()=>{
  const h=harness(),calls=[];h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});
  h.context.fetch=async(path,options)=>{calls.push([path,options]);return {ok:true,json:async()=>({current:'v0.1.2',latest:'v0.1.3',available:true,skipped:true,phase:'available'})};};
- await h.api.updateAction('skip');assert.equal(calls[0][0],'/api/updates/skip');assert.equal(calls[0][1].headers['X-Workboard'],'1');assert.equal(JSON.parse(calls[0][1].body).version,'v0.1.3');assert.equal(h.api.updateUI.open,false);
- h.api.openUpdateDialog();let finish;h.context.fetch=(path,options)=>{calls.push([path,options]);return new Promise(res=>finish=res);};
- const pending=h.api.updateAction('apply');h.api.closeUpdateDialog();assert.equal(h.api.updateUI.open,true);
+ await h.api.updateAction('skip');assert.equal(calls[0][0],'/api/updates/skip');assert.equal(calls[0][1].headers['X-Workboard'],'1');assert.equal(JSON.parse(calls[0][1].body).version,'v0.1.3');assert.equal(h.ids['update-card'].hidden,true);
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.4',available:true,phase:'available'});
+ let finish;h.context.fetch=(path,options)=>{calls.push([path,options]);return new Promise(res=>finish=res);};
+ const pending=h.api.updateAction('apply');h.api.dismissUpdateCard();assert.equal(h.api.updateCardKind(),'progress','an update in progress cannot be dismissed');
  await h.api.updateAction('apply');assert.equal(calls.length,2);
- finish({ok:true,json:async()=>({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'installing'})});await pending;
- let prevented=false;h.handlers.keydown({key:'Escape',preventDefault(){prevented=true;}});assert.ok(prevented);assert.equal(h.api.updateUI.open,true);
- h.api.receiveUpdate({current:'v0.1.2',phase:'error',error:'Previous version restored.'});h.api.closeUpdateDialog();assert.equal(h.api.updateUI.open,false);
+ finish({ok:true,json:async()=>({current:'v0.1.2',latest:'v0.1.4',available:true,phase:'installing'})});await pending;
+ assert.match(h.ids['update-card'].innerHTML,/Updating to v0.1.4/);assert.match(h.ids['update-card'].innerHTML,/Installing… the page reloads by itself/);assert.doesNotMatch(h.ids['update-card'].innerHTML,/data-update-dismiss/);
+ assert.match(h.ids['update-segment'].innerHTML,/Restarting…/);
+ h.handlers.click({target:hit('[data-update-minimize]')});assert.equal(h.ids['update-card'].hidden,true);
+ h.handlers.click({target:hit('[data-update-segment]')});assert.equal(h.ids['update-card'].hidden,false);
+ h.api.receiveUpdate({current:'v0.1.2',phase:'error',error:'Previous version restored.'});assert.match(h.ids['update-segment'].innerHTML,/Update failed/);
 });
 
 test('App version change reloads once and the new page restores plan filters, grouping and scroll',async()=>{
@@ -52,10 +89,21 @@ test('App version change reloads once and the new page restores plan filters, gr
  assert.equal(fresh.ids.view.scrollTop,223);assert.equal(fresh.ids.view.scrollLeft,40);assert.deepEqual(JSON.parse(fresh.storage['wb-update-view']),{});
 });
 
-test('Check failures and rollback errors remain visible and network disconnect during installation is expected',async()=>{
- const h=harness();h.api.openUpdateDialog();h.context.fetch=async()=>{throw Error('GitHub unreachable');};await h.api.pollUpdates();assert.match(h.ids['update-content'].innerHTML,/GitHub unreachable/);
+test('Check failures and rollback errors stay visible and a disconnect during installation is expected',async()=>{
+ const h=harness();h.api.showUpdateCard();h.context.fetch=async()=>{throw Error('GitHub unreachable');};await h.api.pollUpdates();assert.match(h.ids['update-card'].innerHTML,/GitHub unreachable/);assert.match(h.ids['update-card'].innerHTML,/Re-check/);
  h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'installing'});await h.api.pollUpdates();assert.equal(h.api.updateUI.state.error,undefined);
- h.api.receiveUpdate({current:'v0.1.2',phase:'error',error:'Previous version restored.'});assert.match(h.ids['update-content'].innerHTML,/Previous version restored/);
+ h.api.receiveUpdate({current:'v0.1.2',phase:'error',error:'Previous version restored.'});assert.equal(h.ids['update-card'].hidden,false);assert.match(h.ids['update-card'].innerHTML,/Previous version restored/);
+ const quiet=harness();quiet.api.receiveUpdate({current:'v0.1.2',phase:'error',error:'Could not check the private GitHub release.'});
+ assert.equal(quiet.ids['update-card'].hidden,true,'a background failure never opens the card');assert.match(quiet.ids['update-segment'].innerHTML,/Update failed/);
+});
+
+test('A manual check shows Checking and then a short up-to-date notice; setup holds the card back',async()=>{
+ const h=harness();let state={current:'v0.2.0',phase:'checking'};h.context.fetch=async()=>({ok:true,json:async()=>state});
+ await h.api.updateAction('check');assert.match(h.ids['update-card'].innerHTML,/Checking for updates…/);
+ state={current:'v0.2.0',phase:'idle',available:false,checkedAt:'2026-11-10T03:00:00Z'};await h.api.pollUpdates();
+ assert.match(h.ids['update-card'].innerHTML,/You’re on the latest version/);h.flush();assert.equal(h.ids['update-card'].hidden,true,'auto-hides');
+ const s=harness();s.api.setup.open=true;s.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});assert.equal(s.ids['update-card'].hidden,true,'never during setup');
+ s.api.setup.open=false;s.api.renderUpdate();assert.equal(s.ids['update-card'].hidden,false,'shown once setup closes');
 });
 
 test('Board has five status columns, assignees and progress without KPI or chat navigation',()=>{const h=harness();h.api.setData(data([plan()]));h.api.render();assert.match(h.ids.view.innerHTML,/In progress/);assert.match(h.ids.view.innerHTML,/Minh/);assert.match(h.ids.view.innerHTML,/1?0?\/2/);assert.equal((h.ids.view.innerHTML.match(/class="column"/g)||[]).length,5);assert.doesNotMatch(h.ids.nav.innerHTML,/Channels|Report|Activity/);assert.doesNotMatch(h.ids.view.innerHTML,/kpis|class="feed"/);});
@@ -70,10 +118,10 @@ test('Milestones and steps retain required order',()=>{const h=harness();const m
 test('Historical entries in different plans do not suppress each other',()=>{const h=harness(),a=plan(),b=plan('Testing','Kiểm thử');h.api.setData(data([a,b]));assert.equal(h.api.feedFor(null).length,4);});
 test('Encoded toast hash opens the matching plan Summary',()=>{const h=harness();h.context.location.hash='#plan='+encodeURIComponent('workboard/Cải thiện tìm kiếm');h.api.jumpHash();assert.equal(h.api.ui.view,'plan:workboard/Cải thiện tìm kiếm');assert.equal(h.api.ui.tab,'summary');});
 test('Ctrl+K focuses search and Escape returns to board',()=>{const h=harness();let prevented=false;h.handlers.keydown({ctrlKey:true,key:'k',preventDefault(){prevented=true;},target:{tagName:'BODY'}});assert.ok(prevented);assert.equal(h.context.document.activeElement,h.ids.q);h.api.setData(data([plan()]));h.api.ui.view='plan:workboard/Cải thiện tìm kiếm';h.handlers.keydown({key:'Escape',target:{tagName:'BODY'}});assert.equal(h.api.ui.view,'home');});
-test('Offline status and error banner expose the reason',()=>{const h=harness();h.api.connection(false);assert.equal(h.ids.connection.textContent,'Reconnecting…');h.api.showError('Node failed: test');assert.equal(h.ids.error.hidden,false);assert.equal(h.ids.error.textContent,'Node failed: test');h.api.showError('');assert.equal(h.ids.error.hidden,true);});
+test('Offline status and error banner expose the reason',()=>{const h=harness();h.api.connection(false);assert.equal(h.ids.connection.textContent,'Reconnecting…');h.api.showError('Node failed: test');assert.equal(h.ids.error.hidden,false);assert.equal(h.ids['error-text'].textContent,'Couldn’t read plans — test');assert.equal(h.ids['error-raw'].textContent,'Node failed: test');assert.equal(h.ids['error-raw'].hidden,true);assert.equal(h.ids['error-details'].hidden,false);h.handlers.click({target:hit('[data-error-details]')});assert.equal(h.ids['error-raw'].hidden,false);assert.equal(h.ids['error-details'].textContent,'Hide details');h.api.showError('');assert.equal(h.ids.error.hidden,true);});
 test('User text is escaped and pull request numbers link at all lengths',()=>{const h=harness();assert.equal(h.api.prs('<script>#1 #123456</script>','https://github.com/krik/workboard').includes('<script>'),false);assert.match(h.api.prs('#1 #123456','https://github.com/krik/workboard'),/pull\/123456/);});
 
-test('SSE reconnect refetches state and clears the reconnecting label',async()=>{const h=harness();h.api.connect();const es=h.streams[0];es.onerror();assert.equal(h.ids.connection.textContent,'Reconnecting…');es.onopen();await new Promise(resolve=>setImmediate(resolve));assert.equal(h.ids.connection.textContent,'');assert.deepEqual(h.requests,['/api/state']);});
+test('SSE reconnect refetches state and clears the reconnecting label',async()=>{const h=harness();h.api.connect();const es=h.streams[0];es.onerror();assert.equal(h.ids.connection.textContent,'Reconnecting…');es.onopen();await new Promise(resolve=>setImmediate(resolve));assert.equal(h.ids.connection.textContent,'Live');assert.deepEqual(h.requests,['/api/state']);});
 
 function dragCard(p){return {classList:{add(){},remove(){}},getAttribute(){return p.repo+'/'+p.name;}};}
 function dragEvent(card){return {target:{closest(selector){return selector==='[data-plan]'?card:null;}},dataTransfer:{setData(){},effectAllowed:''},preventDefault(){}};}
@@ -129,7 +177,7 @@ test('A conflicting move reloads the other session and shows its reason',async()
   :{ok:true,json:async()=>data([other])};
  await h.api.moveStatus(p.repo+'/'+p.name,'Done',p.revision);
  assert.equal(h.api.planByKey(p.repo+'/'+p.name).status,'Testing');
- assert.match(h.ids.error.textContent,/plan changed/);
+ assert.match(h.ids['error-text'].textContent,/plan changed/);
  assert.equal(h.ids['save-state'].textContent,'');
 });
 test('A network failure keeps the original card and exposes the save error',async()=>{
@@ -137,7 +185,7 @@ test('A network failure keeps the original card and exposes the save error',asyn
  h.context.fetch=async(path)=>{if(path==='/api/plans/status')throw Error('Network unavailable');return {ok:true,json:async()=>data([p])};};
  await h.api.moveStatus(p.repo+'/'+p.name,'Done',p.revision);
  assert.equal(h.api.planByKey(p.repo+'/'+p.name).status,'Implementing');
- assert.equal(h.ids.error.textContent,'Network unavailable');
+ assert.equal(h.ids['error-text'].textContent,'Network unavailable');
 });
 test('Only one save can run at a time',async()=>{
  const h=harness(),p=plan();h.api.setData(data([p]));let release,calls=0;
@@ -303,7 +351,7 @@ test('F5 checks fresh progress while preserving view, search and filters and pre
  let prevented=false;h.handlers.keydown({key:'F5',target:{tagName:'INPUT'},preventDefault(){prevented=true;}});await settle();
  assert.ok(prevented);assert.deepEqual(calls.map(c=>c[0]),['/api/refresh','/api/state']);assert.equal(calls[0][1].method,'POST');
  assert.equal(h.api.ui.view,'plan:'+p.repo+'/'+p.name);assert.equal(h.api.ui.q,'test');assert.equal(h.api.ui.agent,'Codex');assert.equal(h.api.ui.layout,'list');
- assert.match(h.ids.upd.textContent,/Checked/);assert.match(h.ids.upd.title,/05:05:00Z/);assert.equal(h.ids['save-state'].textContent,'Progress updated');
+ assert.match(h.ids.upd.textContent,/Updated \d\d:\d\d/);assert.match(h.ids.upd.title,/05:05:00Z/);assert.equal(h.ids['save-state'].textContent,'Progress updated');
 });
 
 test('Repeated F5 and Refresh clicks share one check while a request is pending',async()=>{
@@ -317,7 +365,7 @@ test('Repeated F5 and Refresh clicks share one check while a request is pending'
 test('Failed F5 keeps the last successful check time and visible tasks and explains the failure',async()=>{
  const h=harness(),p=plan(),j=data([p]);j.state.generatedAt='2026-11-09T05:00:00Z';h.api.setData(j);h.api.render();const old=h.ids.upd.title;
  h.context.fetch=async()=>({ok:false,json:async()=>({error:'Node failed: collector unavailable'})});
- await h.api.refresh();assert.match(h.ids.error.textContent,/collector unavailable/);assert.equal(h.ids['save-state'].textContent,'Progress check failed');
+ await h.api.refresh();assert.match(h.ids['error-text'].textContent,/collector unavailable/);assert.equal(h.ids['save-state'].textContent,'Progress check failed');
  assert.equal(h.ids.upd.title,old);assert.match(h.ids.view.innerHTML,/Cải thiện/);
 });
 
@@ -383,7 +431,7 @@ test('Old task links are rejected after a concurrent revision and ambiguous high
  assert.equal(h.api.focusedTask(p).line,6);
  const updated={...p,revision:'b'.repeat(64)};h.api.setData(data([updated]));assert.equal(h.api.focusedTask(updated),null);
  h.api.ui.view='home';h.api.handleViewAction(actionEvent('data-open-task',p.repo+'/'+p.name,{'data-task-index':'1','data-task-revision':p.revision}));
- assert.equal(h.api.ui.view,'home');assert.match(h.ids.error.textContent,/task changed/);
+ assert.equal(h.api.ui.view,'home');assert.match(h.ids['error-text'].textContent,/task changed/);
 });
 
 test('F5 preserves the chosen task status and task search in the new List',async()=>{
@@ -741,10 +789,209 @@ test('The status selector changes semantic color immediately and retains the con
  h.handlers.change({target:control});assert.equal(control.className,'status-select status-done');assert.equal(control.disabled,true);release({ok:true,json:async()=>({saved:true})});await settle();
  assert.match(h.ids.top.innerHTML,/class="status-select status-done"/);assert.equal(control.disabled,false);assert.deepEqual(server.steps,p.steps);
  h.context.fetch=async path=>path==='/api/plans/status'?{ok:false,status:409,json:async()=>({error:'Concurrent stage change'})}:{ok:true,json:async()=>data([{...p,status:'Testing'}])};
- control.value='Blocked';h.handlers.change({target:control});assert.equal(control.className,'status-select status-blocked');await settle();assert.match(h.ids.top.innerHTML,/class="status-select status-review"/);assert.match(h.ids.error.textContent,/Concurrent stage change/);
+ control.value='Blocked';h.handlers.change({target:control});assert.equal(control.className,'status-select status-blocked');await settle();assert.match(h.ids.top.innerHTML,/class="status-select status-review"/);assert.match(h.ids['error-text'].textContent,/Concurrent stage change/);
 });
 
 test('A mixed milestone displays its technical notes once when split into open and completed work',()=>{
  const h=harness(),p=focusPlan();p.milestones[1].summary='Unique recorded milestone evidence';h.api.setData(data([p]));h.api.ui.view='plan:workboard/Focus';h.api.ui.tab='checklist';h.api.render();
  assert.equal((h.ids.view.innerHTML.match(/Unique recorded milestone evidence/g)||[]).length,1);const ids=Array.from(h.ids.view.innerHTML.matchAll(/\bid="([^"]+)"/g),m=>m[1]);assert.equal(ids.length,new Set(ids).size);assert.ok(h.ids.view.innerHTML.indexOf('Unique recorded milestone evidence')<h.ids.view.innerHTML.indexOf('<details class="plan-completed"'));
+});
+
+// ---------- First-run setup, Settings, empty and error states ----------
+function settingsPayload(projects=[],extra={}){return {setupRequired:!projects.length,setupComplete:false,notifications:true,startWithWindows:false,startupManaged:true,dataDir:'C:\\Users\\me\\AppData\\Local\\krik-workboard',configFile:'config.json',stateFile:'state.json',projectsOverridden:'',warning:'',readOnly:'',version:'v0.2.0',projects,...extra};}
+const workProject={id:'p1',path:'C:\\work',name:'work',kind:'folder',enabled:true,addedAt:'2026-11-10T00:00:00Z',exists:true,repos:[{name:'web',path:'C:\\work\\web',hasTasks:true,planCount:2},{name:'api',path:'C:\\work\\api',hasTasks:true,planCount:1}]};
+function settingsServer(h,routes){
+ const calls=[];h.context.fetch=async(path,options={})=>{calls.push({path,method:options.method || 'GET',headers:options.headers || {},body:options.body?JSON.parse(options.body):undefined});const route=routes[(options.method || 'GET')+' '+path] || routes[path];const [status,body]=route?route(calls.at(-1)):[200,data([])];return {ok:status<400,status,json:async()=>body};};
+ return calls;
+}
+const drain=async()=>{for(let i=0;i<6;i++)await settle();};
+
+test('First run walks through welcome, adding a project with the native picker and preferences before finishing',async()=>{
+ const h=harness();let projects=[];
+ const calls=settingsServer(h,{
+  'GET /api/settings':()=>[200,settingsPayload(projects)],
+  'POST /api/settings/pick-folder':()=>[200,{path:'C:\\work'}],
+  'POST /api/projects':()=>{projects=[workProject];return [200,{project:workProject,kind:'folder',name:'work',repos:workProject.repos,settings:settingsPayload(projects)}];},
+  'PUT /api/settings':call=>[200,{...settingsPayload(projects),setupComplete:true,setupRequired:false,notifications:call.body.notifications ?? true,theme:call.body.theme || 'system'}],
+ });
+ h.api.setData({...data([]),setupRequired:true,projects:[]});h.api.syncSetup();await drain();
+ const card=()=>h.ids.onboarding.innerHTML;
+ assert.equal(h.ids.onboarding.hidden,false);assert.match(card(),/Welcome to Agent Ops/);assert.match(card(),/Your work ledger for every repository/);assert.match(card(),/\.tasks\/\*\.md/);
+ assert.match(card(),/Step 1 of 3/);assert.match(card(),/aria-current="step"/);assert.match(card(),/Set up later/,'setup can be skipped before any project exists');
+ h.handlers.click({target:hit('[data-setup-next]')});assert.match(card(),/Add your projects/);assert.match(card(),/Choose folder…/);assert.match(card(),/Paste a path instead/);assert.match(card(),/Step 2 of 3/);
+ assert.match(card(),/id="setup-next" data-setup-next disabled title="Add a project to continue"/);
+ h.handlers.click({target:hit('[data-setup-next]')});assert.match(card(),/Add your projects/,'cannot continue without a project');
+ h.handlers.keydown({key:'Enter',ctrlKey:true,preventDefault(){},target:{}});assert.match(card(),/Add your projects/,'Ctrl+Enter cannot skip the project step either');
+ h.handlers.click({target:hit('[data-project-choose]',{'data-project-choose':'setup'})});await drain();
+ assert.deepEqual(calls.filter(c=>c.method!=='GET').map(c=>c.method+' '+c.path),['POST /api/settings/pick-folder','POST /api/projects']);
+ const added=calls.find(c=>c.path==='/api/projects');assert.equal(added.body.path,'C:\\work');assert.equal(added.headers['X-Workboard'],'1');assert.equal(added.headers['Content-Type'],'application/json');
+ assert.match(card(),/Folder · 2 repositories · 3 plans/);assert.match(card(),/C:\\work/);assert.match(card(),/Project added · 3 plans found/);assert.match(card(),/data-project-remove="p1"/);assert.match(card(),/aria-label="Remove work"/);
+ h.handlers.keydown({key:'Enter',ctrlKey:true,preventDefault(){},target:{}});assert.match(card(),/A few preferences/);assert.match(card(),/Start with Windows/);assert.match(card(),/Desktop notifications/);assert.match(card(),/role="radiogroup" aria-label="Theme"/);assert.match(card(),/Open ledger/);
+ assert.doesNotMatch(card(),/Set up later/,'the last step finishes instead');
+ h.api.settingsChange({checked:false,closest(s){return s==='[data-setting]'?{getAttribute:()=>'notifications'}:s==='[data-scope]'?{getAttribute:()=>'setup'}:null;}});await drain();
+ assert.deepEqual(calls.filter(c=>c.method==='PUT').at(-1).body,{notifications:false});assert.match(card(),/Saved/);
+ h.handlers.click({target:hit('[data-theme-choice]',{'data-theme-choice':'dark','data-scope':'setup'})});await drain();
+ assert.deepEqual(calls.filter(c=>c.method==='PUT').at(-1).body,{theme:'dark'});assert.equal(h.context.document.documentElement.attributes['data-theme'],'dark','theme applies right away');assert.equal(JSON.parse(h.storage['wb-prefs']).theme,'dark');
+ h.handlers.click({target:hit('[data-setup-finish]')});await drain();
+ assert.deepEqual(calls.filter(c=>c.method==='PUT').at(-1).body,{setupComplete:true});
+ assert.equal(h.api.setup.open,false);assert.equal(h.ids.onboarding.hidden,true);
+});
+
+test('Setup can be skipped with no project, Escape asks first, and the board then offers Add a project',async()=>{
+ const h=harness();const calls=settingsServer(h,{
+  'GET /api/settings':()=>[200,settingsPayload([])],
+  'PUT /api/settings':()=>[200,{...settingsPayload([]),setupComplete:true,setupRequired:false}],
+  '/api/state':()=>[200,{...data([]),projects:[],setupRequired:false}],
+ });
+ h.api.setData({...data([]),setupRequired:true,projects:[]});h.api.syncSetup();await drain();
+ const card=()=>h.ids.onboarding.innerHTML;
+ h.handlers.keydown({key:'Escape',preventDefault(){},target:{}});assert.match(card(),/Skip setup\?/);assert.match(card(),/You can finish it later from Settings/);assert.equal(calls.filter(c=>c.method==='PUT').length,0,'Escape only asks');
+ h.handlers.click({target:hit('[data-setup-keep]')});assert.doesNotMatch(card(),/Skip setup\?/);
+ h.handlers.keydown({key:'Escape',preventDefault(){},target:{}});h.handlers.click({target:hit('[data-setup-skip]')});await drain();
+ assert.deepEqual(calls.filter(c=>c.method==='PUT').at(-1).body,{setupComplete:true});assert.equal(h.api.setup.open,false);
+ h.api.render();assert.match(h.ids.view.innerHTML,/Add a project to start/);assert.match(h.ids.view.innerHTML,/data-settings-empty-add/);
+});
+
+test('Pasted paths show server validation inline and projects can be toggled and removed with confirmation',async()=>{
+ const h=harness();let projects=[workProject];
+ const calls=settingsServer(h,{
+  'GET /api/settings':()=>[200,settingsPayload(projects,{setupRequired:false,setupComplete:true})],
+  'POST /api/projects':()=>[400,{error:'This folder is inside the project “work”, which already includes it.'}],
+  'PATCH /api/projects/p1':call=>{projects=[{...workProject,enabled:call.body.enabled}];return [200,settingsPayload(projects,{setupRequired:false})];},
+  'DELETE /api/projects/p1':()=>{projects=[];return [200,settingsPayload(projects,{setupRequired:false})];},
+ });
+ h.api.openSettings('projects');await drain();
+ const page=()=>h.ids.settings.innerHTML;
+ assert.equal(h.ids.settings.hidden,false);assert.match(page(),/Back to ledger/);assert.match(page(),/Search settings/);assert.match(page(),/Settings \/ Projects/);assert.match(page(),/data-settings-section="project:p1"/);assert.match(page(),/Include in ledger/);assert.match(page(),/Open folder/);
+ h.handlers.click({target:hit('[data-settings-add]')});h.handlers.click({target:hit('[data-project-paste]',{'data-project-paste':'settings'})});assert.match(page(),/id="settings-path"/);assert.match(page(),/placeholder="D:\\Projects\\my-repo"/);
+ h.api.settingsInput({value:'C:\\work\\web',closest(s){return s==='[data-project-path]'?{getAttribute:()=>'settings'}:null;}});
+ let prevented=false;h.handlers.keydown({key:'Enter',preventDefault(){prevented=true;},target:{closest(s){return s==='[data-project-path]'?{getAttribute:()=>'settings'}:null;}}});await drain();
+ assert.ok(prevented);assert.equal(calls.find(c=>c.method==='POST').body.path,'C:\\work\\web');
+ assert.match(page(),/role="alert">.*This folder is inside the project “work”/);assert.match(page(),/aria-invalid="true"/);
+ h.handlers.keydown({key:'Escape',preventDefault(){},target:{closest(s){return s==='[data-project-path]'?{getAttribute:()=>'settings'}:null;}}});assert.doesNotMatch(page(),/id="settings-path"/,'Escape collapses the path field');assert.equal(h.api.settingsUI.open,true);
+ h.api.settingsChange({checked:false,closest(s){return s==='[data-project-toggle]'?{getAttribute:()=>'p1'}:null;}});await drain();
+ assert.deepEqual(calls.find(c=>c.method==='PATCH').body,{enabled:false});assert.match(page(),/is-disabled/);assert.match(page(),/Hidden/);
+ h.handlers.click({target:hit('[data-project-remove]',{'data-project-remove':'p1','data-scope':'settings'})});
+ assert.equal(calls.filter(c=>c.method==='DELETE').length,0,'first click only asks to confirm');assert.match(page(),/Click again to remove/);
+ h.handlers.click({target:hit('[data-project-remove]',{'data-project-remove':'p1','data-scope':'settings'})});await drain();
+ assert.equal(calls.filter(c=>c.method==='DELETE').length,1);assert.match(page(),/No projects added yet/);
+ h.handlers.keydown({key:'Escape',preventDefault(){},target:{}});assert.equal(h.api.settingsUI.open,false);assert.equal(h.ids.settings.hidden,true);
+});
+
+test('Duplicate projects read as information, not an error',async()=>{
+ const h=harness();settingsServer(h,{'GET /api/settings':()=>[200,settingsPayload([workProject],{setupRequired:false})],'POST /api/projects':()=>[400,{error:'This folder is already added as “work”.'}]});
+ h.api.openSettings('projects',{add:true});await drain();await h.api.addProject('settings','C:\\work');
+ assert.match(h.ids.settings.innerHTML,/field-msg is-info" role="status"/);assert.doesNotMatch(h.ids.settings.innerHTML,/is-error/);
+});
+
+test('Settings search filters sections and projects and Escape clears the query before closing',async()=>{
+ const h=harness(),beta={...workProject,id:'p2',name:'beta-lab',path:'D:\\lab\\beta',kind:'repo',repos:[{name:'beta-lab',path:'D:\\lab\\beta',hasTasks:false,planCount:0}]};
+ settingsServer(h,{'GET /api/settings':()=>[200,settingsPayload([workProject,beta],{setupRequired:false})]});
+ h.api.openSettings('general');await drain();
+ const page=()=>h.ids.settings.innerHTML,search=v=>{h.api.settingsInput({id:'settings-search',value:v});h.flush();};
+ assert.match(page(),/Start with Windows/);assert.match(page(),/Data folder/);assert.match(page(),/krik-workboard/);assert.match(page(),/Single-key shortcuts/);assert.match(page(),/Run setup again/);
+ search('notif');assert.match(page(),/Desktop notifications/);assert.doesNotMatch(page(),/Data folder/);assert.doesNotMatch(page(),/Start with Windows/);
+ search('dark');assert.match(page(),/role="radiogroup" aria-label="Theme"/);assert.doesNotMatch(page(),/Desktop notifications/);
+ search('beta');assert.match(page(),/D:\\lab\\beta/);assert.doesNotMatch(page(),/data-settings-section="project:p1"/);assert.match(page(),/No \.tasks folder/);
+ search('zzz');assert.match(page(),/No settings found for “zzz”/);assert.match(page(),/data-settings-clear-search/);assert.match(page(),/No matching projects/);
+ h.handlers.click({target:hit('[data-settings-clear-search]')});assert.equal(h.api.settingsUI.query,'');assert.match(page(),/Start with Windows/);
+ search('zzz');h.handlers.keydown({key:'Escape',preventDefault(){},target:{id:'settings-search'}});assert.equal(h.api.settingsUI.query,'');assert.equal(h.api.settingsUI.open,true);
+ search('update');assert.match(page(),/Check for updates/);
+ h.handlers.keydown({key:'Escape',preventDefault(){},target:{}});assert.equal(h.api.settingsUI.open,false);
+});
+
+test('Settings About checks for updates inline and offers one Update and restart action',async()=>{
+ const h=harness();settingsServer(h,{'GET /api/settings':()=>[200,settingsPayload([workProject],{setupRequired:false})]});
+ h.api.openSettings('about');await drain();
+ h.api.receiveUpdate({current:'v0.2.0',latest:'v0.2.1',available:true,phase:'available',notes:'Faster <b>refresh</b>',commit:'abcdef1234567890'});
+ const page=()=>h.ids.settings.innerHTML;
+ assert.match(page(),/Agent Ops v0.2.0/);assert.match(page(),/Version v0.2.1 is available/);assert.match(page(),/Update and restart/);assert.match(page(),/Skip this version/);assert.match(page(),/Release notes/);assert.match(page(),/&lt;b&gt;refresh/);assert.match(page(),/abcdef123456/);
+ h.api.receiveUpdate({current:'v0.2.0',phase:'idle',available:false,checkedAt:'2026-11-10T03:00:00Z'});assert.match(page(),/You’re on the latest version. Last checked \d\d:\d\d/);
+});
+
+test('Single-key shortcuts focus search and open Settings, skip typing, and can be turned off',async()=>{
+ const h=harness();h.api.setData(data([plan()]));h.api.render();
+ const key=(k,target={tagName:'BODY'},extra={})=>{let prevented=false;h.handlers.keydown({key:k,target,preventDefault(){prevented=true;},...extra});return prevented;};
+ assert.ok(key('/'));assert.equal(h.context.document.activeElement,h.ids.q);
+ assert.equal(key(',',{tagName:'INPUT',type:'text'}),false,'typing a comma never opens Settings');assert.equal(h.api.settingsUI.open,false);
+ settingsServer(h,{'GET /api/settings':()=>[200,settingsPayload([workProject],{setupRequired:false})],'PUT /api/settings':call=>[200,settingsPayload([workProject],{setupRequired:false,shortcuts:call.body.shortcuts})]});
+ assert.ok(key(','));assert.equal(h.api.settingsUI.open,true);await drain();
+ key('/',{tagName:'BODY'});assert.equal(h.context.document.activeElement,h.ids['settings-search'],'/ focuses the settings search');
+ h.api.settingsChange({checked:false,closest(s){return s==='[data-setting]'?{getAttribute:()=>'shortcuts'}:s==='[data-scope]'?{getAttribute:()=>'settings'}:null;}});await drain();
+ assert.equal(h.api.shortcutsOn(),false);assert.equal(JSON.parse(h.storage['wb-prefs']).shortcuts,false);
+ h.api.closeSettings();h.ids.view.focus();
+ assert.equal(key(','),false);assert.equal(h.api.settingsUI.open,false,'off means no single-key shortcuts');
+ assert.equal(key('/'),false);
+ assert.ok(key(',',{tagName:'BODY'},{ctrlKey:true}));assert.equal(h.api.settingsUI.open,true,'Ctrl+, still works');
+});
+
+test('No project shows Add a project to start; hidden projects say so instead of an error',()=>{
+ const h=harness();h.api.setData({...data([]),projects:[],setupRequired:false});h.api.render();
+ assert.match(h.ids.view.innerHTML,/Add a project to start/);assert.match(h.ids.view.innerHTML,/data-settings-empty-add/);assert.match(h.ids.view.innerHTML,/Open settings/);assert.doesNotMatch(h.ids.view.innerHTML,/Node failed|ENOENT/);
+ h.api.ui.layout='list';h.api.render();assert.match(h.ids.view.innerHTML,/Add a project to start/);
+ h.handlers.click({target:hit('[data-settings-empty-add]')});assert.equal(h.api.settingsUI.open,true);assert.equal(h.api.settingsUI.section,'projects');assert.equal(h.api.settingsUI.adding,true);
+ const off=harness();off.api.setData({...data([]),projects:[{id:'p1',name:'work',enabled:false,status:'disabled'}],setupRequired:false});off.api.render();
+ assert.match(off.ids.view.innerHTML,/All projects are hidden/);assert.match(off.ids.view.innerHTML,/data-settings-empty-add/);
+});
+
+test('The page loads nothing from another origin and every icon-only button has a label',()=>{
+ assert.doesNotMatch(html,/https?:\/\/(?!127\.0\.0\.1)/i,'no external URL in the page');assert.doesNotMatch(html,/<link[^>]+stylesheet/);assert.doesNotMatch(html,/content: "\? "/);
+ const h=harness();h.api.setData(data([plan()]));h.api.render();
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});
+ h.api.settingsData=settingsPayload([workProject],{setupRequired:false});h.api.openSettings('projects');h.api.setup.open=true;h.api.setup.step=1;h.api.renderSetup();
+ const markup=[html.slice(0,html.indexOf('<script>')),h.ids['update-card'].innerHTML,h.ids.settings.innerHTML,h.ids.onboarding.innerHTML,h.ids['plan-sidebar'].innerHTML].join('');
+ for(const button of markup.match(/<button\b[^>]*>[\s\S]*?<\/button>/g)){
+  const text=button.replace(/<svg[\s\S]*?<\/svg>/g,'').replace(/<[^>]+>/g,'').trim();
+  if(!text && !/data-setup-goto|\shidden[\s>]/.test(button))assert.match(button,/aria-label="[^"]+"/,button.slice(0,120));
+  if(/data-setup-goto/.test(button))assert.match(button,/aria-label="Step \d: /);
+ }
+});
+
+test('Collector failures show what failed, keep the last good check and offer Retry; missing projects are warnings',async()=>{
+ const h=harness(),p=plan();h.api.setData({...data([p]),state:{plans:[p],slots:{},generatedAt:'2026-11-10T02:30:00Z'}});
+ h.api.showError('Could not read project “work” (C:\\work): EACCES: permission denied');
+ assert.equal(h.ids.error.hidden,false);assert.match(h.ids['error-text'].textContent,/project “work”/);assert.match(h.ids['error-detail'].textContent,/Showing the last successful check from \d\d:\d\d/);
+ const calls=settingsServer(h,{'POST /api/refresh':()=>[200,{refreshedAt:'now'}],'/api/state':()=>[200,data([p])]});
+ h.handlers.click({target:hit('[data-retry]')});await drain();assert.equal(calls[0].path,'/api/refresh');assert.equal(calls[0].headers['X-Workboard'],'1');
+ h.api.showWarnings(['Project “Gone” was not found at E:\\gone.']);assert.equal(h.ids.warnings.hidden,false);assert.match(h.ids.warnings.innerHTML,/Gone/);assert.match(h.ids.warnings.innerHTML,/data-settings-open="projects"/);
+ h.api.showWarnings([]);assert.equal(h.ids.warnings.hidden,true);
+});
+
+test('Plans with the same repository folder in two projects keep separate keys and labels',()=>{
+ const h=harness(),a={...plan(),project:'p1',projectName:'Work'},b={...plan(),project:'p2',projectName:'OSS'};
+ h.api.setData(data([a,b]));
+ assert.notEqual(h.api.key(a),h.api.key(b));assert.equal(h.api.planByKey('p2/workboard/'+a.name),b);
+ assert.equal(h.api.planByKey('workboard/'+a.name),undefined,'ambiguous legacy links are not guessed');
+ assert.equal(h.api.repoLabel(a),'workboard · Work');
+ h.api.setData(data([a]));assert.equal(h.api.planByKey('workboard/'+a.name),a,'unique legacy link still opens');assert.equal(h.api.repoLabel(a),'workboard');
+});
+
+test('Stars, recent plans and collapsed groups saved before projects move to project-qualified keys',async()=>{
+ const alpha={...plan('Implementing','Alpha'),project:'p1',projectName:'Work'},beta={...plan('Implementing','Beta'),project:'p1',projectName:'Work'};
+ const dupA={...plan('Implementing','Dup'),project:'p1',projectName:'Work'},dupB={...plan('Implementing','Dup'),project:'p2',projectName:'OSS'};
+ const now=new Date().toISOString();
+ const h=harness(
+  {collapsedPlans:{'workboard/Alpha':true,'workboard/Dup':true,'p1/workboard/Beta':false,'workboard/Gone':true},view:'plan:workboard/Alpha'},
+  {starred:['workboard/Alpha','p1/workboard/Beta','workboard/Dup','workboard/Gone'],recent:[{key:'workboard/Beta',openedAt:now},{key:'p1/workboard/Beta',openedAt:now},{key:'workboard/Alpha',openedAt:now}]});
+ h.context.fetch=async()=>({ok:true,json:async()=>data([alpha,beta,dupA,dupB])});
+ await h.api.get();
+ assert.deepEqual([...h.api.navigation.starred],['p1/workboard/Alpha','p1/workboard/Beta','workboard/Dup','workboard/Gone'],'unique legacy keys move; ambiguous and unknown keys stay');
+ assert.deepEqual([...h.api.navigation.recent.map(r=>r.key)],['p1/workboard/Alpha','p1/workboard/Beta'],'recent entries that collapse onto one key are deduplicated, and the open plan is the latest visit');
+ assert.deepEqual({...h.api.ui.collapsedPlans},{'p1/workboard/Alpha':true,'p1/workboard/Beta':false,'workboard/Dup':true,'workboard/Gone':true});
+ assert.equal(h.api.ui.view,'plan:p1/workboard/Alpha');
+ assert.deepEqual(JSON.parse(h.storage["wb-navigation"]).starred,[...h.api.navigation.starred],'migrated preferences are saved once');
+ assert.equal(JSON.parse(h.storage['wb-ui']).collapsedPlans['p1/workboard/Alpha'],true);
+ h.api.navigation.section='starred';
+ assert.deepEqual([...h.api.sidebarPlans().map(p=>p.name)],['Alpha','Beta'],'the Starred collection shows the old stars');
+ const writes=h.writes.length;await h.api.get();assert.equal(h.writes.length,writes,'a second state load does not rewrite preferences');
+ h.api.togglePlanStar('p1/workboard/Alpha');
+ assert.equal(h.api.navigation.starred.includes('p1/workboard/Alpha'),false,'clicking the star removes the migrated key instead of adding a second one');
+ assert.equal(h.api.navigation.starred.includes('workboard/Alpha'),false);
+});
+test('Stored keys are left alone until the first state with plans arrives',async()=>{
+ const h=harness({collapsedPlans:{'workboard/Alpha':true}},{starred:['workboard/Alpha'],recent:[]});
+ h.context.fetch=async()=>({ok:true,json:async()=>data([])});await h.api.get();
+ assert.deepEqual([...h.api.navigation.starred],['workboard/Alpha']);
+ h.context.fetch=async()=>({ok:true,json:async()=>data([{...plan('Implementing','Alpha'),project:'p1'}])});await h.api.get();
+ assert.deepEqual([...h.api.navigation.starred],['p1/workboard/Alpha']);assert.deepEqual({...h.api.ui.collapsedPlans},{'p1/workboard/Alpha':true});
 });

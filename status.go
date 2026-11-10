@@ -24,6 +24,7 @@ var planStages = map[string]bool{
 }
 
 type statusChange struct {
+	Project  string `json:"project,omitempty"`
 	Repo     string `json:"repo"`
 	Plan     string `json:"plan"`
 	Status   string `json:"status"`
@@ -124,6 +125,7 @@ func executorLabel(executors []string) string {
 }
 func writePlanHeader(change statusChange, field string) error {
 	if !validPlanComponent(change.Repo) || !validPlanComponent(change.Plan) ||
+		(change.Project != "" && !projectIDPattern.MatchString(change.Project)) ||
 		strings.EqualFold(change.Plan, "tong-hop") || len(change.Revision) != 64 {
 		return &statusError{http.StatusBadRequest, "Invalid plan, status or revision."}
 	}
@@ -133,12 +135,23 @@ func writePlanHeader(change statusChange, field string) error {
 		return &statusError{http.StatusServiceUnavailable, "The app is restarting for an update. Retry after it reconnects."}
 	}
 	mu.Lock()
-	_, known := prev[change.Repo+"/"+change.Plan]
+	_, known := prev[planKey(Plan{Project: change.Project, Repo: change.Repo, Name: change.Plan})]
 	mu.Unlock()
 	if !known {
 		return &statusError{http.StatusNotFound, "Plan no longer exists. Refresh the board."}
 	}
-	root, err := filepath.EvalSymlinks(reposDir)
+	// The file location comes from the configured project, never from the request.
+	var project *Project
+	for _, p := range effectiveProjects() {
+		if p.ID == change.Project {
+			project = &p
+			break
+		}
+	}
+	if project == nil {
+		return &statusError{http.StatusNotFound, "This plan's project is no longer enabled. Refresh the board."}
+	}
+	root, err := filepath.EvalSymlinks(project.Path)
 	if err != nil {
 		return err
 	}
@@ -146,7 +159,14 @@ func writePlanHeader(change statusChange, field string) error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(root, change.Repo, ".tasks", change.Plan+".md")
+	repoRoot := filepath.Join(root, change.Repo)
+	if project.Kind == "repo" {
+		if !strings.EqualFold(filepath.Base(filepath.Clean(project.Path)), change.Repo) {
+			return &statusError{http.StatusNotFound, "Plan no longer exists. Refresh the board."}
+		}
+		repoRoot = root
+	}
+	path := filepath.Join(repoRoot, ".tasks", change.Plan+".md")
 	resolved, err := filepath.EvalSymlinks(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return &statusError{http.StatusNotFound, "Plan no longer exists. Refresh the board."}
