@@ -9,12 +9,32 @@ import {createServer} from 'node:net';
 import {request} from 'node:http';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const fixture=mkdtempSync(join(root,'.test-release-'));
-let app,firstRun;
-const put=(file,text)=>{mkdirSync(dirname(file),{recursive:true});writeFileSync(file,text);};
+const children=[];let passed=false;
+const sleep=ms=>new Promise(res=>setTimeout(res,ms));
 // Every request but icons and fonts needs the app session: the secret the app writes
 // to session.json in its data folder (a window gets it as a cookie instead).
 const session=dir=>{try{return JSON.parse(readFileSync(join(dir,'session.json'),'utf8'));}catch{return null;}};
 const appFetch=dir=>(url,options={})=>fetch(url,{...options,headers:{'X-Agent-Ops-Session':session(dir)?.secret||'',...(options.headers||{})}});
+const freePort=async()=>{const s=createServer();await new Promise((res,rej)=>{s.once('error',rej);s.listen(0,'127.0.0.1',res);});const port=s.address().port;await new Promise(res=>s.close(res));return port;};
+// Starts the app on a free port and waits for /api/state. Another process (a
+// parallel test, the owner's app) can take the port between the check and the
+// app's listen; an app that exits before serving is started again on a new port.
+async function startApp(label,exe,args,env,dataDir){
+  const get=appFetch(dataDir);
+  for(let attempt=1;;attempt++){
+    const port=await freePort(),base='http://127.0.0.1:'+port;
+    const child=spawn(exe,[...args,'--addr','127.0.0.1:'+port],{windowsHide:true,stdio:'ignore',env});children.push(child);
+    for(let i=0;i<100;i++){
+      try{const response=await get(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)return {child,base,response,get};}catch{/* Retry only while the isolated process is starting. */}
+      if(child.exitCode!==null)break;
+      await sleep(100);
+    }
+    if(child.exitCode===null)throw Error(label+' did not start');
+    if(attempt>=3)throw Error(label+' exited before serving (exit code '+child.exitCode+', '+attempt+' attempts)');
+    console.log(label+' exited before serving (exit code '+child.exitCode+'); starting it again on a new port.');
+  }
+}
+const put=(file,text)=>{mkdirSync(dirname(file),{recursive:true});writeFileSync(file,text);};
 const run=(file,args)=>{const p=spawnSync(file,args,{encoding:'utf8',windowsHide:true});assert.equal(p.status,0,p.stderr||p.stdout||p.error?.message);};
 try {
   const archive=join(root,'dist','agent-ops-windows-amd64.zip'),pkg=join(fixture,'package');
@@ -59,18 +79,8 @@ try {
   const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','delivery.md'),state=join(fixture,'output','state.json');
   const source='Agent: Codex\nExecutor: Codex\nStatus: Implementing\nGoal: Verify isolated delivery\nNext: Finish test\n\n## M1: Delivery\n- [doing] Validate release\n';
   put(plan,source);mkdirSync(dirname(state),{recursive:true});
-  const server=createServer();await new Promise((res,rej)=>{server.once('error',rej);server.listen(0,'127.0.0.1',res);});
-  const port=server.address().port;await new Promise(res=>server.close(res));
-  const base='http://127.0.0.1:'+port;
-  app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--state-file',state,'--data-dir',join(fixture,'data')],{windowsHide:true,stdio:'ignore',env:{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''}});
-  const dataDir=join(fixture,'data'),appGet=appFetch(dataDir);
-  let response;
-  for(let i=0;i<100;i++){
-    try{response=await appGet(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)break;}catch{/* Retry only while the isolated process is starting. */}
-    if(app.exitCode!==null)throw Error('Isolated app exited before serving');
-    await new Promise(res=>setTimeout(res,100));
-  }
-  assert.ok(response?.ok,'Isolated app did not start');
+  const dataDir=join(fixture,'data');
+  const {child:app,base,response,get:appGet}=await startApp('Isolated app',join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--repos-dir',repos,'--state-file',state,'--data-dir',dataDir],{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''},dataDir);
   const stateResponse=await response.json();assert.equal(stateResponse.error,'');assert.equal(stateResponse.state.plans.length,1);
   for(const key of ['agent','executors','executionReports','slot'])assert.equal(key in stateResponse.state.plans[0],false,key);
   // The in-process collector: no Node, per-milestone progress, repositories and diagnostics, nothing written into the repository.
@@ -93,7 +103,7 @@ try {
   assert.equal((await fetch(base+'/api/state',{headers:{'X-Agent-Ops-Session':'0'.repeat(64)}})).status,403);
   const forged=await fetch(base+'/open?token='+'1'.repeat(64),{redirect:'manual'});assert.equal(forged.status,403);assert.equal(forged.headers.get('set-cookie'),null);
   assert.equal((await fetch(base+'/icons/app.png')).status,200);
-  const appSession=session(dataDir);assert.equal(appSession.addr,'127.0.0.1:'+port);assert.equal(appSession.pid,app.pid);assert.match(appSession.secret,/^[0-9a-f]{64}$/);
+  const appSession=session(dataDir);assert.equal('http://'+appSession.addr,base);assert.equal(appSession.pid,app.pid);assert.match(appSession.secret,/^[0-9a-f]{64}$/);
   assert.equal((await appGet(base+'/api/refresh',{method:'POST'})).status,403);
   for(const path of ['/api/plans/status','/api/plans/agent']){
     const gone=await appGet(base+path,{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base,'Content-Type':'application/json'},body:'{}'});
@@ -109,18 +119,10 @@ try {
   const chunk=await stream.body.getReader().read();assert.ok(new TextDecoder().decode(chunk.value).includes('retry: 3000'));controller.abort();
   assert.equal(readFileSync(plan,'utf8'),source);
   // First run without any path flags: setup mode, no collector error, then a project added through the API.
-  const freshServer=createServer();await new Promise((res,rej)=>{freshServer.once('error',rej);freshServer.listen(0,'127.0.0.1',res);});
-  const freshPort=freshServer.address().port;await new Promise(res=>freshServer.close(res));
-  const fresh='http://127.0.0.1:'+freshPort,freshData=join(fixture,'fresh-data'),freshGet=appFetch(freshData);
+  const freshData=join(fixture,'fresh-data');
   const cleanEnv={...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''};
-  firstRun=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+freshPort,'--data-dir',freshData],{windowsHide:true,stdio:'ignore',env:cleanEnv});
-  let freshState;
-  for(let i=0;i<100;i++){
-    try{const r=await freshGet(fresh+'/api/state',{signal:AbortSignal.timeout(1000)});if(r.ok){freshState=await r.json();break;}}catch{/* Retry only while the isolated process is starting. */}
-    if(firstRun.exitCode!==null)throw Error('First-run app exited before serving');
-    await new Promise(res=>setTimeout(res,100));
-  }
-  assert.ok(freshState,'First-run app did not start');
+  const started=await startApp('First-run app',join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--data-dir',freshData],cleanEnv,freshData);
+  const fresh=started.base,freshGet=started.get,freshState=await started.response.json();
   assert.equal(freshState.setupRequired,true);assert.equal(freshState.error,'');assert.deepEqual(freshState.state.plans,[]);assert.deepEqual(freshState.projects,[]);
   const write=(path,method,body)=>freshGet(fresh+path,{method,headers:{'X-Agent-Ops':'1',Origin:fresh,'Content-Type':'application/json'},body:JSON.stringify(body)});
   assert.equal((await freshGet(fresh+'/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:repos})})).status,403);
@@ -140,8 +142,17 @@ try {
   assert.equal(readFileSync(plan,'utf8'),source);
   console.log('First-run smoke passed: setup mode without flags, setup skipped with no project, protected settings writes, project added, config.json and default state under the data folder.');
   console.log('Release smoke passed: exact package allowlist and removals, session secret required on every request, repeat install with the migration inside the isolated profile, untouched owner instructions, retired write routes, integrations API, real HTTP/SSE/F5, script CSP, request protection and unchanged task source.');
+  passed=true;
 } finally {
-  for(const child of [app,firstRun])if(child && child.exitCode===null){const exited=new Promise(res=>child.once('exit',res));child.kill();await exited;}
+  // End each app with its whole process tree (a git the collector started could
+  // otherwise keep handles inside the fixture and make the cleanup fail).
+  for(const child of children)if(child.exitCode===null){
+    const exited=new Promise(res=>child.once('exit',res));
+    spawnSync('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true});
+    if(child.exitCode===null)child.kill();
+    await Promise.race([exited,sleep(10000)]);
+  }
   if(dirname(fixture)!==root || !fixture.startsWith(join(root,'.test-release-')))throw Error('Unsafe cleanup path');
-  rmSync(fixture,{recursive:true,force:true});
+  if(passed)rmSync(fixture,{recursive:true,force:true,maxRetries:10,retryDelay:300});
+  else console.error('Smoke failed; the fixture is kept for diagnosis: '+fixture+' (app logs: data\\logs and fresh-data\\logs).');
 }

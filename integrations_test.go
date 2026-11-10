@@ -296,7 +296,7 @@ func TestEditEnableAndRemoveTargets(t *testing.T) {
 	if tg := targetByID(currentIntegrations(), id); tg.Enabled || tg.State != "installed" {
 		t.Fatalf("%+v", tg)
 	}
-	if w, _ := act(t, id, "remove"); w.Code != http.StatusConflict || !exists(skillFileOf(first)) {
+	if w, _ := act(t, id, "replace"); w.Code != http.StatusConflict || !exists(skillFileOf(first)) {
 		t.Fatal("a turned-off folder was changed", w.Code)
 	}
 	call(t, handleIntegrationAction, http.MethodPatch, "/api/integrations/"+id, map[string]any{"enabled": true})
@@ -659,4 +659,135 @@ func parseArgs(t *testing.T, args ...string) {
 	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
 	os.Args = append([]string{"agent-ops.exe"}, args...)
 	config()
+}
+
+// A file changed between the state read and the write is never overwritten:
+// the write expects exactly the bytes the state was computed from.
+func TestActionsWriteAgainstTheBytesTheyChecked(t *testing.T) {
+	profile := integrationsFixture(t)
+	dir := filepath.Join(profile, "tool", "skills")
+	instructions := filepath.Join(profile, "tool", "AGENTS.md")
+	mput(t, instructions, "# Owner\n")
+	id, w := addTarget(t, map[string]any{"skillDir": dir, "instructionFile": instructions})
+	if w.Code != 200 {
+		t.Fatal(w.Body.String())
+	}
+	old := afterIntegrationRead
+	t.Cleanup(func() { afterIntegrationRead = old })
+	afterIntegrationRead = func(file string) {
+		if file == skillFileOf(dir) {
+			mput(t, file, "owner skill written meanwhile")
+		}
+		if file == instructions {
+			mput(t, file, "# Owner\nedited meanwhile\n")
+		}
+	}
+	if w, _ := act(t, id, "install"); w.Code != http.StatusConflict || mread(t, skillFileOf(dir)) != "owner skill written meanwhile" {
+		t.Fatal("install overwrote a file written after its check", w.Code)
+	}
+	if w, _ := act(t, id, "instructions-on"); w.Code != http.StatusConflict || mread(t, instructions) != "# Owner\nedited meanwhile\n" {
+		t.Fatal("the reminder overwrote an edit made after its check", w.Code)
+	}
+}
+
+// A turned-off folder can still be cleaned up, and a folder whose reminder is
+// on cannot be dropped from the list (the block would stay unmanaged).
+func TestTurnedOffFolderCanBeCleanedUpBeforeRemoval(t *testing.T) {
+	profile := integrationsFixture(t)
+	dir := filepath.Join(profile, "tool", "skills")
+	instructions := filepath.Join(profile, "tool", "AGENTS.md")
+	mput(t, instructions, "# Owner\n")
+	id, _ := addTarget(t, map[string]any{"skillDir": dir, "instructionFile": instructions})
+	for _, action := range []string{"install", "instructions-on"} {
+		if w, _ := act(t, id, action); w.Code != 200 {
+			t.Fatal(action, w.Code)
+		}
+	}
+	call(t, handleIntegrationAction, http.MethodPatch, "/api/integrations/"+id, map[string]any{"enabled": false})
+	if w, _ := call(t, handleIntegrationAction, http.MethodDelete, "/api/integrations/"+id, nil); w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "reminder off") {
+		t.Fatal("removed from the list with the reminder on", w.Code)
+	}
+	if w, _ := act(t, id, "instructions-on"); w.Code != http.StatusConflict {
+		t.Fatal("a turned-off folder accepted a new write", w.Code)
+	}
+	for _, action := range []string{"instructions-off", "remove"} {
+		if w, _ := act(t, id, action); w.Code != 200 {
+			t.Fatal(action, w.Code, w.Body.String())
+		}
+	}
+	if mread(t, instructions) != "# Owner\n" || exists(skillFileOf(dir)) {
+		t.Fatal("cleanup left Agent Ops text behind")
+	}
+	if w, _ := call(t, handleIntegrationAction, http.MethodDelete, "/api/integrations/"+id, nil); w.Code != 200 {
+		t.Fatal(w.Code)
+	}
+}
+
+// A task-plan folder that is a junction into a repository is refused when the
+// folder is added and at action time (the junction can appear later).
+func TestLinkedTaskPlanFolderIntoAProjectIsNeverWritten(t *testing.T) {
+	profile := integrationsFixture(t)
+	project := filepath.Join(profile, "repos", "web")
+	repoSkill := filepath.Join(project, "skills", "task-plan")
+	mput(t, filepath.Join(repoSkill, "SKILL.md"), string(embeddedSkill))
+	os.MkdirAll(filepath.Join(project, ".git"), 0o700)
+	cfgMu.Lock()
+	appCfg.Projects = []Project{{ID: projectIDFor(project), Path: project, Name: "web", Kind: "repo", Enabled: true}}
+	cfgMu.Unlock()
+	linked := filepath.Join(profile, "client", "skills")
+	junction(t, filepath.Join(linked, "task-plan"), repoSkill)
+	if _, w := addTarget(t, map[string]any{"skillDir": linked}); w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "inside the project “web”") {
+		t.Fatal("a folder linking into a project was added", w.Code, w.Body.String())
+	}
+	plain := filepath.Join(profile, "other", "skills")
+	os.MkdirAll(plain, 0o700)
+	id, w := addTarget(t, map[string]any{"skillDir": plain})
+	if w.Code != 200 {
+		t.Fatal(w.Body.String())
+	}
+	junction(t, filepath.Join(plain, "task-plan"), repoSkill)
+	for _, action := range []string{"replace", "remove"} {
+		if w, _ := act(t, id, action); w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "edit the skill at its source") {
+			t.Fatal(action, "wrote into a project", w.Code, w.Body.String())
+		}
+	}
+	if mread(t, filepath.Join(repoSkill, "SKILL.md")) != string(embeddedSkill) {
+		t.Fatal("the repository copy changed")
+	}
+}
+
+// Instruction files are Markdown, used by one folder only; network and device
+// paths are refused.
+func TestInstructionFileAndPathRules(t *testing.T) {
+	profile := integrationsFixture(t)
+	shared := filepath.Join(profile, "tool", "AGENTS.md")
+	mput(t, shared, "# Owner\n")
+	mput(t, filepath.Join(profile, "tool", "settings.json"), "{}")
+	first, w := addTarget(t, map[string]any{"skillDir": filepath.Join(profile, "tool", "a"), "instructionFile": shared})
+	if w.Code != 200 {
+		t.Fatal(w.Body.String())
+	}
+	second, _ := addTarget(t, map[string]any{"skillDir": filepath.Join(profile, "tool", "b")})
+	for name, c := range map[string]struct {
+		body map[string]any
+		want string
+	}{
+		"json file":   {map[string]any{"skillDir": filepath.Join(profile, "tool", "c"), "instructionFile": filepath.Join(profile, "tool", "settings.json")}, "Markdown"},
+		"script":      {map[string]any{"skillDir": filepath.Join(profile, "tool", "c"), "instructionFile": filepath.Join(profile, "tool", "run.ps1")}, "Markdown"},
+		"shared file": {map[string]any{"skillDir": filepath.Join(profile, "tool", "c"), "instructionFile": strings.ToUpper(shared)}, "already used by"},
+		"device":      {map[string]any{"skillDir": `\\.\pipe\x`}, "on this computer"},
+		"long device": {map[string]any{"skillDir": `\\?\` + filepath.Join(profile, "tool", "c")}, "on this computer"},
+		"network":     {map[string]any{"skillDir": `\\server\share\skills`}, "on this computer"},
+		"network fwd": {map[string]any{"skillDir": `//server/share/skills`}, "on this computer"},
+	} {
+		if _, w := addTarget(t, c.body); w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), c.want) {
+			t.Errorf("%s: %d %s", name, w.Code, w.Body.String())
+		}
+	}
+	if w, _ := call(t, handleIntegrationAction, http.MethodPatch, "/api/integrations/"+second, map[string]any{"instructionFile": shared}); w.Code != http.StatusBadRequest {
+		t.Fatal("two folders share one instruction file", w.Code)
+	}
+	if w, _ := call(t, handleIntegrationAction, http.MethodPatch, "/api/integrations/"+first, map[string]any{"instructionFile": shared, "label": "Same"}); w.Code != 200 {
+		t.Fatal("a folder's own instruction file was refused", w.Code, w.Body.String())
+	}
 }
