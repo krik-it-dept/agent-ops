@@ -16,6 +16,31 @@ function harness(saved={},nav={},stored={}){
 function plan(status='Implementing',name='Cải thiện tìm kiếm'){return {repo:'workboard',name,owner:'Minh',revision:'a'.repeat(64),status,tone:'doing',step:1,mtime:new Date().toISOString(),gh:'https://github.com/krik/workboard',root:'C:/sample',goal:'Gọn hơn #12',spec:'plan.md',next:'Kiểm tra kết quả #12',slot:null,steps:[{status:'doing',text:'Kiểm tra tìm kiếm'},{status:'todo',text:'Xác minh #12'}],milestones:[],decisions:[{key:'202611090900',when:'09/11 09:00',text:'Giữ tiếng Việt'}],questions:[{key:'202611090930',when:'09/11 09:30',ask:'Chốt giao diện?',answer:'',open:true}]};}
 function data(plans){return {state:{plans,slots:{}},activity:[],stale:{},now:new Date().toISOString(),error:''};}
 const hit=(selector,attrs={})=>({closest(s){return s===selector?{getAttribute(name){return attrs[name] ?? null;}}:null;}});
+
+test('Every app logo uses the theme pair and both favicons are bundled RGBA PNGs',()=>{
+ for(const theme of ['light','dark']){
+  const png=readFileSync(new URL('./web/icons/app-'+theme+'.png',import.meta.url));
+  assert.equal(png.subarray(1,4).toString(),'PNG');
+  assert.equal(png.readUInt32BE(16),256);assert.equal(png.readUInt32BE(20),256);
+  assert.equal(png[25],6,'RGBA PNG');
+  assert.match(html,new RegExp('<link rel="icon"[^>]+href="/icons/app-'+theme+'\\.png[^>]+media="\\(prefers-color-scheme: '+theme+'\\)"'));
+ }
+ assert.doesNotMatch(html,/src="\/icons\/app\.png"/,'tile is reserved for native surfaces');
+ assert.match(html,/:root\[data-theme="dark"\] \.app-logo-light \{ display: none; \}/);
+ assert.match(html,/:root\[data-theme="dark"\] \.app-logo-dark \{ display: block; \}/);
+ assert.match(html,/:root:not\(\[data-theme="light"\]\):not\(\[data-theme="dark"\]\) \.app-logo-dark \{ display: block; \}/);
+ const h=harness();h.api.settingsData=settingsPayload([]);h.api.setData({...data([]),projects:[],setupRequired:false});
+ const paired=markup=>{
+  assert.match(markup,/class="app-logo-light" src="\/icons\/app-light\.png"/);
+  assert.match(markup,/class="app-logo-dark" src="\/icons\/app-dark\.png"/);
+ };
+ h.api.openSetup();paired(h.ids.onboarding.innerHTML);
+ h.api.setup.open=false;h.api.openSettings('about');paired(h.ids.settings.innerHTML);
+ h.api.closeSettings();h.api.render();paired(h.ids.view.innerHTML);
+ for(const theme of ['light','dark','system']){
+  h.api.applyTheme(theme);assert.equal(h.context.document.documentElement.attributes['data-theme'],theme);
+ }
+});
 test('An available update shows a non-modal card and status-bar item without moving focus or the task view',()=>{
  const h=harness(),p=plan();setList(h,[p]);h.api.ui.taskStatus='blocked';h.api.ui.taskGroup='plan';h.ids.view.scrollTop=123;h.ids.q.focus();
  const before=JSON.stringify(h.api.ui);

@@ -1309,7 +1309,8 @@ func xmlEsc(s string) string {
 var mOpen, mRefresh, mSettings, mStartup, mQuit *systray.MenuItem
 
 func onReady() {
-	systray.SetIcon(iconICO())
+	trayTheme := taskbarIconName()
+	systray.SetIcon(trayIcon(trayTheme))
 	systray.SetTitle("Agent Ops")
 	systray.SetOnTapped(func() { openPlanWindow("") })
 	mOpen = systray.AddMenuItem("Open Agent Ops", "")
@@ -1322,8 +1323,15 @@ func onReady() {
 	trayReady.Store(true)
 	updateTray()
 	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
 		for {
 			select {
+			case <-ticker.C:
+				if next := taskbarIconName(); next != trayTheme {
+					trayTheme = next
+					systray.SetIcon(trayIcon(trayTheme))
+				}
 			case <-mOpen.ClickedCh:
 				openPlanWindow("")
 			case <-mRefresh.ClickedCh:
@@ -1390,10 +1398,4 @@ func setStartup(on bool) {
 	} else {
 		_ = k.DeleteValue(runName)
 	}
-}
-
-// iconICO shares the prebuilt artwork with the window and executable.
-func iconICO() []byte {
-	data, _ := iconFiles.ReadFile("web/icons/app.ico")
-	return data
 }

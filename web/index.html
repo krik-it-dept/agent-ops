@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Agent Ops</title>
-<link rel="icon" type="image/x-icon" href="/icons/app.ico?v=cobalt-robot">
+<link rel="icon" type="image/png" href="/icons/app-light.png?v=ledger" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" href="/icons/app-dark.png?v=ledger" media="(prefers-color-scheme: dark)">
 <style>
 /* Design tokens: Orca-style neutral palette with status hues only (orca-ui-spec.md section 2).
    The theme follows data-theme on <html>: system (default), light or dark. */
@@ -95,6 +96,15 @@
   --shadow-floating:0 10px 24px rgba(0,0,0,.5);
   --shadow-dialog:0 24px 72px rgba(0,0,0,.55);
   }
+}
+.app-logo { display: inline-grid; width: 24px; height: 24px; flex-shrink: 0; }
+.app-logo img { grid-area: 1 / 1; width: 100%; height: 100%; }
+.app-logo .app-logo-dark { display: none; }
+:root[data-theme="dark"] .app-logo-light { display: none; }
+:root[data-theme="dark"] .app-logo-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .app-logo-light { display: none; }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .app-logo-dark { display: block; }
 }
 /* Legacy names used by the board, list, timeline and summary views map onto the tokens above,
    so those views take the new palette without a layout rewrite. */
@@ -433,7 +443,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 /* ---------- Empty state ---------- */
 .empty-state { display: flex; flex-direction: column; align-items: center; max-width: 420px; margin: 0 auto; padding: 48px 16px; text-align: center; }
 .empty-icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: var(--s-4); border-radius: var(--r-lg); background: var(--muted); color: var(--muted-fg); }
-.empty-icon img { width: 28px; height: 28px; }
+.empty-icon .app-logo { width: 28px; height: 28px; }
 .empty-state h2 { margin: 0; font-size: var(--text-lg); line-height: 24px; font-weight: 600; color: var(--fg); }
 .empty-state p { margin: var(--s-1-5) 0 0; color: var(--muted-fg); font-size: var(--text-sm); }
 .empty-actions { display: flex; gap: var(--s-2); margin-top: var(--s-5); flex-wrap: wrap; justify-content: center; }
@@ -554,7 +564,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .setting-status > span { flex: 1; min-width: 160px; }
 .shortcut-list { display: flex; flex-wrap: wrap; gap: var(--s-1-5) var(--s-4); margin-top: var(--s-1-5); color: var(--muted-fg); font-size: var(--text-xs); }
 .shortcut-list span { display: inline-flex; align-items: center; gap: var(--s-1-5); }
-.about-head img { width: 32px; height: 32px; flex-shrink: 0; }
+.about-head .app-logo { width: 32px; height: 32px; }
 .release-notes { padding: var(--s-2-5) 0; border-top: 1px solid var(--border); font-size: var(--text-xs); }
 .release-notes summary { cursor: pointer; color: var(--muted-fg); width: fit-content; border-radius: var(--r-chip); }
 .settings-empty { display: grid; gap: var(--s-1); padding: var(--s-6); border: 1px dashed var(--border); border-radius: var(--r-lg); text-align: center; color: var(--muted-fg); font-size: var(--text-sm); }
@@ -1709,6 +1719,9 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   // ---------- Theme and shortcut preferences ----------
   // config.json holds them; localStorage mirrors them so the first paint uses the saved theme.
   var prefs=load('wb-prefs',{theme:'system',shortcuts:true});
+  function appLogo(){
+    return '<span class="app-logo" aria-hidden="true"><img class="app-logo-light" src="/icons/app-light.png" alt="" width="24" height="24"><img class="app-logo-dark" src="/icons/app-dark.png" alt="" width="24" height="24"></span>';
+  }
   function applyTheme(theme){
     theme=['light','dark'].includes(theme)?theme:'system';prefs.theme=theme;save('wb-prefs',prefs);
     var root=document.documentElement;if(root && root.setAttribute)root.setAttribute('data-theme',theme);
@@ -1935,7 +1948,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       '<div class="setup-confirm" role="alertdialog" aria-labelledby="setup-confirm-title" aria-describedby="setup-confirm-text"><span class="banner-text"><strong id="setup-confirm-title">Skip setup?</strong><span id="setup-confirm-text">You can finish it later from Settings.</span></span><button class="btn btn-ghost" id="setup-keep" data-setup-keep>Keep going</button><button class="btn btn-primary" id="setup-skip-confirm" data-setup-skip'+(busy?' disabled':'')+'>Skip</button></div>':
       (!last?'<button class="btn btn-ghost" id="setup-skip" data-setup-skip'+(busy?' disabled':'')+'>Set up later</button>':'<span></span>')+
       '<div class="onboarding-nav">'+(setup.step>0?'<button class="btn btn-ghost btn-lg" id="setup-back" data-setup-back>'+icon('chevronLeft')+'Back</button>':'')+primary+'</div>';
-    paint(host,'<div class="onboarding-card" id="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><header class="onboarding-head"><img src="/icons/app.png" alt="" width="24" height="24"><span>Agent Ops</span>'+bars+'</header>'+
+    paint(host,'<div class="onboarding-card" id="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><header class="onboarding-head">'+appLogo()+'<span>Agent Ops</span>'+bars+'</header>'+
       '<div class="onboarding-body">'+body+'</div><footer class="onboarding-foot">'+foot+'</footer></div>');
   }
 
@@ -1968,7 +1981,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     else if(s.available && s.skipped)status='<div class="setting-status"><span>Version '+esc(s.latest)+' skipped.</span></div>';
     else if(s.checkedAt && !checking)status='<div class="setting-status" role="status"><span>You\u2019re on the latest version. Last checked '+esc(hhmm(s.checkedAt))+'.</span></div>';
     var notes=s.notes?'<details class="release-notes"><summary>Release notes</summary><div class="update-notes">'+esc(s.notes)+'</div></details>':'';
-    return '<div class="setting-row about-head"><img src="/icons/app.png" alt=""><div class="setting-text"><span class="setting-label">Agent Ops '+esc(data.version || s.current || D.appVersion || '')+'</span><small>A local work ledger for the plans in your projects.'+(s.commit?' Commit <span class="mono">'+esc(String(s.commit).slice(0,12))+'</span>':'')+'</small></div>'+
+    return '<div class="setting-row about-head">'+appLogo()+'<div class="setting-text"><span class="setting-label">Agent Ops '+esc(data.version || s.current || D.appVersion || '')+'</span><small>A local work ledger for the plans in your projects.'+(s.commit?' Commit <span class="mono">'+esc(String(s.commit).slice(0,12))+'</span>':'')+'</small></div>'+
       '<div class="setting-control"><button class="btn btn-xs" id="settings-check-updates" data-settings-check-updates'+(busy?' disabled':'')+'>'+(checking?spinner()+'Checking…':'Check for updates')+'</button></div></div>'+status+notes;
   }
   function group(title,rows){return '<section class="settings-group">'+(title?'<h3>'+esc(title)+'</h3>':'')+'<div class="setting-list">'+rows+'</div></section>';}
@@ -2124,7 +2137,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function emptyProjects(){
     var hidden=Array.isArray(D.projects) && D.projects.length;
     if(hidden)return '<div class="empty-state"><div class="empty-icon">'+icon('folder')+'</div><h2>All projects are hidden</h2><p>Turn a project back on in Settings \u2192 Projects, or add another one.</p><div class="empty-actions"><button class="btn btn-primary" data-settings-empty-add>'+icon('plus')+'Add project</button><button class="btn btn-ghost" data-settings-open="projects">Open settings</button></div></div>';
-    return '<div class="empty-state"><div class="empty-icon"><img src="/icons/app.png" alt=""></div><h2>Add a project to start</h2><p>Agent Ops shows the plans in each project\u2019s <code>.tasks</code> folder.</p>'+
+    return '<div class="empty-state"><div class="empty-icon">'+appLogo()+'</div><h2>Add a project to start</h2><p>Agent Ops shows the plans in each project\u2019s <code>.tasks</code> folder.</p>'+
       '<div class="empty-actions"><button class="btn btn-primary" data-settings-empty-add>'+icon('plus')+'Add project</button><button class="btn btn-ghost" data-settings-open="general">Open settings</button></div>'+
       '<dl class="empty-keys"><div><dt>'+kbd(['Ctrl','K'])+'</dt><dd>Search plans</dd></div><div><dt>'+kbd(['Ctrl',','])+'</dt><dd>Settings</dd></div></dl></div>';
   }
