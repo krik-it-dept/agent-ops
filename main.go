@@ -30,7 +30,6 @@ import (
 	"unicode/utf8"
 
 	"fyne.io/systray"
-	"golang.org/x/sys/windows/registry"
 )
 
 var (
@@ -51,7 +50,7 @@ var (
 
 const (
 	runKey     = `Software\Microsoft\Windows\CurrentVersion\Run`
-	runName    = "KRIK Workboard"
+	runName    = "Agent Ops"
 	staleAfter = 120 * time.Minute
 	maxEvents  = 3000
 )
@@ -147,12 +146,15 @@ var (
 	printVersion        bool
 	applyUpdateFile     string
 	updateFeed          string
+	migrateMode         bool
+	migrateRuntime      string
+	dataDirGiven        bool
 )
 
 func defaultCollector() string {
 	exe, _ := os.Executable()
 	home, _ := os.UserHomeDir()
-	candidates := []string{filepath.Join(filepath.Dir(exe), "tasks-overview.mjs"), filepath.Join(home, ".claude", "tools", "workboard", "tasks-overview.mjs"), filepath.Join(home, ".claude", "tools", "tasks-overview.mjs")}
+	candidates := []string{filepath.Join(filepath.Dir(exe), "tasks-overview.mjs"), filepath.Join(home, legacyRuntimeRel, "tasks-overview.mjs")}
 	for _, file := range candidates {
 		if _, err := os.Stat(file); err == nil {
 			return file
@@ -173,7 +175,7 @@ func config() {
 	flag.StringVar(&stateFile, "state-file", "", `Generated state JSON file (default <data-dir>\state\tong-hop-chung.json)`)
 	flag.StringVar(&scriptFile, "script", env("AGENT_OPS_SCRIPT", scriptFile), "Overview Node script")
 	flag.StringVar(&addr, "addr", env("AGENT_OPS_ADDR", addr), "Loopback listen address")
-	flag.StringVar(&dataDir, "data-dir", filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard"), "Persistence directory")
+	flag.StringVar(&dataDir, "data-dir", defaultDataDir(), "Persistence directory")
 	flag.BoolVar(&background, "background", false, "Start tray without opening a window")
 	flag.StringVar(&activation, "activate", "", "Toast activation URI")
 	home, _ := os.UserHomeDir()
@@ -182,10 +184,13 @@ func config() {
 	flag.BoolVar(&printVersion, "version", false, "Print the application version and exit")
 	flag.StringVar(&applyUpdateFile, "apply-update", "", "Internal verified update-helper manifest")
 	flag.StringVar(&updateFeed, "update-feed", "", "Loopback http://127.0.0.1:<port> release feed for isolated update tests")
+	flag.BoolVar(&migrateMode, "migrate", false, "Run the one-time migration from earlier releases for --profile-dir, print the result and exit")
+	flag.StringVar(&migrateRuntime, "runtime-dir", "", "With --migrate: the install folder whose run history registries are deleted")
 	flag.Parse()
 	// Precedence: flag > environment > config.json (applied by initSettings) > default.
 	given := map[string]bool{}
 	flag.Visit(func(f *flag.Flag) { given[f.Name] = true })
+	dataDirGiven = given["data-dir"]
 	for _, item := range []struct {
 		name, env string
 		value     *string
@@ -218,6 +223,12 @@ func config() {
 		}
 	}
 	explicitRepos, explicitState = reposDir != "", stateFile != ""
+	// Releases before v0.3.0 used another data folder and relaunch an update with
+	// it. The installed app now always uses the Agent Ops folder; the old one is
+	// only read once to copy config.json (see adoptLegacyConfig).
+	if samePath(dataDir, legacyDefaultDataDir()) {
+		dataDir = defaultDataDir()
+	}
 }
 
 func samePath(a, b string) bool {
@@ -250,6 +261,9 @@ func main() {
 		fmt.Println(appVersion)
 		return
 	}
+	if migrateMode {
+		os.Exit(runMigrateCommand(os.Stdout))
+	}
 	if applyUpdateFile != "" {
 		if err := applyUpdateManifest(applyUpdateFile); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -281,9 +295,21 @@ func main() {
 	}()
 	logInfo("agent ops started", "version", appVersion, "commit", appCommit, "pid", os.Getpid(), "addr", addr, "dataDir", dataDir, "background", background, "updateChecks", !disableUpdateChecks)
 	if defaultInstance() {
-		registerProtocol()
-		migrateStartup()
+		exe, _ := os.Executable()
+		if err := registerProtocol(exe); err != nil {
+			logWarn("could not register the agent-ops: protocol", "error", err.Error())
+		}
+		if err := migrateStartup(exe); err != nil {
+			logWarn("could not update Start with Windows", "error", err.Error())
+		}
 		_ = registerToastApp(dataDir)
+	}
+	if samePath(dataDir, defaultDataDir()) {
+		if copied, err := adoptLegacyConfig(dataDir, legacyDefaultDataDir()); err != nil {
+			logWarn("previous settings were not copied", "error", err.Error())
+		} else if copied {
+			logInfo("copied the previous settings into the data folder")
+		}
 	}
 	initSettings()
 	loadPersisted()
@@ -900,7 +926,7 @@ func staleEventsQuiet(cur map[string]Plan, seen map[string]time.Time, now time.T
 			continue
 		}
 		seen[k] = p.Mtime
-		e := Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Workboard"}
+		e := Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Agent Ops"}
 		fresh = append(fresh, e)
 		if !quiet[k] {
 			announce = append(announce, e)
@@ -996,6 +1022,14 @@ func persist(fresh []Event) {
 // ---------- HTTP ----------
 
 func serve(ln net.Listener) {
+	server := &http.Server{Handler: localBoundary(recoverHandler(newServeMux())), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	_ = server.Serve(ln)
+}
+
+// newServeMux registers every route. The app is a read-only ledger: the only
+// writes are settings, projects, integrations, updates, diagnostics and the
+// refresh request; no route changes a plan.
+func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	updateRoutes(mux)
 	settingsRoutes(mux)
@@ -1050,8 +1084,7 @@ func serve(ln net.Listener) {
 			}
 		}
 	})
-	server := &http.Server{Handler: localBoundary(recoverHandler(mux)), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
-	_ = server.Serve(ln)
+	return mux
 }
 
 func handleState(w http.ResponseWriter, r *http.Request) {
@@ -1104,13 +1137,13 @@ func broadcast() {
 
 func activationPlan(uri string) string {
 	u, err := url.Parse(uri)
-	if err != nil || u.Scheme != "krik-workboard" {
+	if err != nil || u.Scheme != protocolScheme {
 		return ""
 	}
 	return u.Query().Get("plan")
 }
 func planURI(key string) string {
-	return "krik-workboard:open?" + url.Values{"plan": {key}}.Encode()
+	return protocolScheme + ":open?" + url.Values{"plan": {key}}.Encode()
 }
 func eventKey(e Event) string {
 	if e.Project != "" {
@@ -1143,39 +1176,6 @@ func openWindowAt(fragment string) {
 	}
 	_ = hidden(exec.Command("rundll32", "url.dll,FileProtocolHandler", target)).Start()
 }
-func protocolCommand(exe string) string { return `"` + exe + `" --activate "%1"` }
-
-func registerProtocol() {
-	exe, err := os.Executable()
-	if err != nil {
-		return
-	}
-	k, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Classes\krik-workboard`, registry.SET_VALUE|registry.CREATE_SUB_KEY)
-	if err != nil {
-		return
-	}
-	defer k.Close()
-	_ = k.SetStringValue("", "URL:KRIK Workboard")
-	_ = k.SetStringValue("URL Protocol", "")
-	c, _, err := registry.CreateKey(k, `shell\open\command`, registry.SET_VALUE)
-	if err != nil {
-		return
-	}
-	defer c.Close()
-	_ = c.SetStringValue("", protocolCommand(exe))
-}
-func migrateStartup() {
-	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.QUERY_VALUE|registry.SET_VALUE)
-	if err != nil {
-		return
-	}
-	defer k.Close()
-	v, _, err := k.GetStringValue(runName)
-	if err == nil && !strings.Contains(v, "--background") {
-		_ = k.SetStringValue(runName, strings.TrimSpace(v)+" --background")
-	}
-}
-
 var notifyKinds = map[string]string{"waiting": "Cần bạn xử lý", "blocked": "Bị chặn", "stale": "Đứng im", "question": "Câu hỏi mới"}
 
 func notify(fresh []Event) {
@@ -1349,28 +1349,4 @@ func updateTray() {
 	n := len(prev)
 	mu.Unlock()
 	systray.SetTooltip(fmt.Sprintf("Agent Ops · %d plans · %d waiting for you · %d blocked", n, waiting, blocked))
-}
-
-func startupEnabled() bool {
-	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.QUERY_VALUE)
-	if err != nil {
-		return false
-	}
-	defer k.Close()
-	_, _, err = k.GetStringValue(runName)
-	return err == nil
-}
-
-func setStartup(on bool) {
-	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.SET_VALUE)
-	if err != nil {
-		return
-	}
-	defer k.Close()
-	if on {
-		exe, _ := os.Executable()
-		_ = k.SetStringValue(runName, `"`+exe+`" --background`)
-	} else {
-		_ = k.DeleteValue(runName)
-	}
 }

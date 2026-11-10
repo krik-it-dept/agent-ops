@@ -86,7 +86,7 @@ func call(t *testing.T, handler http.HandlerFunc, method, path string, body any)
 		reader = bytes.NewReader(nil)
 	}
 	r := httptest.NewRequest(method, "http://"+addr+path, reader)
-	r.Header.Set("X-Workboard", "1")
+	r.Header.Set("X-Agent-Ops", "1")
 	if body != nil {
 		r.Header.Set("Content-Type", "application/json")
 	}
@@ -317,10 +317,10 @@ func TestSettingsWritesRequireLocalHeaderAndOverrideIsReadOnly(t *testing.T) {
 		w := httptest.NewRecorder()
 		h(w, r)
 		if w.Code != 403 && w.Code != 405 {
-			t.Fatal("write without X-Workboard accepted", w.Code)
+			t.Fatal("write without X-Agent-Ops accepted", w.Code)
 		}
 		r = httptest.NewRequest("POST", "http://"+addr+"/x", strings.NewReader(`{}`))
-		r.Header.Set("X-Workboard", "1")
+		r.Header.Set("X-Agent-Ops", "1")
 		r.Header.Set("Origin", "https://attacker.example")
 		w = httptest.NewRecorder()
 		h(w, r)

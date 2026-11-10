@@ -18,7 +18,7 @@ func TestRefreshReadsLatestAndPreservesLastGoodStateOnFailure(t *testing.T) {
 	request := func(method string) *httptest.ResponseRecorder {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(method, "http://"+addr+"/api/refresh", nil)
-		r.Header.Set("X-Workboard", "1")
+		r.Header.Set("X-Agent-Ops", "1")
 		handleRefresh(w, r)
 		return w
 	}

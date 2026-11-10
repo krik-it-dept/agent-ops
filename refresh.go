@@ -15,7 +15,7 @@ func handleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	if !trustedLocalWrite(r) {
 		w.WriteHeader(http.StatusForbidden)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Refresh must come from this Workboard."})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Refresh must come from this Agent Ops window."})
 		return
 	}
 	if updateRestarting.Load() {

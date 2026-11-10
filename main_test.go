@@ -286,7 +286,7 @@ func TestInvalidPlanShape(t *testing.T) {
 }
 
 func TestProtocolCommand(t *testing.T) {
-	exe := `C:\Users\Owner Name\workboard\krik-workboard.exe`
+	exe := `C:\Users\Owner Name\Agent Ops\agent-ops.exe`
 	if got := protocolCommand(exe); got != `"`+exe+`" --activate "%1"` {
 		t.Fatal(got)
 	}

@@ -38,7 +38,10 @@ var (
 	legacyMigrationAllowed = func() bool { return strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir())) }
 )
 
-func defaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard") }
+func defaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), "AgentOps") }
+
+// legacyDefaultDataDir is the data folder of releases before v0.3.0.
+func legacyDefaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), legacyDataDirName) }
 
 // The installed instance owns the Run key and protocol registration; dev, test
 // and smoke instances on other ports or data folders never rewrite them.
@@ -727,6 +730,8 @@ func settingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/settings/open-folder", handleOpenFolder)
 	mux.HandleFunc("/api/projects", handleProjects)
 	mux.HandleFunc("/api/projects/", handleProject)
+	mux.HandleFunc("/api/integrations", handleIntegrations)
+	mux.HandleFunc("/api/integrations/", handleIntegrationAction)
 }
 
 func syncStartupMenu() {

@@ -16,7 +16,7 @@ func trustedLocalRequest(r *http.Request) bool {
 }
 
 func trustedLocalWrite(r *http.Request) bool {
-	return trustedLocalRequest(r) && r.Header.Get("X-Workboard") == "1"
+	return trustedLocalRequest(r) && r.Header.Get("X-Agent-Ops") == "1"
 }
 
 func localBoundary(next http.Handler) http.Handler {
@@ -36,7 +36,7 @@ func localBoundary(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		if !trustedLocalRequest(r) {
-			http.Error(w, "Only local Workboard requests are accepted.", http.StatusForbidden)
+			http.Error(w, "Only local Agent Ops requests are accepted.", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)

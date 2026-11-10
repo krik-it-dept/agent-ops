@@ -42,7 +42,7 @@ func openUpdateParent(pid int, root string) (windows.Handle, error) {
 		return 0, err
 	}
 	image := windows.UTF16ToString(buffer[:size])
-	if !strings.EqualFold(image, filepath.Join(root, "agent-ops.exe")) && !strings.EqualFold(image, filepath.Join(root, "krik-workboard.exe")) {
+	if !strings.EqualFold(image, filepath.Join(root, "agent-ops.exe")) && !strings.EqualFold(image, filepath.Join(root, legacyAliasExe)) {
 		windows.CloseHandle(h)
 		return 0, errors.New("Update parent is not this installed application")
 	}

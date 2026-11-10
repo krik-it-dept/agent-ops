@@ -47,6 +47,29 @@ type AppConfig struct {
 	Theme string `json:"theme,omitempty"`
 	// Shortcuts turns the single-key shortcuts (/, comma, R, ?) on or off.
 	Shortcuts bool `json:"shortcuts"`
+	// Integrations records what Agent Ops wrote into each AI client, by client id.
+	Integrations map[string]IntegrationRecord `json:"integrations,omitempty"`
+}
+
+// IntegrationRecord is what Agent Ops last wrote for one AI client. A file is
+// updated or removed only while it still hashes to SHA256 (or the instruction
+// block to Instructions.SHA256); otherwise it is "modified locally".
+type IntegrationRecord struct {
+	Path        string `json:"path,omitempty"`
+	Version     int    `json:"version,omitempty"`
+	SHA256      string `json:"sha256,omitempty"`
+	InstalledAt string `json:"installedAt,omitempty"`
+	// Kept is the hash of a locally modified skill the owner chose to keep.
+	Kept         string             `json:"kept,omitempty"`
+	Instructions *InstructionRecord `json:"instructions,omitempty"`
+	// Legacy holds the parts the previous reporting installer recorded.
+	Legacy map[string]string `json:"legacy,omitempty"`
+}
+
+type InstructionRecord struct {
+	Path        string `json:"path"`
+	SHA256      string `json:"sha256"`
+	InstalledAt string `json:"installedAt,omitempty"`
 }
 
 type RepoInfo struct {

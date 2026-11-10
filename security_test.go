@@ -45,7 +45,7 @@ func TestLocalBoundaryRejectsRebindingAndCrossSiteReads(t *testing.T) {
 
 func TestRefreshRejectsCrossSiteWritesBeforeRunningCollector(t *testing.T) {
 	for _, headers := range []map[string]string{
-		{}, {"X-Workboard": "1", "Origin": "https://attacker.example"}, {"X-Workboard": "1", "Sec-Fetch-Site": "cross-site"},
+		{}, {"X-Agent-Ops": "1", "Origin": "https://attacker.example"}, {"X-Agent-Ops": "1", "Sec-Fetch-Site": "cross-site"},
 	} {
 		r := httptest.NewRequest("POST", "http://"+addr+"/api/refresh", nil)
 		for k, v := range headers {

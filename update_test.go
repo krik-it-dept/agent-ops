@@ -227,7 +227,7 @@ func TestParallelChecksAndRefreshDuringRestartAreRejected(t *testing.T) {
 	updateRestarting.Store(true)
 	defer updateRestarting.Store(false)
 	req := httptest.NewRequest("POST", "http://"+addr+"/api/refresh", nil)
-	req.Header.Set("X-Workboard", "1")
+	req.Header.Set("X-Agent-Ops", "1")
 	w := httptest.NewRecorder()
 	handleRefresh(w, req)
 	if w.Code != 503 {
@@ -380,7 +380,7 @@ func TestUpdateEndpointsRejectCrossSiteRequestsAndUnselectedVersions(t *testing.
 			req := httptest.NewRequest("POST", "http://"+addr+"/api/updates/"+action, strings.NewReader(`{"version":"v0.2.0"}`))
 			if origin != "" {
 				req.Header.Set("Origin", origin)
-				req.Header.Set("X-Workboard", "1")
+				req.Header.Set("X-Agent-Ops", "1")
 			}
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
@@ -390,14 +390,14 @@ func TestUpdateEndpointsRejectCrossSiteRequestsAndUnselectedVersions(t *testing.
 		}
 	}
 	req := httptest.NewRequest("POST", "http://"+addr+"/api/updates/apply", strings.NewReader(`{"version":"v0.2.0","root":"C:/elsewhere"}`))
-	req.Header.Set("X-Workboard", "1")
+	req.Header.Set("X-Agent-Ops", "1")
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	if w.Code != 400 {
 		t.Fatal(w.Code)
 	}
 	req = httptest.NewRequest("POST", "http://"+addr+"/api/updates/apply", strings.NewReader(`{"version":"v0.2.0"}`))
-	req.Header.Set("X-Workboard", "1")
+	req.Header.Set("X-Agent-Ops", "1")
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	if w.Code != 409 {
@@ -646,7 +646,7 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 	m.Remove = []string{"task-sync.mjs", "legacy/old.mjs", "never-installed.mjs"}
 	private := filepath.Join(m.Root, "historical-executions.json")
 	updatePut(t, private, []byte("private sentinel"))
-	updatePut(t, filepath.Join(m.Root, "krik-workboard.exe"), []byte("old alias"))
+	updatePut(t, filepath.Join(m.Root, legacyAliasExe), []byte("old alias"))
 	profiles := profileUpdateFiles(m.Profile)
 	updatePut(t, profiles[0], []byte("owner instructions"))
 	rollback, err := installUpdateFiles(m)
@@ -664,7 +664,7 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 			t.Fatal("not removed:", gone)
 		}
 	}
-	if b, _ := os.ReadFile(filepath.Join(m.Root, "krik-workboard.exe")); string(b) != "new:agent-ops.exe" {
+	if b, _ := os.ReadFile(filepath.Join(m.Root, legacyAliasExe)); string(b) != "new:agent-ops.exe" {
 		t.Fatal("alias not updated")
 	}
 	updatePut(t, profiles[0], []byte("replacement instructions"))
@@ -702,7 +702,7 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 	if b, _ := os.ReadFile(private); string(b) != "private sentinel" {
 		t.Fatal("private data changed")
 	}
-	if b, _ := os.ReadFile(filepath.Join(m.Root, "krik-workboard.exe")); string(b) != "old alias" {
+	if b, _ := os.ReadFile(filepath.Join(m.Root, legacyAliasExe)); string(b) != "old alias" {
 		t.Fatal("alias not restored")
 	}
 }
@@ -782,32 +782,6 @@ func TestUpdateHealthMustMatchVersionAndExactStartedProcess(t *testing.T) {
 	if h, err := openUpdateParent(os.Getpid(), t.TempDir()); err == nil {
 		closeUpdateParent(h)
 		t.Fatal("accepted unrelated process image")
-	}
-}
-
-// The update result names integration files the installer kept because the owner
-// changed them; the installer runs against a temporary profile only.
-func TestUpdateResultReportsLocallyModifiedIntegrations(t *testing.T) {
-	home := filepath.Join(isolated(t), "profile")
-	install := func() []byte {
-		out, err := runUpdateCommand(context.Background(), "node", filepath.Join("integrations", "install-task-reporting.mjs"), "--home", home)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return out
-	}
-	if note := keptIntegrationsNote(install()); note != "" {
-		t.Fatal("a fresh install keeps nothing", note)
-	}
-	skill := filepath.Join(home, ".agents", "skills", "task-plan", "SKILL.md")
-	b, _ := os.ReadFile(skill)
-	updatePut(t, skill, append(b, []byte("\n## Owner section\n")...))
-	note := keptIntegrationsNote(install())
-	if !strings.Contains(note, skill+" (modified locally)") {
-		t.Fatal("the kept skill is not reported", note)
-	}
-	if after, _ := os.ReadFile(skill); !strings.Contains(string(after), "Owner section") {
-		t.Fatal("the owner's skill section was overwritten")
 	}
 }
 
