@@ -39,7 +39,7 @@ const updateStagesKept = 3
 const githubAPI = "https://api.github.com"
 const githubDownloads = "https://github.com"
 
-var appVersion = "v0.2.2"
+var appVersion = "v0.2.3"
 var appCommit = "development"
 var updates *appUpdater
 var updateRestarting atomic.Bool

@@ -3,6 +3,13 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v0.2.3 - Sidebar header spacing
+
+- Move the sidebar toggle to the left edge of the header and remove the fixed
+  logo/title block that left a 244-pixel gap when the sidebar was hidden.
+- Keep the toggle in the same position with the sidebar open or closed, including
+  narrow windows. Existing navigation preferences and Ctrl+B remain available.
+
 ## v0.2.2 - Desktop workspace and Archive
 
 - Quieter light and dark surfaces, bundled Geist typography and readable task rows.
