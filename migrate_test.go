@@ -406,3 +406,48 @@ func TestMigrationRemovesOnlyTheInstallerHookShape(t *testing.T) {
 		t.Fatal("no marker must match nothing")
 	}
 }
+
+// A failed start rolls back only the files the migration changed and that still
+// hold what it wrote. Edits made since (Claude Code, Orca, the owner) survive, a
+// file recreated since is not deleted, and the config.json copy is removed.
+func TestClientRollbackRestoresOnlyUnchangedMigrationWrites(t *testing.T) {
+	f := newMigrationFixture(t)
+	activity := filepath.Join(f.data, "activity.jsonl")
+	mput(t, activity, `{"kind":"execution-report","plan":"p"}`+"\n"+`{"kind":"done","plan":"p"}`+"\n")
+	ledger := filepath.Join(f.profile, ".agents", legacyIntegrationsFile)
+	gemini := filepath.Join(f.profile, ".gemini", "GEMINI.md")
+	restored := append([]string{filepath.Join(f.profile, ".claude", "settings.json"), filepath.Join(f.profile, ".claude", "CLAUDE.md"), f.skillShared, ledger, activity, f.orca[1]})
+	before := map[string]string{}
+	for _, file := range append(restored, f.orca[0], gemini) {
+		before[file] = mread(t, file)
+	}
+	r, err := migrateClients(f.opts)
+	if err != nil || len(r.Errors) != 0 {
+		t.Fatal(err, r.Errors)
+	}
+	if !exists(configFilePath(f.data)) || exists(gemini) || exists(ledger) || len(r.Writes) < 8 {
+		t.Fatal("fixture did not migrate as expected", len(r.Writes))
+	}
+	claudeEdit := strings.Replace(mread(t, f.orca[0]), `"theme"`, `"model": "sonnet",`+"\r\n  "+`"theme"`, 1)
+	mput(t, f.orca[0], claudeEdit)
+	mput(t, gemini, "# Written after the migration\n")
+	problems := rollbackClients(r)
+	for _, file := range restored {
+		if mread(t, file) != before[file] {
+			t.Fatal("not restored:", file)
+		}
+	}
+	if mread(t, f.orca[0]) != claudeEdit || mread(t, gemini) != "# Written after the migration\n" {
+		t.Fatal("a file changed after the migration was overwritten")
+	}
+	if exists(configFilePath(f.data)) {
+		t.Fatal("the config.json copy this run created was kept, so a retry would not copy newer settings")
+	}
+	joined := strings.Join(problems, "\n")
+	if len(problems) != 2 || !strings.Contains(joined, f.orca[0]) || !strings.Contains(joined, gemini) {
+		t.Fatal(problems)
+	}
+	if again := rollbackClients(r); len(again) != 0 {
+		t.Fatal("a second rollback did something", again)
+	}
+}

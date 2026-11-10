@@ -647,8 +647,12 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 	private := filepath.Join(m.Root, "historical-executions.json")
 	updatePut(t, private, []byte("private sentinel"))
 	updatePut(t, filepath.Join(m.Root, legacyAliasExe), []byte("old alias"))
-	profiles := profileUpdateFiles(m.Profile)
-	updatePut(t, profiles[0], []byte("owner instructions"))
+	// AI client files are not part of the install folder's rollback: a client edit
+	// made while the new version starts must survive a rollback, and a client
+	// file created meanwhile must not be deleted.
+	clientFile := filepath.Join(m.Profile, ".claude", "settings.json")
+	newClientFile := filepath.Join(m.Profile, ".gemini", "GEMINI.md")
+	updatePut(t, clientFile, []byte("owner settings"))
 	rollback, err := installUpdateFiles(m)
 	if err != nil {
 		t.Fatal(err)
@@ -667,8 +671,8 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 	if b, _ := os.ReadFile(filepath.Join(m.Root, legacyAliasExe)); string(b) != "new:agent-ops.exe" {
 		t.Fatal("alias not updated")
 	}
-	updatePut(t, profiles[0], []byte("replacement instructions"))
-	updatePut(t, profiles[1], []byte("new instructions"))
+	updatePut(t, clientFile, []byte("permission granted while starting"))
+	updatePut(t, newClientFile, []byte("new instructions"))
 	if err := rollback(); err != nil {
 		t.Fatal(err)
 	}
@@ -693,11 +697,11 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(m.Root, "never-installed.mjs")); !os.IsNotExist(err) {
 		t.Fatal("rollback created a file that never existed")
 	}
-	if b, _ := os.ReadFile(profiles[0]); string(b) != "owner instructions" {
-		t.Fatal("profile not restored")
+	if b, _ := os.ReadFile(clientFile); string(b) != "permission granted while starting" {
+		t.Fatal("an unrelated client edit was overwritten by the rollback")
 	}
-	if _, err := os.Stat(profiles[1]); !os.IsNotExist(err) {
-		t.Fatal("new profile not rolled back")
+	if b, _ := os.ReadFile(newClientFile); string(b) != "new instructions" {
+		t.Fatal("a client file created meanwhile was deleted by the rollback")
 	}
 	if b, _ := os.ReadFile(private); string(b) != "private sentinel" {
 		t.Fatal("private data changed")

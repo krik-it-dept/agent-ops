@@ -123,34 +123,43 @@ func backupClientFile(file, base, backupDir string, content []byte) (string, err
 // writeClientFile replaces file with content (nil deletes it) when the file still
 // holds expected (nil: did not exist). The old file is backed up first.
 func writeClientFile(file string, expected, content []byte, base, backupDir string) error {
+	_, err := writeClientFileAt(file, expected, content, base, backupDir)
+	return err
+}
+
+// writeClientFileAt is writeClientFile that also returns where the previous
+// content was backed up ("" when the file did not exist, or when backupDir is
+// empty: a rollback that writes back bytes it already holds needs no backup).
+func writeClientFileAt(file string, expected, content []byte, base, backupDir string) (string, error) {
 	current, err := readClientFile(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if (current == nil) != (expected == nil) || !bytes.Equal(current, expected) {
-		return errClientFileChanged
+		return "", errClientFileChanged
 	}
-	if current != nil {
-		if _, err := backupClientFile(file, base, backupDir, current); err != nil {
-			return fmt.Errorf("backup failed, nothing was written: %w", err)
+	saved := ""
+	if current != nil && backupDir != "" {
+		if saved, err = backupClientFile(file, base, backupDir, current); err != nil {
+			return "", fmt.Errorf("backup failed, nothing was written: %w", err)
 		}
 	}
 	if content == nil {
 		if current == nil {
-			return nil
+			return "", nil
 		}
 		// Re-check right before the delete as well.
 		if again, err := readClientFile(file); err != nil || !bytes.Equal(again, expected) {
-			return errClientFileChanged
+			return "", errClientFileChanged
 		}
-		return os.Remove(file)
+		return saved, os.Remove(file)
 	}
 	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
-		return err
+		return "", err
 	}
 	f, err := os.CreateTemp(filepath.Dir(file), ".agent-ops-*.tmp")
 	if err != nil {
-		return err
+		return "", err
 	}
 	tmp := f.Name()
 	defer os.Remove(tmp)
@@ -161,16 +170,16 @@ func writeClientFile(file string, expected, content []byte, base, backupDir stri
 		err = closeErr
 	}
 	if err != nil {
-		return err
+		return "", err
 	}
 	again, err := readClientFile(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if (again == nil) != (expected == nil) || !bytes.Equal(again, expected) {
-		return errClientFileChanged
+		return "", errClientFileChanged
 	}
-	return replaceUpdateFile(tmp, file)
+	return saved, replaceUpdateFile(tmp, file)
 }
 
 // ---------- marked blocks ----------

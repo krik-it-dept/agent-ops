@@ -201,27 +201,11 @@ type updateBackup struct {
 	existed        bool
 }
 
-// profileUpdateFiles are the client files the update may change through the
-// migration; they are backed up with the runtime files and restored by a
-// rollback. Files under a link or junction are skipped by the caller (the
-// migration never writes them either).
-func profileUpdateFiles(profile string) []string {
-	files := []string{
-		filepath.Join(profile, ".agents", "skills", "task-plan", "SKILL.md"),
-		filepath.Join(profile, ".claude", "skills", "task-plan", "SKILL.md"),
-		filepath.Join(profile, ".codex", "AGENTS.md"),
-		filepath.Join(profile, ".gemini", "GEMINI.md"),
-		filepath.Join(profile, ".agents", legacyIntegrationsFile),
-	}
-	for _, home := range claudeHomes(profile) {
-		files = append(files, filepath.Join(home, "CLAUDE.md"), filepath.Join(home, "settings.json"))
-	}
-	return files
-}
-
 // Back up every replacement and removal before writing any target. The returned
-// rollback covers runtime files, removed files and managed instructions, never
-// task/history/preferences data.
+// rollback covers the install folder only (runtime files and removed files),
+// never AI client files, task, history or preferences data. Client files the
+// migration changed are undone separately by rollbackClients, which restores
+// only files that still hold what the migration wrote.
 func installUpdateFiles(m updateManifest) (func() error, error) {
 	backupDir := filepath.Join(filepath.Dir(m.Package), "backup")
 	if err := os.Mkdir(backupDir, 0700); err != nil {
@@ -246,11 +230,6 @@ func installUpdateFiles(m updateManifest) (func() error, error) {
 	}
 	if hasAlias {
 		targets = append(targets, alias)
-	}
-	for _, f := range profileUpdateFiles(m.Profile) {
-		if plainUpdatePath(f) == nil {
-			targets = append(targets, f)
-		}
 	}
 	// Folders that do not exist yet; rollback removes them again if empty.
 	var createdDirs []string
@@ -393,7 +372,10 @@ func applyUpdateManifest(file string) error {
 	if err != nil || !strings.EqualFold(exe, filepath.Join(m.Package, "agent-ops.exe")) {
 		return errors.New("Update helper must run from the verified staging package")
 	}
-	_ = initLogging(m.Data, "update.log")
+	// The new version's data folder: its log is where Settings > Open logs folder
+	// points after the update (the previous release's folder is only read once).
+	appData, legacyData := helperDataDirs(m.Data)
+	_ = initLogging(appData, "update.log")
 	logInfo("update helper started", "tag", m.Tag, "handoff", m.Version, "files", len(m.Hashes), "remove", len(m.Remove), "parent", m.ParentPID)
 	parent, err := openUpdateParent(m.ParentPID, m.Root)
 	if err != nil {
@@ -415,9 +397,21 @@ func applyUpdateManifest(file string) error {
 		_, _ = launchUpdatedApp(m)
 		return err
 	}
+	var migrated *migrationResult
 	recoverOld := func(cause error) error {
+		// Client files first: only those the migration changed and nobody touched since.
+		problems := rollbackClients(migrated)
+		for _, p := range problems {
+			logWarn("client file left as it is", "detail", p)
+		}
 		restoreErr := rollback()
-		message := "The update could not start. The previous version and your AI client files were restored."
+		message := "The update could not start. The previous version was restored."
+		if migrated != nil {
+			message = "The update could not start. The previous version and the AI client files the update changed were restored."
+		}
+		if len(problems) > 0 {
+			message += fmt.Sprintf(" %d AI client file(s) changed after the update and were left as they are; see update.log in %s.", len(problems), filepath.Join(appData, "logs"))
+		}
 		if restoreErr != nil {
 			message = "Update recovery was incomplete. Restore the saved files from the update staging backup before retrying."
 		}
@@ -430,15 +424,13 @@ func applyUpdateManifest(file string) error {
 	message := "Updated to " + m.Tag
 	// The one-time migration from releases before v0.3.0: client files now (a
 	// rollback restores them), run history only after the new version is healthy.
-	appData, legacyData := helperDataDirs(m.Data)
 	migration := migrationOptions{Profile: m.Profile, DataDir: appData, LegacyDataDir: legacyData, RuntimeDir: m.Root}
-	var migrated *migrationResult
 	if !migrationDone(appData) {
 		result, err := migrateClients(migration)
+		migrated = result
 		if err != nil {
 			return recoverOld(fmt.Errorf("Client migration failed: %w", err))
 		}
-		migrated = result
 		logInfo("client migration finished", "hooks", len(result.HooksRemoved), "blocks", len(result.BlocksRemoved), "skills", len(result.SkillsReplaced), "kept", len(result.Kept), "problems", len(result.Errors))
 	}
 	cmd, err := launchUpdatedApp(m)

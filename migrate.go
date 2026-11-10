@@ -14,6 +14,11 @@ package main
 // Phase 1 also drops run-only events and keys from the app's own data folder
 // when it is shared with the previous release (an isolated install).
 //
+// Every file phase 1 changes is recorded with the hash of what it held before
+// and what it holds after (Writes). If the new version then fails to start,
+// rollbackClients restores a file only while it still holds exactly what the
+// migration wrote; a file that changed since is left alone and reported.
+//
 // Phase 2 (data, after the new version is healthy): delete the run history:
 // execution reports, history registries, and the old data folder's activity,
 // snapshots and generated state.
@@ -70,6 +75,68 @@ type migrationResult struct {
 	Deleted        []string    `json:"deleted,omitempty"`
 	Checklist      []checkItem `json:"checklist,omitempty"`
 	Errors         []string    `json:"errors,omitempty"`
+	// Writes are the files phase 1 changed, oldest first, for a rollback.
+	Writes []clientWrite `json:"writes,omitempty"`
+}
+
+// clientWrite is one file phase 1 changed. Before and After are SHA-256 of the
+// content before and after ("" when the file did not exist, or was deleted);
+// Backup holds the previous content when there was one.
+type clientWrite struct {
+	File   string `json:"file"`
+	Backup string `json:"backup,omitempty"`
+	Before string `json:"before,omitempty"`
+	After  string `json:"after,omitempty"`
+}
+
+func hashOrEmpty(b []byte) string {
+	if b == nil {
+		return ""
+	}
+	return sha256Hex(b)
+}
+
+func (r *migrationResult) recordWrite(file, backup string, before, after []byte) {
+	r.Writes = append(r.Writes, clientWrite{File: file, Backup: backup, Before: hashOrEmpty(before), After: hashOrEmpty(after)})
+}
+
+// rollbackClients undoes phase 1, newest write first. A file is put back only
+// while it still holds exactly what the migration wrote; one that changed since
+// (Claude Code, Orca or the owner wrote it) is left as it is and listed. A file
+// is deleted only when the migration created it.
+func rollbackClients(r *migrationResult) []string {
+	if r == nil {
+		return nil
+	}
+	var problems []string
+	for i := len(r.Writes) - 1; i >= 0; i-- {
+		w := r.Writes[i]
+		current, err := readClientFile(w.File)
+		if err != nil {
+			problems = append(problems, fmt.Sprintf("%s was not restored: %v", w.File, err))
+			continue
+		}
+		if hashOrEmpty(current) != w.After {
+			problems = append(problems, w.File+" changed after the migration and was left as it is")
+			continue
+		}
+		var previous []byte
+		if w.Before != "" {
+			previous, err = os.ReadFile(w.Backup)
+			if err != nil || sha256Hex(previous) != w.Before {
+				problems = append(problems, w.File+" was not restored: its backup is missing or changed")
+				continue
+			}
+		}
+		if current == nil && previous == nil {
+			continue
+		}
+		if _, err := writeClientFileAt(w.File, current, previous, "", ""); err != nil {
+			problems = append(problems, fmt.Sprintf("%s was not restored: %v", w.File, err))
+		}
+	}
+	r.Writes = nil
+	return problems
 }
 
 func (r *migrationResult) fail(format string, args ...any) {
@@ -200,6 +267,25 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	if !filepath.IsAbs(profile) || !filepath.IsAbs(opts.DataDir) {
 		return r, errors.New("migration paths must be absolute")
 	}
+	// config.json is recorded like a client file, so a rollback removes a copy
+	// this run created (the retry then copies the settings again).
+	configFile := configFilePath(opts.DataDir)
+	configBefore, _ := readClientFile(configFile)
+	defer func() {
+		after, err := readClientFile(configFile)
+		if err != nil || bytes.Equal(after, configBefore) && (after == nil) == (configBefore == nil) {
+			return
+		}
+		saved := ""
+		if configBefore != nil {
+			saved = filepath.Join(backup, "data", "config.json")
+			if os.MkdirAll(filepath.Dir(saved), 0o700) != nil || os.WriteFile(saved, configBefore, 0o600) != nil {
+				r.fail("%s: the previous settings could not be backed up for a rollback", configFile)
+				return
+			}
+		}
+		r.recordWrite(configFile, saved, configBefore, after)
+	}()
 	copied, err := adoptLegacyConfig(opts.DataDir, opts.LegacyDataDir)
 	if err != nil {
 		r.fail("%v", err)
@@ -207,6 +293,13 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	r.ConfigCopied = copied
 	parts := legacyIntegrationParts(profile)
 	backupProfile := filepath.Join(backup, "profile")
+	write := func(file string, original, content []byte) error {
+		saved, err := writeClientFileAt(file, original, content, profile, backupProfile)
+		if err == nil {
+			r.recordWrite(file, saved, original, content)
+		}
+		return err
+	}
 
 	// Hooks in every Claude configuration folder of the profile.
 	for _, home := range claudeHomes(profile) {
@@ -229,7 +322,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		if n == 0 {
 			continue
 		}
-		if err := writeClientFile(file, original, updated, profile, backupProfile); err != nil {
+		if err := write(file, original, updated); err != nil {
 			r.fail("%s: %v", file, err)
 			continue
 		}
@@ -271,7 +364,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		if len(bytes.TrimSpace(updated)) == 0 {
 			content = nil // the file held only the block
 		}
-		if err := writeClientFile(bf.file, original, content, profile, backupProfile); err != nil {
+		if err := write(bf.file, original, content); err != nil {
 			r.fail("%s: %v", bf.file, err)
 			continue
 		}
@@ -300,7 +393,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 			r.Kept = append(r.Kept, file+" (modified locally)")
 			continue
 		}
-		if err := writeClientFile(file, original, embeddedSkill, profile, backupProfile); err != nil {
+		if err := write(file, original, embeddedSkill); err != nil {
 			r.fail("%s: %v", file, err)
 			continue
 		}
@@ -336,7 +429,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		}
 		if !saved {
 			r.fail("%s was kept because settings could not be saved", ledgerFile)
-		} else if err := writeClientFile(ledgerFile, ledger, nil, profile, backupProfile); err != nil {
+		} else if err := write(ledgerFile, ledger, nil); err != nil {
 			r.fail("%s: %v", ledgerFile, err)
 		} else {
 			r.Deleted = append(r.Deleted, ledgerFile)
@@ -511,11 +604,20 @@ func retireLegacyData(opts migrationOptions, r *migrationResult) {
 // folder shared with the previous release; its plan activity stays. It runs
 // before the new version starts, which then appends to the same files.
 func stripRunData(dataDir, backup string, r *migrationResult) {
-	if err := stripRunActivity(filepath.Join(dataDir, "activity.jsonl"), filepath.Join(backup, "activity.jsonl")); err != nil {
-		r.fail("activity: %v", err)
-	}
-	if err := stripRunSnapshot(filepath.Join(dataDir, "snapshot.json"), filepath.Join(backup, "snapshot.json")); err != nil {
-		r.fail("snapshot: %v", err)
+	for _, item := range []struct {
+		name  string
+		strip func(file, backup string) error
+	}{{"activity.jsonl", stripRunActivity}, {"snapshot.json", stripRunSnapshot}} {
+		file, saved := filepath.Join(dataDir, item.name), filepath.Join(backup, item.name)
+		before, _ := os.ReadFile(file)
+		if err := item.strip(file, saved); err != nil {
+			r.fail("%s: %v", item.name, err)
+			continue
+		}
+		// Recorded so that a rollback gives the previous release its data back.
+		if after, err := os.ReadFile(file); err == nil && before != nil && !bytes.Equal(before, after) {
+			r.recordWrite(file, saved, before, after)
+		}
 	}
 }
 
