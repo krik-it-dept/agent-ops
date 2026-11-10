@@ -64,8 +64,32 @@ func configFilePath(dir string) string { return filepath.Join(dir, "config.json"
 // folder is removed and added again, and lets a --repos-dir override share keys.
 // projectIdFor in plan-reader.mjs computes the same value for a --repos-dir override.
 func projectIDFor(path string) string {
-	sum := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(path))))
+	sum := sha256.Sum256([]byte(strings.ToLower(projectPathForID(path))))
 	return hex.EncodeToString(sum[:])[:8]
+}
+
+// projectPathForID matches projectPathForId in plan-reader.mjs: a cleaned path
+// without a trailing separator, except a drive root such as D:\.
+func projectPathForID(path string) string {
+	clean := filepath.Clean(path)
+	if len(clean) == 3 && clean[1] == ':' {
+		return clean
+	}
+	return strings.TrimRight(clean, `\/`)
+}
+
+// repoNameOf names the repository of a repo project; matches repoNameOf in
+// plan-reader.mjs. A drive or share root uses its drive letter or share name.
+func repoNameOf(path string) string {
+	clean := projectPathForID(path)
+	if name := filepath.Base(clean); name != "" && name != "." && !strings.ContainsAny(name, `\/:`) {
+		return name
+	}
+	parts := strings.FieldsFunc(strings.TrimRight(clean, `\/:`), func(r rune) bool { return r == '\\' || r == '/' })
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return "root"
 }
 
 var projectIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
@@ -263,7 +287,7 @@ func planFiles(repo string) []string {
 
 func repoInfo(path string) RepoInfo {
 	info, err := os.Stat(filepath.Join(path, ".tasks"))
-	return RepoInfo{Name: filepath.Base(path), Path: path, HasTasks: err == nil && info.IsDir(), PlanCount: len(planFiles(path))}
+	return RepoInfo{Name: repoNameOf(path), Path: path, HasTasks: err == nil && info.IsDir(), PlanCount: len(planFiles(path))}
 }
 
 // projectRepos lists the repositories a project contributes, mirroring the collector.

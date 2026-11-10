@@ -135,7 +135,7 @@ func legacyProjectFor(repo string, projects []Project) string {
 	for _, p := range projects {
 		match := false
 		if p.Kind == "repo" {
-			match = strings.EqualFold(filepath.Base(p.Path), repo)
+			match = strings.EqualFold(repoNameOf(p.Path), repo)
 		} else if st, err := os.Stat(filepath.Join(p.Path, repo)); err == nil && st.IsDir() {
 			match = true
 		}

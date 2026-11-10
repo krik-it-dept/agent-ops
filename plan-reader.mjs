@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {readFileSync,statSync,existsSync,readdirSync,realpathSync} from 'node:fs';
-import {join,resolve,dirname,basename,relative,sep} from 'node:path';
+import {join,resolve,dirname,basename,relative,sep,isAbsolute} from 'node:path';
 import {homedir} from 'node:os';
 import {parseExecutors} from './execution-roles.mjs';
 const STATUSES = ['⬜', '🔄', '✅', '⚠', '❌'];
@@ -111,9 +111,21 @@ export function configPath(env=process.env){
   return resolve(env.AGENT_OPS_CONFIG || join(defaultDataDir(env),'config.json'));
 }
 
+// Matches projectPathForID in config.go. resolve() keeps a trailing separator on a
+// share root (\\server\share\) where Go's Clean does not; only a drive root keeps it.
+function projectPathForId(path){
+  const full=resolve(path);
+  return /^[A-Za-z]:[\\/]$/.test(full)?full:full.replace(/[\\/]+$/,'');
+}
 // Matches projectIDFor in config.go: the same folder always has the same ID.
 export function projectIdFor(path){
-  return createHash('sha256').update(resolve(path).toLowerCase()).digest('hex').slice(0,8);
+  return createHash('sha256').update(projectPathForId(path).toLowerCase()).digest('hex').slice(0,8);
+}
+// The repository name of a repo project; matches repoNameOf in config.go. A drive
+// or share root has no folder name, so its drive letter or share name is used.
+export function repoNameOf(path){
+  const full=projectPathForId(path);
+  return basename(full) || full.replace(/[\\/:]+$/,'').split(/[\\/]/).filter(Boolean).pop() || 'root';
 }
 
 export function readConfig(file){
@@ -129,7 +141,7 @@ export function readConfig(file){
 }
 
 function overrideProject(path){
-  const full=resolve(path);
+  const full=projectPathForId(path);
   return {id:projectIdFor(full),path:full,name:basename(full) || full,kind:'folder',enabled:true};
 }
 
@@ -166,7 +178,7 @@ const isRepo=path=>existsSync(join(path,'.git')) || existsSync(join(path,'.tasks
 // Throws (with the fs error code) when the project folder cannot be read.
 export function projectRepos(project){
   if(!statSync(project.path).isDirectory())throw Object.assign(Error(project.path+' is not a folder'),{code:'ENOTDIR'});
-  if(project.kind==='repo')return [{name:basename(project.path),root:project.path}];
+  if(project.kind==='repo')return [{name:repoNameOf(project.path),root:project.path}];
   return readdirSync(project.path).sort()
     .map(name=>({name,root:join(project.path,name)}))
     .filter(r=>isDir(r.root) && isRepo(r.root));
@@ -179,10 +191,12 @@ export function locatePlan(file,projects){
   if(basename(real).toLowerCase()==='tong-hop.md' || !real.toLowerCase().endsWith('.md'))return null;
   for(const project of projects){
     let root;try{root=realpathSync(project.path);}catch{continue;}
-    const parts=relative(root,real).split(sep);
-    if(parts[0]==='..' || parts[0]==='' )continue;
+    const rel=relative(root,real);
+    // On another drive relative() returns an absolute path such as E:\.tasks\p.md.
+    if(!rel || isAbsolute(rel) || rel==='..' || rel.startsWith('..'+sep))continue;
+    const parts=rel.split(sep);
     if(project.kind==='folder' && parts.length===3 && parts[1]==='.tasks')return {project,repo:parts[0],file:real};
-    if(project.kind==='repo' && parts.length===2 && parts[0]==='.tasks')return {project,repo:basename(project.path),file:real};
+    if(project.kind==='repo' && parts.length===2 && parts[0]==='.tasks')return {project,repo:repoNameOf(project.path),file:real};
   }
   return null;
 }
