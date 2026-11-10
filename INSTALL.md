@@ -11,20 +11,26 @@ From v0.1.2 onward, use **Updates** in the app for later releases. It checks on 
 
 `-RuntimeDir <path>` and `-ProfileDir <path>` support alternate/isolated installations. `-SkipSkills` installs runtime files only. The installer validates all package entries first, backs up overwritten runtime files and does not delete task files, execution history or preferences. Quit the old process before replacing an existing executable. A failed step reports an error rather than claiming a successful installation.
 
-Configuration flags override environment variables. Defaults retain the owner's established paths:
+## First run and settings
+
+On first launch Agent Ops opens a short setup: add one or more project folders, then choose startup and notification preferences. A project is either a Git repository or a folder whose direct subfolders are repositories. Agent Ops reads `.tasks/*.md` in each repository's main checkout. Change projects later in **Settings** (gear in the header, or **Settings…** in the tray menu).
+
+Settings are stored in `<data-dir>/config.json` and shared with the reporting helpers (`task-sync.mjs`, `task-report.mjs`), which find it through `AGENT_OPS_CONFIG` or the default data folder, so agents need no path flags. An installation upgraded from a version without settings keeps its existing repositories folder, state file and slots file: they are written into `config.json` on the first start. A corrupt `config.json` is renamed to `config.json.corrupt-<time>` and reported, never silently replaced.
+
+Precedence for each value is flag, then environment variable, then `config.json`, then the default:
 
 | Flag | Environment | Default |
 | --- | --- | --- |
-| `--repos-dir` | `KRIK_REPOS_DIR` | `D:/1_PROJECTS/_REPOS` |
-| `--slots-file` | `KRIK_SLOTS_FILE` | `D:/1_PROJECTS/_WORKTREES/slots.json` |
-| `--state-file` | `KRIK_STATE_FILE` | `D:/1_PROJECTS/tong-hop-chung.json` |
+| `--repos-dir` | `KRIK_REPOS_DIR` | Projects from `config.json`. When set, this folder replaces them for the run and Settings shows projects read-only |
+| `--slots-file` | `KRIK_SLOTS_FILE` | `slotsFile` in `config.json`; otherwise off |
+| `--state-file` | `KRIK_STATE_FILE` | `stateFile` in `config.json`; otherwise `<data-dir>/state/tong-hop-chung.json` |
 | `--script` | `KRIK_SCRIPT` | Collector beside the executable; legacy user-profile locations are fallback paths |
 | `--addr` | `KRIK_ADDR` | `127.0.0.1:7790` |
 | `--data-dir` | — | `%LOCALAPPDATA%/krik-workboard` |
 | `--profile-dir` | — | Current user profile; managed reporting-instruction target |
 | `--no-update-check` | — | Off; disable automatic checks, retain manual checks |
 
-Use `--background` to start only the tray. Start-with-Windows is an explicit tray preference; login starts the tray quietly. Persistence and the legacy protocol/run-key names remain compatible to avoid losing preferences or creating duplicate startup entries.
+Use `--background` to start only the tray. Start with Windows is a preference in Settings and the tray menu; it always registers a plain `--background` launch, and the rest of the configuration comes from `config.json`; login starts the tray quietly. Persistence and the legacy protocol/run-key names remain compatible to avoid losing preferences or creating duplicate startup entries.
 
 F5/Refresh rereads source files and execution reports. Failures retain the last good state and show the reason. It does not run an AI model or assign agents. An execution report describes an observed event; it is not proof of a currently running OS process.
 
