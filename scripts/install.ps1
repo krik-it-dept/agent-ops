@@ -54,6 +54,13 @@ foreach ($name in $retired) {
         }
     }
 }
+# An isolated -RuntimeDir with the default profile must not touch the real AI client
+# files or run history (the app enforces the same rule); it needs an explicit -ProfileDir.
+$defaultRuntime = [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE '.claude\tools\workboard'))
+if (!$SkipMigration -and $RuntimeDir -ne $defaultRuntime -and !$PSBoundParameters.ContainsKey('ProfileDir')) {
+    Write-Output 'Migration skipped: an isolated -RuntimeDir needs an explicit -ProfileDir (a temporary profile folder). No AI client file or run history was touched.'
+    $SkipMigration = $true
+}
 if (!$SkipMigration) {
     # Removes the retired run reporting from this profile's AI clients and deletes old
     # run history, with backups. It installs nothing: the task-plan skill is offered in

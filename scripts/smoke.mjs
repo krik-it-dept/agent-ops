@@ -40,6 +40,15 @@ try {
   assert.ok(readFileSync(join(runtime,'task-sync.mjs'),'utf8').includes('no longer records runs'),'task-sync is the stub');
   assert.equal(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),'# Existing instructions\nPreserve this.\n','owner instructions untouched');
   assert.ok(!existsSync(join(profile,'.agents','skills','task-plan','SKILL.md')),'the installer installs no skill by itself');
+  // An isolated -RuntimeDir without -ProfileDir skips the migration. The default profile
+  // here is a temp folder too (USERPROFILE, LOCALAPPDATA and APPDATA redirected), so even a
+  // regression could not reach the real home.
+  const home=join(fixture,'default-home'),hooked='{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"node C:/x/task-sync.mjs --claude-hook"}]}]}}';
+  put(join(home,'.claude','settings.json'),hooked);put(join(home,'AppData','Local','krik-workboard','activity.jsonl'),'{"kind":"execution-report"}\n');
+  const guarded=spawnSync('powershell.exe',[...psArgs,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',join(fixture,'second runtime'),'-NoLaunch'],{encoding:'utf8',windowsHide:true,env:{...process.env,USERPROFILE:home,LOCALAPPDATA:join(home,'AppData','Local'),APPDATA:join(home,'AppData','Roaming'),CLAUDE_CONFIG_DIR:''}});
+  assert.equal(guarded.status,0,guarded.stderr||guarded.stdout);assert.match(guarded.stdout,/Migration skipped/);
+  assert.equal(readFileSync(join(home,'.claude','settings.json'),'utf8'),hooked,'default profile hooks untouched');
+  assert.ok(existsSync(join(home,'AppData','Local','krik-workboard','activity.jsonl'))&&!existsSync(join(home,'AppData','Local','AgentOps','migration.json')),'default data folders untouched');
   const migrated=JSON.parse(readFileSync(join(profile,'AppData','Local','AgentOps','migration.json'),'utf8'));
   assert.ok(migrated.backup.startsWith(join(profile,'AppData','Local','AgentOps','backups')),'migration stays inside the isolated profile');
   const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','delivery.md'),state=join(fixture,'output','state.json');

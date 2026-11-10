@@ -57,6 +57,65 @@ type migrationOptions struct {
 	Now        time.Time
 }
 
+// installedInstance reports the profile's own installation: its default install
+// folder together with its default data folder. Only that instance migrates the
+// real home's AI client files and deletes its legacy locations.
+func (o migrationOptions) installedInstance() bool {
+	return o.RuntimeDir != "" && samePath(o.RuntimeDir, filepath.Join(o.Profile, legacyRuntimeRel)) &&
+		samePath(o.DataDir, filepath.Join(profileLocalAppData(o.Profile), "AgentOps"))
+}
+
+// clientsInScope reports whether this run may edit the profile's AI client
+// files: always for a temporary profile (it belongs to the run that names it),
+// and for this user's real home only from the installed instance. An isolated
+// install, smoke test or dev instance with the default profile leaves them alone.
+func (o migrationOptions) clientsInScope() bool {
+	return !isRealProfile(o.Profile) || o.installedInstance()
+}
+
+// deletionScope returns the folders this run may delete in, or all=true for the
+// installed instance of the real home. A temporary profile keeps to the profile
+// and the folders named for the run. An isolated runtime or data folder used with
+// the real home keeps to those folders, never the installed instance's own
+// install folder or data folders (even when a copied config.json names them).
+func (o migrationOptions) deletionScope() (roots []string, all bool) {
+	if !isRealProfile(o.Profile) {
+		return []string{o.Profile, o.DataDir, o.LegacyDataDir, o.RuntimeDir}, false
+	}
+	if o.installedInstance() {
+		return nil, true
+	}
+	local := profileLocalAppData(o.Profile)
+	installed := []string{filepath.Join(o.Profile, legacyRuntimeRel), filepath.Join(local, "AgentOps"), filepath.Join(local, legacyDataDirName)}
+	for _, dir := range []string{o.RuntimeDir, o.DataDir} {
+		own := dir != ""
+		for _, p := range installed {
+			own = own && !samePath(dir, p)
+		}
+		if own {
+			roots = append(roots, dir)
+		}
+	}
+	return roots, false
+}
+
+func (o migrationOptions) inDeletionScope(path string) bool {
+	roots, all := o.deletionScope()
+	if all {
+		return true
+	}
+	key := strings.ToLower(filepath.Clean(path))
+	for _, root := range roots {
+		if root == "" {
+			continue
+		}
+		if r := strings.ToLower(filepath.Clean(root)); key == r || pathWithin(key, r) {
+			return true
+		}
+	}
+	return false
+}
+
 type checkItem struct {
 	File string `json:"file"`
 	Line int    `json:"line"`
@@ -291,6 +350,13 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		r.fail("%v", err)
 	}
 	r.ConfigCopied = copied
+	if !opts.clientsInScope() {
+		r.Kept = append(r.Kept, profile+" (AI client files left alone: this is not the installed Agent Ops; use a temporary --profile-dir to test the migration)")
+		if opts.inDeletionScope(opts.DataDir) {
+			stripRunData(opts.DataDir, filepath.Join(backup, "data"), r)
+		}
+		return r, nil
+	}
 	parts := legacyIntegrationParts(profile)
 	backupProfile := filepath.Join(backup, "profile")
 	write := func(file string, original, content []byte) error {
@@ -442,7 +508,9 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 			r.fail("settings could not be saved: %v", err)
 		}
 	}
-	stripRunData(opts.DataDir, filepath.Join(backup, "data"), r)
+	if opts.inDeletionScope(opts.DataDir) {
+		stripRunData(opts.DataDir, filepath.Join(backup, "data"), r)
+	}
 	r.Checklist = append(r.Checklist, ownerChecklist(profile, r.Kept)...)
 	if len(r.Checklist) > maxChecklist {
 		r.Checklist = r.Checklist[:maxChecklist]
@@ -534,29 +602,16 @@ func retireLegacyData(opts migrationOptions, r *migrationResult) {
 		_, r.Backup = newMigration(opts)
 	}
 	data := filepath.Join(r.Backup, "data")
-	// For a profile other than this user's own (an isolated install or a test),
-	// nothing outside the profile and the folders named for this run is deleted,
-	// even when a copied config.json points at a real state folder.
-	roots := []string{opts.Profile, opts.DataDir, opts.LegacyDataDir, opts.RuntimeDir}
-	inScope := func(path string) bool {
-		if isRealProfile(opts.Profile) {
-			return true
-		}
-		key := strings.ToLower(filepath.Clean(path))
-		for _, root := range roots {
-			if root != "" && pathWithin(key, strings.ToLower(filepath.Clean(root))) {
-				return true
-			}
-		}
-		return false
-	}
+	// Only the installed instance deletes the legacy locations; any other run keeps
+	// to its own folders (see deletionScope), even when a copied config.json points
+	// at a real state folder.
 	remove := func(path string) {
 		info, err := os.Lstat(path)
 		if err != nil {
 			return
 		}
-		if !inScope(path) {
-			r.Kept = append(r.Kept, path+" (outside the isolated profile, left alone)")
+		if !opts.inDeletionScope(path) {
+			r.Kept = append(r.Kept, path+" (outside this instance's own folders, left alone)")
 			return
 		}
 		if info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
@@ -597,7 +652,9 @@ func retireLegacyData(opts migrationOptions, r *migrationResult) {
 			remove(filepath.Join(opts.RuntimeDir, name))
 		}
 	}
-	stripRunData(opts.DataDir, data, r)
+	if opts.inDeletionScope(opts.DataDir) {
+		stripRunData(opts.DataDir, data, r)
+	}
 }
 
 // stripRunData removes the events and keys that only described runs from a data
@@ -793,8 +850,10 @@ func migrationSummary(r *migrationResult) string {
 // runMigrateCommand is "agent-ops.exe --migrate --profile-dir <home>
 // [--runtime-dir <install folder>] [--data-dir <data folder>]", used by the
 // installer through integrations/install-task-reporting.mjs. Without --data-dir
-// the data folders are taken from the profile, so an isolated install never
-// touches the real ones. It prints the result as JSON.
+// the data folders are taken from the profile. With this user's real home, only
+// the installed instance (default install and data folders) edits client files
+// or deletes legacy locations; see migrationOptions.deletionScope. It prints the
+// result as JSON.
 func runMigrateCommand(out io.Writer) int {
 	local := profileLocalAppData(profileDir)
 	data := filepath.Join(local, "AgentOps")

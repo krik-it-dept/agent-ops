@@ -337,9 +337,9 @@ func TestOldProductNameOnlyInMigrationCode(t *testing.T) {
 	if err != nil {
 		t.Skip("not a git checkout:", err)
 	}
-	// Migration code, its tests (including the end-to-end update test that seeds an
+	// Migration code, its tests (including the end-to-end update and smoke tests that seed an
 	// old installation) and tests asserting the old name is gone.
-	migration := map[string]bool{"legacy.go": true, "migrate.go": true, "migrate_test.go": true, "integrations_test.go": true, "testdata/legacy-task-plan-skill.md": true, "scripts/update-e2e.mjs": true, "web_test.mjs": true}
+	migration := map[string]bool{"legacy.go": true, "migrate.go": true, "migrate_test.go": true, "integrations_test.go": true, "testdata/legacy-task-plan-skill.md": true, "scripts/update-e2e.mjs": true, "scripts/smoke.mjs": true, "web_test.mjs": true}
 	// Documents may name the install folder and data folder of earlier releases.
 	documented := regexp.MustCompile(`(?i)(tools[\\/]+workboard|%LOCALAPPDATA%[\\/]krik-workboard|krik-workboard\.exe|workboard-executions|workboard-integrations\.json|workboard-task-reporting)`)
 	name := regexp.MustCompile(`(?i)workboard`)

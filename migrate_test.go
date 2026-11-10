@@ -276,7 +276,7 @@ func TestIsolatedMigrationDeletesNothingOutsideItsFolders(t *testing.T) {
 	if exists(filepath.Join(data, "state", legacyExecutionsDir)) {
 		t.Fatal("run history inside the data folder was kept")
 	}
-	if !strings.Contains(strings.Join(r.Kept, ";"), "outside the isolated profile") {
+	if !strings.Contains(strings.Join(r.Kept, ";"), "outside this instance's own folders") {
 		t.Fatal(r.Kept)
 	}
 }
@@ -450,4 +450,109 @@ func TestClientRollbackRestoresOnlyUnchangedMigrationWrites(t *testing.T) {
 	if again := rollbackClients(r); len(again) != 0 {
 		t.Fatal("a second rollback did something", again)
 	}
+}
+
+// asRealHome makes the fixture profile stand in for this user's real home, with
+// APPDATA and LOCALAPPDATA inside it, so the real home rules apply to temp files.
+func asRealHome(t *testing.T, f migrationFixture) {
+	t.Helper()
+	old := userHomeDir
+	t.Cleanup(func() { userHomeDir = old })
+	userHomeDir = func() (string, error) { return f.profile, nil }
+	t.Setenv("LOCALAPPDATA", filepath.Join(f.profile, "AppData", "Local"))
+	t.Setenv("APPDATA", filepath.Join(f.profile, "AppData", "Roaming"))
+	t.Setenv("CLAUDE_CONFIG_DIR", "")
+}
+
+// An isolated -RuntimeDir or --data-dir used with the default (real) profile must
+// delete nothing outside its own folders and edit no AI client file, even when
+// the data folder is the default one; only the installed instance migrates.
+func TestIsolatedInstanceWithTheRealProfileDeletesNothingOutsideItsFolders(t *testing.T) {
+	legacyItems := func(f migrationFixture) []string {
+		return []string{filepath.Join(f.legacyData, "activity.jsonl"), filepath.Join(f.legacyData, "snapshot.json"), filepath.Join(f.legacyData, "state", legacyExecutionsDir, "run.json"), filepath.Join(f.states, legacyExecutionsDir, "run.json"), filepath.Join(f.profile, ".agents", legacyIntegrationsFile)}
+	}
+	untouched := func(t *testing.T, f migrationFixture, r *migrationResult) {
+		t.Helper()
+		for _, item := range legacyItems(f) {
+			if !exists(item) {
+				t.Fatal("deleted outside the instance's folders:", item)
+			}
+		}
+		for _, file := range append([]string{filepath.Join(f.profile, ".claude", "settings.json")}, f.orca...) {
+			if !strings.Contains(mread(t, file), "task-sync.mjs") {
+				t.Fatal("edited a client file of the real home:", file)
+			}
+		}
+		if len(r.HooksRemoved)+len(r.BlocksRemoved)+len(r.SkillsReplaced) != 0 || !strings.Contains(strings.Join(r.Kept, ";"), "not the installed Agent Ops") {
+			t.Fatal(r)
+		}
+	}
+	t.Run("isolated runtime, default data folder", func(t *testing.T) {
+		f := newMigrationFixture(t)
+		asRealHome(t, f)
+		if !samePath(f.data, defaultDataDir()) {
+			t.Fatal("fixture data folder is not the default", f.data)
+		}
+		mput(t, filepath.Join(f.data, "activity.jsonl"), `{"kind":"execution-report","plan":"p"}`+"\n")
+		r, err := runMigration(f.opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		untouched(t, f, r)
+		if !strings.Contains(mread(t, filepath.Join(f.data, "activity.jsonl")), "execution-report") {
+			t.Fatal("stripped the default data folder from an isolated runtime")
+		}
+		for _, name := range legacyRegistryFiles {
+			if exists(filepath.Join(f.runtime, name)) {
+				t.Fatal("kept run history in the isolated runtime's own folder:", name)
+			}
+		}
+	})
+	t.Run("installed runtime, isolated data folder", func(t *testing.T) {
+		f := newMigrationFixture(t)
+		asRealHome(t, f)
+		installed := filepath.Join(f.profile, legacyRuntimeRel)
+		for _, name := range legacyRegistryFiles {
+			mput(t, filepath.Join(installed, name), `{"private":true}`)
+		}
+		own := filepath.Join(filepath.Dir(f.profile), "isolated-data")
+		mput(t, filepath.Join(own, "state", legacyExecutionsDir, "run.json"), "{}")
+		opts := f.opts
+		opts.RuntimeDir, opts.DataDir, opts.LegacyDataDir = installed, own, ""
+		r, err := runMigration(opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		untouched(t, f, r)
+		for _, name := range legacyRegistryFiles {
+			if !exists(filepath.Join(installed, name)) {
+				t.Fatal("deleted the installed instance's registry:", name)
+			}
+		}
+		if exists(filepath.Join(own, "state", legacyExecutionsDir)) {
+			t.Fatal("kept run history in the isolated data folder")
+		}
+	})
+	t.Run("installed instance", func(t *testing.T) {
+		f := newMigrationFixture(t)
+		asRealHome(t, f)
+		installed := filepath.Join(f.profile, legacyRuntimeRel)
+		for _, name := range legacyRegistryFiles {
+			mput(t, filepath.Join(installed, name), `{"private":true}`)
+		}
+		opts := f.opts
+		opts.RuntimeDir = installed
+		r, err := runMigration(opts)
+		if err != nil || len(r.Errors) != 0 {
+			t.Fatal(err, r.Errors)
+		}
+		for _, item := range append(legacyItems(f), filepath.Join(installed, legacyRegistryFiles[0])) {
+			if exists(item) {
+				t.Fatal("the installed instance kept legacy run history:", item)
+			}
+		}
+		if strings.Contains(mread(t, filepath.Join(f.profile, ".claude", "settings.json")), "task-sync.mjs") {
+			t.Fatal("the installed instance left the hooks")
+		}
+	})
 }
