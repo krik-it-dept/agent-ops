@@ -163,7 +163,7 @@ type updateBackup struct {
 }
 
 func profileUpdateFiles(profile string) []string {
-	return []string{filepath.Join(profile, ".agents", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".claude", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".codex", "AGENTS.md"), filepath.Join(profile, ".gemini", "GEMINI.md"), filepath.Join(profile, ".claude", "CLAUDE.md")}
+	return []string{filepath.Join(profile, ".agents", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".claude", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".codex", "AGENTS.md"), filepath.Join(profile, ".gemini", "GEMINI.md"), filepath.Join(profile, ".claude", "CLAUDE.md"), filepath.Join(profile, ".claude", "settings.json")}
 }
 
 // Back up every replacement before writing any target. The returned rollback

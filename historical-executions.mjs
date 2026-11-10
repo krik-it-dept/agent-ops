@@ -13,6 +13,7 @@ export function loadHistoricalExecutions(file=process.env.KRIK_HISTORY_MAP || de
  if(data.version!==1 || !Array.isArray(data.records))throw Error('Invalid execution history format');
  const seen=new Set();
  for(const r of data.records){
+  if(r.anchor!==undefined && r.anchor!=='unique-task')throw Error('Invalid historical task anchor');
   if(typeof r.file!=='string' || !hash(r.revision) || !r.task?.text || !Number.isInteger(r.task.line) || r.task.line<1 || typeof r.task.milestone!=='string' ||
    !Number.isFinite(Date.parse(r.verifiedAt)) || !Array.isArray(r.contributions) || !r.contributions.length)throw Error('Incomplete execution history record');
   const key=pathKey(r.file)+'|'+r.revision+'|'+r.task.line;if(seen.has(key))throw Error('Duplicate historical task');seen.add(key);
@@ -29,8 +30,9 @@ export function loadHistoricalExecutions(file=process.env.KRIK_HISTORY_MAP || de
 export function applyHistoricalExecutions(plan,records){
  const file=pathKey(join(plan.root,'.tasks',plan.name+'.md')),agents=new Set();
  for(const record of records){
-  if(pathKey(record.file)!==file || record.revision!==plan.revision)continue;
-  const point=plan.points.find(p=>p.line===record.task.line && p.text===record.task.text && taskLocator(plan,p).milestone===record.task.milestone);
+  if(pathKey(record.file)!==file || (record.revision!==plan.revision && record.anchor!=='unique-task'))continue;
+  const matches=plan.points.filter(p=>p.text===record.task.text && taskLocator(plan,p).milestone===record.task.milestone);
+  const point=record.revision===plan.revision?matches.find(p=>p.line===record.task.line):matches.length===1?matches[0]:null;
   if(!point)continue;
   const contributors=executorAgents.filter(a=>record.contributions.some(c=>c.agent===a));
   for(const a of contributors)agents.add(a);

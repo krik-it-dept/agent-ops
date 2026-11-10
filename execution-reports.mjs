@@ -50,12 +50,14 @@ export function applyExecutionReports(plan,reports){
   allAgents.push(...point.executors);
   point.sourceStatus=point.status;
   const active=latest.filter(r=>!terminal(r.event));
-  const perAgent=new Map();for(const r of matched)perAgent.set(r.agent,r);
+  const business=matched.filter(r=>r.origin!=='cli-runner');
+  const perAgent=new Map();for(const r of business)perAgent.set(r.agent,r);
   const current=[...perAgent.values()];
-  const state=active.length?'doing':current.some(r=>r.event==='blocked')?'blocked':current.every(r=>r.event==='done')?'done':'partial';
+  const sourceState={'\u2b1c':'todo','\ud83d\udd04':'doing','\u2705':'done','\u26a0':'partial','\u274c':'blocked'}[point.sourceStatus] || point.sourceStatus;
+  const state=!business.length && sourceState==='done'?'done':active.length?'doing':!current.length?sourceState:current.some(r=>r.event==='blocked')?'blocked':current.every(r=>r.event==='done')?'done':'partial';
   // Preserve the collector's legacy marker representation until JSON export.
-  point.status={doing:'🔄',done:'✅',blocked:'❌',partial:'⚠'}[state];
-  point.execution={state,reportedAt:last.at,result:last.result,activeAgents:executorAgents.filter(a=>active.some(r=>r.agent===a)),source:'Agent execution report'};
+  point.status={todo:'\u2b1c',doing:'🔄',done:'✅',blocked:'❌',partial:'⚠'}[state];
+  point.execution={state,reportedAt:last.at,result:last.result,activeAgents:executorAgents.filter(a=>active.some(r=>r.agent===a)),source:business.length?'Agent execution report':'CLI runner execution'};
  }
  plan.recordedExecutors=allAgents.length?executorAgents.filter(a=>allAgents.includes(a)):null;
  plan.executionUpdatedAt=own.at(-1)?.at || null;

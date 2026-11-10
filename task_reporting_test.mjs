@@ -3,7 +3,7 @@ import {test} from 'node:test';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,existsSync} from 'node:fs';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {publishTask} from './task-sync.mjs';
+import {publishTask,claudeReportingHook} from './task-sync.mjs';
 import {installReporting} from './integrations/install-task-reporting.mjs';
 
 const workspace=dirname(fileURLToPath(import.meta.url));
@@ -28,7 +28,7 @@ test('Installer connects all clients to one shared skill and preserves existing 
   put(codex,'# Existing Codex instructions\nKeep my conventions.\n');
   put(claude,'# Existing owner instructions\nKeep all production constraints.\n');
   const result=installReporting(home);
-  assert.equal(result.changed.length,5);assert.ok(result.backup);
+  assert.equal(result.changed.length,6);assert.ok(result.backup);
   for(const [client,file]of [['Codex',codex],['Claude',claude],['Anti',join(home,'.gemini','GEMINI.md')]]){
     const text=readFileSync(file,'utf8');
     assert.ok(text.includes('Agent: '+client));
@@ -49,6 +49,25 @@ test('Installer renders an explicit portable runtime and rejects missing files b
   assert.ok(skill.includes(runtime.replaceAll('\\','/')));
   assert.ok(!skill.includes('{{WORKBOARD_DIR}}'));
   assert.deepEqual(installReporting(home,runtime).changed,[]);
+});
+
+test('Claude hooks preserve existing settings and require real plan metadata without assigning executors',t=>{
+ const root=isolated(t),home=join(root,'profile'),settings=join(home,'.claude','settings.json');
+ put(settings,JSON.stringify({model:'existing-model',hooks:{Stop:[{hooks:[{type:'command',command:'keep-stop-hook'}]}],PreToolUse:[{matcher:'Write',hooks:[{type:'command',command:'keep-write-hook'}]}]}}));
+ installReporting(home);const result=JSON.parse(readFileSync(settings,'utf8'));
+ assert.equal(result.model,'existing-model');assert.equal(result.hooks.Stop[0].hooks[0].command,'keep-stop-hook');assert.equal(result.hooks.PreToolUse[0].hooks[0].command,'keep-write-hook');assert.match(result.hooks.SessionStart[0].hooks[0].command,/--claude-hook/);
+ assert.deepEqual(installReporting(home).changed,[]);
+ const file=join(root,'repo','.tasks','work.md'),source='Next: Work\nStatus: Implementing\n- [doing] Build\n';put(file,source);
+ const deny=claudeReportingHook({hook_event_name:'PreToolUse',tool_name:'Write',tool_input:{file_path:file,content:source}});
+ assert.equal(deny.hookSpecificOutput.permissionDecision,'deny');assert.equal(readFileSync(file,'utf8'),source);
+ assert.deepEqual(claudeReportingHook({hook_event_name:'PreToolUse',tool_name:'Write',tool_input:{file_path:file,content:'Agent: Claude\n'+source}}),{});
+ assert.match(claudeReportingHook({hook_event_name:'SessionStart'}).hookSpecificOutput.additionalContext,/--run-cli/);
+ assert.match(claudeReportingHook({hook_event_name:'PostToolUse',tool_name:'Bash',tool_input:{command:'codex exec -'}}).hookSpecificOutput.additionalContext,/outside the worker sandbox/);
+});
+
+test('Malformed Claude settings are rejected before any profile update',t=>{
+ const home=join(isolated(t),'profile');put(join(home,'.claude','settings.json'),'{invalid');
+ assert.throws(()=>installReporting(home));assert.ok(!existsSync(join(home,'.agents','skills','task-plan','SKILL.md')));
 });
 
 test('Installing twice makes no duplicate rules or extra edits',t=>{

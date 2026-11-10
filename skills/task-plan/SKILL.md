@@ -105,6 +105,33 @@ do not claim the page was updated. Report the command's last line after a succes
 
 ## Execution reporting (automatic client responsibility)
 
+### Delegated CLI execution
+
+The controller uses the host runner for a Codex, Anti or Claude CLI worker:
+
+```powershell
+node "{{WORKBOARD_DIR}}/task-report.mjs" --run-cli --agent Codex --coordinator Claude --plan-file "<absolute-parent-plan-path>" --step-line <current-task-line> -- codex exec <original-flags-and-prompt-arguments>
+```
+
+Preserve the original model, sandbox flags, working directory and stdin prompt. The runner resolves the
+actual installed client and records its observed start/end outside the worker sandbox. Do not grant a
+worker broad filesystem access merely to let it update Workboard. The controller supplies the real
+coordinator and exact shared task line; no owner assignment in the app is involved.
+
+Runner events describe a CLI execution only. A successful process exit does not complete the business
+task or change its source checklist marker. For a multi-group task, run each CLI invocation under the
+same task line; the source owner marks the task done only after its actual acceptance checks pass.
+The runner stores evidence locally and leaves refresh to the app watcher/F5. It does not scan chat logs.
+It sets `WORKBOARD_HOST_REPORTING=1` and the exact plan/step/run context for the child. When that flag is
+present, the CLI lifecycle is already recorded: do not duplicate its start/end reports or request broader
+sandbox access. The source owner still maintains the business checklist and acceptance evidence.
+
+Claude Code's installed SessionStart hook loads this reporting reminder. Task-plan Write/Edit calls must
+include the actual Agent header; the hook never fills in an executor. Existing long-lived sessions need
+to reload their hooks/context before they can enforce the newer workflow. Other user hooks are preserved.
+
+### Direct work
+
 The client executing a checklist task runs the following at its actual start; the owner does not run it.
 Use the current source line from the shared plan. The helper records evidence separately and never edits
 source task files. It returns a run ID. Keep that ID for this execution run.
@@ -117,8 +144,8 @@ Direct Claude work uses `--agent Claude`; direct Anti work uses `--agent Anti`. 
 actual session identifier when available. For a delegated worker, preserve the actual parent coordinator:
 use the plan's Agent header, or pass `--coordinator Claude` if the header is absent. No prefilled Executor
 header or owner assignment is needed. A monitor must not report itself as executing the worker's task.
-When invoking Codex CLI or Anti CLI, the coordinator includes this reporting requirement in the worker's
-instructions; the worker reports under its own client identity, not the coordinator's.
+When invoking a CLI, the coordinator uses the host runner above. Direct work outside that runner reports
+under the executing client's own identity, preserving the actual parent coordinator.
 
 At meaningful progress changes and before returning, report the actual outcome using the returned run ID:
 

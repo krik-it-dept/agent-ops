@@ -71,7 +71,24 @@ export function publishTask(options){
   if(!readFileSync(file).equals(before))throw Error('Plan changed while publishing; re-read it and sync again.');
   return {agent,role,coordinator,executors,repo:parts[0],plan:name,stateFile:state,message:'task-sync: '+agent+' ('+role+'; coordinator '+coordinator+') -> '+parts[0]+'/'+name+' -> '+state};
 }
+export function claudeReportingHook(event){
+  const kind=event.hook_event_name,runtime=root.replaceAll('\\','/');
+  const context='Workboard reporting: read the shared task-plan skill. For a directly controlled plan use Agent: Claude; preserve the actual parent Agent for delegated work. Report the actual executor, never infer it from the coordinator. For Codex/Anti/Claude CLI work, run the host wrapper: node "'+runtime+'/task-report.mjs" --run-cli --agent <actual CLI client> --coordinator <actual controller> --plan-file <absolute main-checkout plan> --step-line <source task line> -- <native CLI> <original arguments>. The host records execution outside the worker sandbox; do not widen the worker sandbox or write another session\'s plan. A CLI exit does not complete the business task.';
+  if(kind==='SessionStart')return {hookSpecificOutput:{hookEventName:kind,additionalContext:context}};
+  const input=event.tool_input || {},file=input.file_path || input.path || '';
+  const task=isAbsolute(file) && /[\\/]\.tasks[\\/][^\\/]+\.md$/i.test(file) && basename(file).toLowerCase()!=='tong-hop.md';
+  if(kind==='PreToolUse' && task && ['Write','Edit'].includes(event.tool_name)){
+    let candidate=event.tool_name==='Write'?input.content:null;
+    if(event.tool_name==='Edit' && existsSync(file)){
+      const before=readFileSync(file,'utf8');
+      if(typeof input.old_string==='string' && before.includes(input.old_string))candidate=input.replace_all?before.split(input.old_string).join(input.new_string || ''):before.replace(input.old_string,input.new_string || '');
+    }
+    if(typeof candidate==='string' && !/^Agent:\s*(?:Codex|Anti|Claude)\s*$/mi.test(candidate.split(/^##\s/m)[0]))return {hookSpecificOutput:{hookEventName:kind,permissionDecision:'deny',permissionDecisionReason:'This task plan is missing an explicit Agent header. Add the actual coordinator identity using the shared task-plan protocol; do not infer or assign the executor. '+context}};
+  }
+  if(kind==='PostToolUse' && (task || event.tool_name==='Bash' && /(?:\.tasks[\\/]|\bcodex(?:\.exe|\.cmd)?\s+exec\b|\bantigravity\b)/i.test(input.command || '')))return {hookSpecificOutput:{hookEventName:kind,additionalContext:context}};
+  return {};
+}
 if(process.argv[1] && pathToFileURL(resolve(process.argv[1])).href===import.meta.url){
-  try{console.log(publishTask(optionsFrom(process.argv.slice(2))).message);}
+  try{if(process.argv[2]==='--claude-hook'){const raw=readFileSync(0,'utf8');console.log(JSON.stringify(raw.length<=524288?claudeReportingHook(JSON.parse(raw)):{}));}else console.log(publishTask(optionsFrom(process.argv.slice(2))).message);}
   catch(error){console.error('task-sync: '+error.message);process.exitCode=1;}
 }

@@ -33,6 +33,14 @@ test('Stale revisions and mismatching source lines or task text cannot backfill 
  }
 });
 
+test('Explicitly reviewed unique-task history survives unrelated edits but refuses ambiguous or renamed tasks',t=>{
+ const f=fixture(t),record={...f.record,anchor:'unique-task'};
+ writeFileSync(f.file,'Next: Unrelated edit\n'+f.source);let p={root:dirname(dirname(f.file)),name:'work',...readPlan(f.file)};
+ applyHistoricalExecutions(p,[record]);assert.deepEqual(p.points[0].executors,['Claude']);assert.equal(p.points[0].executionHistory.verifiedAt,record.verifiedAt);
+ writeFileSync(f.file,f.source+'- [todo] Build\n');p={root:dirname(dirname(f.file)),name:'work',...readPlan(f.file)};applyHistoricalExecutions(p,[record]);assert.ok(p.points.every(s=>s.executors===null));
+ writeFileSync(f.file,f.source.replace('Build','Renamed'));p={root:dirname(dirname(f.file)),name:'work',...readPlan(f.file)};applyHistoricalExecutions(p,[record]);assert.equal(p.points[0].executors,null);
+});
+
 test('Live execution keeps its own state and active worker while retaining historical contributors',t=>{
  const f=fixture(t),at='2026-11-09T05:00:00Z';
  const report={id:'observed',runId:'actual',file:f.file,revision:f.p.revision,task:taskLocator(f.p,f.p.points[0]),agent:'Codex',coordinator:'Claude',event:'start',at,result:''};
@@ -51,6 +59,18 @@ test('Curated import verifies actual log results, supports native worker handoff
  importExecutionHistory(manifest,output);assert.equal(readFileSync(output,'utf8'),before);assert.equal(loadHistoricalExecutions(output).length,1);
  assert.equal(readFileSync(f.file,'utf8'),f.source);
  task.contributions[0].proofs[0].resultPattern='invented success';assert.throws(()=>importExecutionHistory(manifest,output),/does not match/);assert.equal(readFileSync(output,'utf8'),before);
+});
+
+test('Native Codex tool evidence requires its real origin, workspace, call and successful output',t=>{
+ const f=fixture(t),log=join(f.root,'codex.jsonl'),output=join(f.root,'history.json'),at='2026-11-10T03:00:00Z';
+ const events=[{type:'session_meta',payload:{id:'native-run',originator:'codex_exec',cwd:f.root}},{type:'response_item',timestamp:at,payload:{type:'function_call',call_id:'work',name:'exec_command',arguments:JSON.stringify({cmd:'verify code'})}},{type:'response_item',timestamp:at,payload:{type:'function_call_output',call_id:'work',output:'Process exited with code 0\nVerified workspace code'}}];
+ const put=()=>writeFileSync(log,events.map(e=>JSON.stringify(e)).join('\n'));put();
+ const proof={log,kind:'codex-tool',cwd:f.root,call:'work',inputPattern:'verify code',resultPattern:'Verified workspace code'};
+ const manifest={plans:[{file:f.file,revision:f.p.revision,tasks:[{line:4,text:'Build',contributions:[{agent:'Codex',summary:'Verified work in the native CLI session',proofs:[proof]}]}]}]};
+ importExecutionHistory(manifest,output);const record=loadHistoricalExecutions(output)[0];assert.equal(record.contributions[0].agent,'Codex');assert.equal(record.verifiedAt,at);assert.equal(readFileSync(f.file,'utf8'),f.source);
+ events[0].payload.originator='other-client';put();assert.throws(()=>importExecutionHistory(manifest,output),/Native Codex execution evidence/);
+ events[0].payload.originator='codex_exec';events[0].payload.cwd=join(f.root,'another');put();assert.throws(()=>importExecutionHistory(manifest,output),/Native Codex execution evidence/);
+ events[0].payload.cwd=f.root;events[2].payload.output='Process exited with code 1\nVerified workspace code';put();assert.throws(()=>importExecutionHistory(manifest,output),/Native Codex execution evidence/);
 });
 
 test('Historical registry rejects missing evidence, duplicate tasks and unsupported contributors',t=>{

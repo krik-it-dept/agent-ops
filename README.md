@@ -53,6 +53,8 @@ The collector is bundled beside the helpers; no external parent script is requir
 
 The skill installer writes the shared and Claude slash skills, plus one managed block in each client's global instructions. It validates all managed blocks before writing, preserves unrelated instructions and backs up replacements. Repeated installation makes no duplicate edits.
 
+Claude Code also receives small reporting hooks: session-start context, metadata validation for plan writes, and post-tool reminders. Existing hooks/settings are preserved. Delegated CLI commands run through `task-report.mjs --run-cli ... -- <CLI> <original args>` so the host records the actual worker outside its sandbox. CLI run completion does not mark a business task done. See the canonical skill for invocation details. Already-running Claude sessions need their hook/context reload before enforcing new rules.
+
 ```powershell
 node integrations/install-task-reporting.mjs --runtime-dir C:/path/to/installed/runtime
 ```

@@ -18,6 +18,12 @@ export function importExecutionHistory(manifest,output){
   for(const line of readFileSync(file,'utf8').split(/\r?\n/)){
    if(!line)continue;let x;try{x=JSON.parse(line);}catch{continue;}
    if(x.type==='session_meta')session=x.payload;
+   if(x.type==='response_item' && x.payload?.type==='function_call'){
+    try{calls.set(x.payload.call_id,{name:x.payload.name,input:JSON.parse(x.payload.arguments),at:x.timestamp,native:true});}catch{/* Unparseable calls cannot provide evidence. */}
+   }
+   if(x.type==='response_item' && x.payload?.type==='function_call_output'){
+    const text=plain(x.payload.output);results.set(x.payload.call_id,{text,error:!!x.payload.is_error || /Process exited with code [1-9]|"exit_code"\s*:\s*[1-9]/.test(text),at:x.timestamp});
+   }
    if(x.type==='response_item' && x.payload?.type==='message' && x.payload.role==='assistant' && x.payload.phase==='final_answer'){
     const text=(x.payload.content || []).filter(c=>c.type==='output_text').map(c=>c.text).join('\n');
     if(x.payload.id && text)messages.set(x.payload.id,{text,at:x.timestamp,codex:true});
@@ -36,6 +42,11 @@ export function importExecutionHistory(manifest,output){
  }
  function proof(ref){
   const data=log(ref.log);
+  if(ref.kind==='codex-tool'){
+   const call=data.calls.get(ref.call),result=data.results.get(ref.call);
+   if(data.session?.originator!=='codex_exec' || !call?.native || !result || result.error || !ref.cwd || resolve(data.session.cwd).toLowerCase()!==resolve(ref.cwd).toLowerCase() || !ref.inputPattern || !ref.resultPattern || !new RegExp(ref.inputPattern,'su').test(JSON.stringify(call.input)) || !new RegExp(ref.resultPattern,'su').test(result.text))throw Error('Native Codex execution evidence does not match the reviewed session/task');
+   return {sourceLog:resolve(ref.log),messageId:ref.call,tool:'codex-tool',at:result.at || call.at,inputHash:digest(call.input),resultHash:digest(result.text)};
+  }
   if(ref.kind==='worker-handoff'){
    const call=data.calls.get(ref.call),text=call?.input?.message;
    if(call?.name!=='SubagentHandback' || typeof text!=='string' || !ref.resultPattern || !new RegExp(ref.resultPattern,'su').test(text) || data.results.get(ref.call)?.error)throw Error('Worker handoff result not verified: '+ref.call);
@@ -63,7 +74,7 @@ export function importExecutionHistory(manifest,output){
    if(!point || point.text!==task.text)throw Error('Historical task no longer matches source: '+task.line);
    const contributions=task.contributions.map(c=>{
     const evidence=c.proofs.map(proof);
-    if(c.agent==='Codex' && !c.proofs.every(p=>p.kind==='codex-result')){
+    if(c.agent==='Codex' && !c.proofs.every(p=>['codex-result','codex-tool'].includes(p.kind))){
      const dispatch=c.dispatch,call=dispatch && log(dispatch.log).calls.get(dispatch.call);
      const command=call?.input?.command || '';
      if(!/\bcodex(?:\.cmd|\.exe)?\s+exec\b/.test(command) || !dispatch.artifact || !command.includes(dispatch.artifact) || !c.proofs.some(p=>JSON.stringify(log(p.log).calls.get(p.call)?.input || {}).includes(dispatch.artifact.replace(/\.md$/,''))))throw Error('Codex review lacks its matching CLI invocation and output artifact');
@@ -73,7 +84,8 @@ export function importExecutionHistory(manifest,output){
    });
    const times=contributions.flatMap(c=>c.evidence.map(e=>e.at)).filter(t=>t && Number.isFinite(Date.parse(t))).sort();
    if(!times.length)throw Error('Historical task has no observed verification time: '+task.line);
-   const record={file,revision:plan.revision,task:taskLocator(plan,point),verifiedAt:times.at(-1),contributions};
+   if(task.anchor!==undefined && task.anchor!=='unique-task')throw Error('Unsupported reviewed task anchor');
+   const record={file,revision:plan.revision,task:taskLocator(plan,point),verifiedAt:times.at(-1),contributions,...(task.anchor?{anchor:task.anchor}:{})};
    const old=records.findIndex(r=>resolve(r.file).toLowerCase()===file.toLowerCase() && r.task.line===task.line);
    if(old>=0)records[old]=record;else records.push(record);imported++;
   }
