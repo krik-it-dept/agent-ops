@@ -1,8 +1,7 @@
 import {createHash} from 'node:crypto';
-import {readFileSync,statSync,existsSync,readdirSync,realpathSync} from 'node:fs';
-import {join,resolve,dirname,basename,relative,sep,isAbsolute} from 'node:path';
+import {readFileSync,statSync,existsSync,readdirSync} from 'node:fs';
+import {join,resolve,dirname,basename} from 'node:path';
 import {homedir} from 'node:os';
-import {parseExecutors} from './execution-roles.mjs';
 const STATUSES = ['⬜', '🔄', '✅', '⚠', '❌'];
 const MARKERS = { todo: '⬜', doing: '🔄', done: '✅', partial: '⚠', blocked: '❌' };
 const EST_RE = /\s*~\s*\d+(?:[.,]\d+)?\s*(p|ph|phút|m|min|h|g|giờ|d|ngày)(?![\p{L}])/iu;
@@ -86,26 +85,23 @@ export function readPlan(file) {
       if (!status) continue;
       text = l.slice(status.length).replace(/^\s*\uFE0F/, '').trim();
     }
-    const assignment=text.match(/\s*<!--\s*Executors?:\s*([^<>]*?)\s*-->\s*$/i);
-    const executors=assignment?parseExecutors(assignment[1]):null;
-    if(assignment)text=text.slice(0,assignment.index);
-    const point = { status, text: text.replace(new RegExp(EST_RE.source, 'giu'), '').trim(), executors, line:lineIndex+1 };
+    // Plans from earlier releases may end a step with <!-- Executor: ... -->; it is not shown.
+    const comment=text.match(/\s*<!--\s*Executors?:\s*([^<>]*?)\s*-->\s*$/i);
+    if(comment)text=text.slice(0,comment.index);
+    const point = { status, text: text.replace(new RegExp(EST_RE.source, 'giu'), '').trim(), line:lineIndex+1 };
     points.push(point);
     if (ms) ms.points.push(point);
   }
-  return { revision, agentLabel: field('Agent'), executorLabel: field('Executor','Executors'), owner: field('Owner'), goal: field('Goal'), spec: field('Spec'), next: field('Next', 'Tiếp theo'), label: field('Status', 'Trạng thái'), points, milestones, decisions, questions, mtime: statSync(file).mtime };
+  return { revision, owner: field('Owner'), goal: field('Goal'), spec: field('Spec'), next: field('Next', 'Tiếp theo'), label: field('Status', 'Trạng thái'), points, milestones, decisions, questions, mtime: statSync(file).mtime };
 }
 
 // ---------- Project settings ----------
-// Shared Agent Ops settings for every Node helper (kept in this module so the
-// release package file list, which the in-app updater validates, is unchanged). The desktop app passes
-// AGENT_OPS_CONFIG to its children; an agent running a helper directly uses the
-// default location, so no machine-specific flags are needed.
-// Precedence, identical to the Go app (config() and initSettings):
-// flag > KRIK_* environment > config.json > default. The app's own children get
-// the app's resolved values through flags and environment, so both sides agree.
+// Agent Ops settings for the collector. The desktop app passes AGENT_OPS_CONFIG to
+// its child; a direct run uses the default location, so no machine-specific flags
+// are needed. Precedence, identical to the Go app (config() and initSettings):
+// flag > AGENT_OPS_* environment > config.json > default.
 export function defaultDataDir(env=process.env){
-  return join(env.LOCALAPPDATA || join(homedir(),'AppData','Local'),'krik-workboard');
+  return join(env.LOCALAPPDATA || join(homedir(),'AppData','Local'),'AgentOps');
 }
 export function configPath(env=process.env){
   return resolve(env.AGENT_OPS_CONFIG || join(defaultDataDir(env),'config.json'));
@@ -149,26 +145,12 @@ export function resolveSettings(options={},env=process.env){
   const configFile=configPath(env);
   // Read lazily: explicit flags never depend on (or fail because of) the config file.
   let cached;const config=()=>cached===undefined?(cached=readConfig(configFile)):cached;
-  const reposOverride=options['repos-dir'] || env.KRIK_REPOS_DIR;
+  const reposOverride=options['repos-dir'] || env.AGENT_OPS_REPOS_DIR;
   let projects=[];
   if(reposOverride)projects=[overrideProject(reposOverride)];
   else if(config())projects=config().projects.filter(p=>p.enabled).map(p=>({...p,path:resolve(p.path)}));
-  const stateFile=resolve(options['state-file'] || env.KRIK_STATE_FILE || config()?.stateFile || join(dirname(configFile),'state','tong-hop-chung.json'));
-  const slotsSource=options['slots-file'] || env.KRIK_SLOTS_FILE || config()?.slotsFile;
-  return {configFile,projects,stateFile,slotsFile:slotsSource?resolve(slotsSource):''};
-}
-
-// Runs the collector with the same resolved settings as the calling helper.
-export function collectorRun(settings,options={}){
-  const args=['--state-file',settings.stateFile];
-  if(settings.slotsFile)args.push('--slots-file',settings.slotsFile);
-  if(options['repos-dir'])args.push('--repos-dir',resolve(options['repos-dir']));
-  const env={...process.env,AGENT_OPS_CONFIG:settings.configFile,KRIK_STATE_FILE:settings.stateFile,KRIK_TASKS_OUT_DIR:dirname(settings.stateFile),KRIK_SLOTS_FILE:settings.slotsFile,KRIK_REPOS_DIR:options['repos-dir']?resolve(options['repos-dir']):''};
-  return {args,env};
-}
-// A state entry confirms a located plan; states from older collectors have no project.
-export function sameProjectPlan(entry,located,name){
-  return entry.repo===located.repo && entry.name===name && (entry.project===undefined || entry.project===located.project.id);
+  const stateFile=resolve(options['state-file'] || env.AGENT_OPS_STATE_FILE || config()?.stateFile || join(dirname(configFile),'state','tong-hop-chung.json'));
+  return {configFile,projects,stateFile};
 }
 
 const isDir=path=>{try{return statSync(path).isDirectory();}catch{return false;}};
@@ -182,25 +164,4 @@ export function projectRepos(project){
   return readdirSync(project.path).sort()
     .map(name=>({name,root:join(project.path,name)}))
     .filter(r=>isDir(r.root) && isRepo(r.root));
-}
-
-// Finds the configured project that holds a plan file in a main checkout:
-// <folder project>/<repo>/.tasks/<plan>.md or <repo project>/.tasks/<plan>.md.
-export function locatePlan(file,projects){
-  const real=realpathSync(resolve(file));
-  if(basename(real).toLowerCase()==='tong-hop.md' || !real.toLowerCase().endsWith('.md'))return null;
-  for(const project of projects){
-    let root;try{root=realpathSync(project.path);}catch{continue;}
-    const rel=relative(root,real);
-    // On another drive relative() returns an absolute path such as E:\.tasks\p.md.
-    if(!rel || isAbsolute(rel) || rel==='..' || rel.startsWith('..'+sep))continue;
-    const parts=rel.split(sep);
-    if(project.kind==='folder' && parts.length===3 && parts[1]==='.tasks')return {project,repo:parts[0],file:real};
-    if(project.kind==='repo' && parts.length===2 && parts[0]==='.tasks')return {project,repo:repoNameOf(project.path),file:real};
-  }
-  return null;
-}
-export function planNotFound(settings){
-  if(!settings.projects.length)return 'No Agent Ops projects are configured ('+settings.configFile+'). Open Agent Ops and add the project folder in Settings.';
-  return 'Use a plan in <repository>/.tasks/<plan>.md in the main checkout of a project configured in Agent Ops ('+settings.projects.map(p=>p.path).join('; ')+').';
 }

@@ -28,6 +28,33 @@ func fixture(steps ...Step) Plan {
 	return Plan{Repo: "sample", Name: "plan", Owner: "Lan", Status: "Implementing", Mtime: time.Now(), Steps: steps, Milestones: []Milestone{{ID: "M1", Title: "Delivery", Steps: steps}}}
 }
 func one(p Plan) map[string]Plan { return map[string]Plan{planKey(p): p} }
+
+// stateFixture is a repository folder with one plan, read through the real collector.
+func stateFixture(t *testing.T) string {
+	t.Helper()
+	root := isolated(t)
+	oldRepos, oldPrev, oldState, oldScript, oldData := reposDir, prev, stateFile, scriptFile, dataDir
+	oldRaw, oldEvents, oldError, oldStale := rawState, events, refreshError, staleSeen
+	t.Cleanup(func() {
+		reposDir, prev, stateFile, scriptFile, dataDir = oldRepos, oldPrev, oldState, oldScript, oldData
+		rawState, events, refreshError, staleSeen = oldRaw, oldEvents, oldError, oldStale
+	})
+	reposDir = root
+	dir := filepath.Join(root, "sample", ".tasks")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(dir, "plan.md")
+	if err := os.WriteFile(file, []byte("Next: Test\nStatus: Implementing - build UI\nOwner: Lan\n\n## M1: Delivery\n- [doing] Build\n- [todo] Test\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	dataDir = filepath.Join(root, "app-data")
+	os.MkdirAll(dataDir, 0700)
+	stateFile = filepath.Join(dataDir, "state.json")
+	scriptFile, _ = filepath.Abs("tasks-overview.mjs")
+	rawState, prev, events, refreshError, staleSeen = nil, nil, nil, "", map[string]time.Time{}
+	return file
+}
 func kinds(events []Event) map[string]int {
 	m := map[string]int{}
 	for _, e := range events {
@@ -107,11 +134,6 @@ func TestActor(t *testing.T) {
 	if actor(p) != "Lan" {
 		t.Fatal(actor(p))
 	}
-	p.Slot = &struct{ By string }{"Slot owner"}
-	if actor(p) != "Slot owner" {
-		t.Fatal(actor(p))
-	}
-	p.Slot = nil
 	p.Owner = ""
 	if actor(p) != "sample" {
 		t.Fatal(actor(p))
@@ -163,36 +185,36 @@ func TestActivation(t *testing.T) {
 func TestConfigOverrides(t *testing.T) {
 	dir := isolated(t)
 	oldArgs, oldFlags := os.Args, flag.CommandLine
-	oldRepos, oldSlots, oldState, oldScript, oldAddr, oldData, oldBackground, oldActivation := reposDir, slotsFile, stateFile, scriptFile, addr, dataDir, background, activation
+	oldRepos, oldState, oldScript, oldAddr, oldData, oldBackground, oldActivation := reposDir, stateFile, scriptFile, addr, dataDir, background, activation
 	t.Cleanup(func() {
 		os.Args = oldArgs
 		flag.CommandLine = oldFlags
-		reposDir, slotsFile, stateFile, scriptFile, addr, dataDir, background, activation = oldRepos, oldSlots, oldState, oldScript, oldAddr, oldData, oldBackground, oldActivation
+		reposDir, stateFile, scriptFile, addr, dataDir, background, activation = oldRepos, oldState, oldScript, oldAddr, oldData, oldBackground, oldActivation
 	})
-	for k, v := range map[string]string{"KRIK_REPOS_DIR": dir, "KRIK_SLOTS_FILE": filepath.Join(dir, "slots.json"), "KRIK_STATE_FILE": filepath.Join(dir, "state.json"), "KRIK_SCRIPT": filepath.Join(dir, "script.mjs"), "KRIK_ADDR": "127.0.0.1:17990"} {
+	for k, v := range map[string]string{"AGENT_OPS_REPOS_DIR": dir, "AGENT_OPS_STATE_FILE": filepath.Join(dir, "state.json"), "AGENT_OPS_SCRIPT": filepath.Join(dir, "script.mjs"), "AGENT_OPS_ADDR": "127.0.0.1:17990"} {
 		t.Setenv(k, v)
 	}
 	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
 	os.Args = []string{"test", "--background", "--data-dir", dir, "--addr", "127.0.0.1:17991"}
 	config()
-	if reposDir != dir || slotsFile != filepath.Join(dir, "slots.json") || stateFile != filepath.Join(dir, "state.json") || scriptFile != filepath.Join(dir, "script.mjs") || addr != "127.0.0.1:17991" || !background || dataDir != dir {
+	if reposDir != dir || stateFile != filepath.Join(dir, "state.json") || scriptFile != filepath.Join(dir, "script.mjs") || addr != "127.0.0.1:17991" || !background || dataDir != dir {
 		t.Fatal("overrides not applied")
 	}
 }
 func TestRefreshLastGoodAndPersistence(t *testing.T) {
 	dir := isolated(t)
-	oldRepos, oldSlots, oldState, oldScript, oldData := reposDir, slotsFile, stateFile, scriptFile, dataDir
+	oldRepos, oldState, oldScript, oldData := reposDir, stateFile, scriptFile, dataDir
 	t.Cleanup(func() {
-		reposDir, slotsFile, stateFile, scriptFile, dataDir = oldRepos, oldSlots, oldState, oldScript, oldData
+		reposDir, stateFile, scriptFile, dataDir = oldRepos, oldState, oldScript, oldData
 		prev = nil
 		events = nil
 		rawState = nil
 		refreshError = ""
 		staleSeen = map[string]time.Time{}
 	})
-	reposDir, slotsFile, stateFile, scriptFile, dataDir = dir, filepath.Join(dir, "slots.json"), filepath.Join(dir, "generated.json"), filepath.Join(dir, "script.mjs"), dir
+	reposDir, stateFile, scriptFile, dataDir = dir, filepath.Join(dir, "generated.json"), filepath.Join(dir, "script.mjs"), dir
 	// The fake script verifies that flag values actually reach the subprocess environment.
-	script := `import fs from 'node:fs'; if(process.env.KRIK_REPOS_DIR!==` + strconvQuote(dir) + ` || process.env.KRIK_SLOTS_FILE!==` + strconvQuote(slotsFile) + `)process.exit(9); fs.writeFileSync(process.env.KRIK_STATE_FILE, JSON.stringify({plans:[]}));`
+	script := `import fs from 'node:fs'; if(process.env.AGENT_OPS_REPOS_DIR!==` + strconvQuote(dir) + `)process.exit(9); fs.writeFileSync(process.env.AGENT_OPS_STATE_FILE, JSON.stringify({plans:[]}));`
 	os.WriteFile(scriptFile, []byte(script), 0600)
 	prev = nil
 	events = nil
@@ -207,12 +229,12 @@ func TestRefreshLastGoodAndPersistence(t *testing.T) {
 	if !strings.Contains(refreshError, "deliberate failure") || string(rawState) != good {
 		t.Fatal(refreshError, string(rawState))
 	}
-	os.WriteFile(scriptFile, []byte(`import fs from 'node:fs'; fs.writeFileSync(process.env.KRIK_STATE_FILE, '{broken')`), 0600)
+	os.WriteFile(scriptFile, []byte(`import fs from 'node:fs'; fs.writeFileSync(process.env.AGENT_OPS_STATE_FILE, '{broken')`), 0600)
 	refresh(true)
 	if !strings.Contains(refreshError, "Invalid state JSON") || string(rawState) != good {
 		t.Fatal(refreshError)
 	}
-	os.WriteFile(scriptFile, []byte(`import fs from 'node:fs'; fs.writeFileSync(process.env.KRIK_STATE_FILE, '{}')`), 0600)
+	os.WriteFile(scriptFile, []byte(`import fs from 'node:fs'; fs.writeFileSync(process.env.AGENT_OPS_STATE_FILE, '{}')`), 0600)
 	refresh(true)
 	if !strings.Contains(refreshError, "plans must be an array") || string(rawState) != good {
 		t.Fatal(refreshError)

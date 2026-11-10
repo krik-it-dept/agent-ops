@@ -208,7 +208,7 @@ func TestStableVersionComparison(t *testing.T) {
 	}
 }
 
-func TestParallelChecksAndStatusWritesDuringRestartAreRejected(t *testing.T) {
+func TestParallelChecksAndRefreshDuringRestartAreRejected(t *testing.T) {
 	archive, manifest := fixturePackage(t, "v0.2.0", bridgeFiles(), nil)
 	f := newReleaseFeed(t, "v0.2.0", archive, manifest)
 	f.gate = make(chan struct{})
@@ -226,11 +226,6 @@ func TestParallelChecksAndStatusWritesDuringRestartAreRejected(t *testing.T) {
 	awaitUpdate(t, u)
 	updateRestarting.Store(true)
 	defer updateRestarting.Store(false)
-	err := writePlanStatus(statusChange{Repo: "sample", Plan: "work", Status: "Done", Revision: strings.Repeat("a", 64)})
-	var status *statusError
-	if !errors.As(err, &status) || status.code != http.StatusServiceUnavailable {
-		t.Fatal("write was not rejected", err)
-	}
 	req := httptest.NewRequest("POST", "http://"+addr+"/api/refresh", nil)
 	req.Header.Set("X-Workboard", "1")
 	w := httptest.NewRecorder()

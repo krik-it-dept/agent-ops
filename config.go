@@ -23,7 +23,6 @@ import (
 // migrate an existing installation into config.json on its first start.
 const (
 	legacyReposDir  = `D:\1_PROJECTS\_REPOS`
-	legacySlotsFile = `D:\1_PROJECTS\_WORKTREES\slots.json`
 	legacyStateFile = `D:\1_PROJECTS\tong-hop-chung.json`
 )
 
@@ -43,7 +42,6 @@ type AppConfig struct {
 	SetupComplete bool      `json:"setupComplete"`
 	Projects      []Project `json:"projects"`
 	StateFile     string    `json:"stateFile,omitempty"`
-	SlotsFile     string    `json:"slotsFile,omitempty"`
 	Notifications bool      `json:"notifications"`
 	// Theme is "system", "light" or "dark"; empty means system.
 	Theme string `json:"theme,omitempty"`
@@ -153,10 +151,8 @@ func validateAppConfig(c *AppConfig) error {
 	if !validTheme(c.Theme) {
 		return fmt.Errorf("theme must be system, light or dark")
 	}
-	for _, file := range []string{c.StateFile, c.SlotsFile} {
-		if file != "" && !filepath.IsAbs(file) {
-			return fmt.Errorf("settings file paths must be absolute")
-		}
+	if c.StateFile != "" && !filepath.IsAbs(c.StateFile) {
+		return fmt.Errorf("settings file paths must be absolute")
 	}
 	return nil
 }
@@ -230,7 +226,7 @@ func writeAppConfig(file string, c AppConfig) error {
 	return replaceUpdateFile(tmp, file)
 }
 
-type legacyPaths struct{ repos, state, slots string }
+type legacyPaths struct{ repos, state string }
 
 // loadOrMigrateConfig reads the config. Without one, an existing legacy repos
 // folder becomes a single folder project so an upgraded install looks the same.
@@ -265,7 +261,6 @@ func loadOrMigrateConfig(file string, legacy legacyPaths, now time.Time) (cfg Ap
 	cfg.Projects = []Project{{ID: projectIDFor(path), Path: path, Name: projectDisplayName(path), Kind: "folder", Enabled: true, AddedAt: now.UTC()}}
 	cfg.SetupComplete = true
 	cfg.StateFile = legacy.state
-	cfg.SlotsFile = legacy.slots
 	if writeErr := writeAppConfig(file, cfg); writeErr != nil {
 		return cfg, warning, fmt.Errorf("could not save migrated settings: %v", writeErr)
 	}

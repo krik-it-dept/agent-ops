@@ -34,7 +34,7 @@ var (
 	openFolder     = func(path string) error { return exec.Command("explorer.exe", path).Start() }
 	pickerBusy     sync.Mutex
 	// The first release's fixed paths, replaced in tests.
-	legacyDefaults         = legacyPaths{repos: legacyReposDir, state: legacyStateFile, slots: legacySlotsFile}
+	legacyDefaults         = legacyPaths{repos: legacyReposDir, state: legacyStateFile}
 	legacyMigrationAllowed = func() bool { return strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir())) }
 )
 
@@ -46,8 +46,7 @@ func defaultInstance() bool {
 	return addr == "127.0.0.1:7790" && strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir()))
 }
 
-// initSettings loads (or migrates) config.json and resolves the state and slots
-// files: flag > environment > config.json > default under dataDir.
+// initSettings loads (or migrates) config.json and resolves the state file: flag > environment > config.json > default under dataDir.
 func initSettings() {
 	// The first release's fixed paths only migrate into the installed app's own data
 	// folder; isolated, test and smoke runs never adopt the owner's real folders.
@@ -61,7 +60,6 @@ func initSettings() {
 	}{
 		{&legacy.repos, []string{reposDir, legacyLaunch.repos}},
 		{&legacy.state, []string{stateFile, legacyLaunch.state}},
-		{&legacy.slots, []string{slotsFile, legacyLaunch.slots}},
 	} {
 		for _, v := range item.values {
 			if v != "" {
@@ -86,9 +84,6 @@ func initSettings() {
 	}
 	if stateFile == "" {
 		stateFile = filepath.Join(dataDir, "state", "tong-hop-chung.json")
-	}
-	if slotsFile == "" {
-		slotsFile = cfg.SlotsFile
 	}
 }
 
@@ -363,7 +358,7 @@ func currentSettings() settingsPayload {
 	}
 	projects := cfg.Projects
 	if reposDir != "" {
-		out.ProjectsOverridden = "Projects are set by --repos-dir or KRIK_REPOS_DIR for this run: " + reposDir
+		out.ProjectsOverridden = "Projects are set by --repos-dir or AGENT_OPS_REPOS_DIR for this run: " + reposDir
 		projects = []Project{overrideProject()}
 	}
 	for _, p := range projects {
@@ -419,7 +414,7 @@ func decodeOne(w http.ResponseWriter, r *http.Request, v any) bool {
 	return true
 }
 
-const overrideReadOnly = "Projects are set by --repos-dir or KRIK_REPOS_DIR for this run. Restart Agent Ops without it to manage projects here."
+const overrideReadOnly = "Projects are set by --repos-dir or AGENT_OPS_REPOS_DIR for this run. Restart Agent Ops without it to manage projects here."
 
 // mutateConfig applies change to a copy, saves it atomically, then refreshes.
 func mutateConfig(w http.ResponseWriter, change func(*AppConfig) (int, string)) bool {
