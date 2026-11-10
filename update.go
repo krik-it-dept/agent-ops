@@ -26,7 +26,7 @@ const updateRepository = "krik-it-dept/agent-ops"
 const updateArchive = "agent-ops-windows-amd64.zip"
 const maxUpdateBytes = 128 << 20
 
-var appVersion = "v0.1.4"
+var appVersion = "v0.2.0"
 var appCommit = "development"
 var updates *appUpdater
 var updateRestarting atomic.Bool

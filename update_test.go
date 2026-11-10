@@ -456,3 +456,15 @@ func TestUpdateResultReportsLocallyModifiedIntegrations(t *testing.T) {
 		t.Fatal("the owner's skill section was overwritten")
 	}
 }
+
+// A release built from the VERSION file must report that same version, or the
+// updater rejects the download. The source default has to follow VERSION.
+func TestSourceVersionMatchesVersionFile(t *testing.T) {
+	raw, err := os.ReadFile("VERSION")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := strings.TrimSpace(string(raw)); appVersion != want {
+		t.Fatalf("appVersion default %q does not match VERSION %q", appVersion, want)
+	}
+}
