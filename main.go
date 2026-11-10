@@ -299,10 +299,14 @@ func main() {
 	logInfo("agent ops started", "version", appVersion, "commit", appCommit, "pid", os.Getpid(), "addr", addr, "dataDir", dataDir, "background", background, "updateChecks", !disableUpdateChecks)
 	if defaultInstance() {
 		exe, _ := os.Executable()
-		if err := registerProtocol(exe); err != nil {
+		// The previous release's protocol and Run value are removed only once a
+		// migration is recorded, which the update helper does after this version
+		// passed its startup check: a rollback before that finds them intact.
+		removeLegacy := readMigrationResult(dataDir) != nil
+		if err := registerProtocol(exe, removeLegacy); err != nil {
 			logWarn("could not register the agent-ops: protocol", "error", err.Error())
 		}
-		if err := migrateStartup(exe); err != nil {
+		if err := migrateStartup(exe, removeLegacy); err != nil {
 			logWarn("could not update Start with Windows", "error", err.Error())
 		}
 		_ = registerToastApp(dataDir)

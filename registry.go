@@ -95,9 +95,9 @@ func (h hkcu) DeleteTree(path string) error {
 
 func protocolCommand(exe string) string { return `"` + exe + `" --activate "%1"` }
 
-// registerProtocol writes the agent-ops: protocol and removes the protocol of
-// releases before v0.3.0. Idempotent.
-func registerProtocol(exe string) error {
+// registerProtocol writes the agent-ops: protocol and, with removeLegacy, removes
+// the protocol of releases before v0.3.0. Idempotent.
+func registerProtocol(exe string, removeLegacy bool) error {
 	for _, v := range []struct{ path, name, value string }{
 		{protocolKey, "", "URL:Agent Ops"},
 		{protocolKey, "URL Protocol", ""},
@@ -107,13 +107,17 @@ func registerProtocol(exe string) error {
 			return err
 		}
 	}
+	if !removeLegacy {
+		return nil
+	}
 	return userRegistry.DeleteTree(`Software\Classes\` + legacyProtocol)
 }
 
-// migrateStartup renames the Run value of releases before v0.3.0 to "Agent Ops",
-// pointing at this executable, and makes sure a login start stays in the tray.
-func migrateStartup(exe string) error {
-	if _, ok := userRegistry.GetString(runKey, legacyRunValue); ok {
+// migrateStartup renames the Run value of releases before v0.3.0 to "Agent Ops"
+// (with removeLegacy), pointing at this executable, and makes sure a login start
+// stays in the tray.
+func migrateStartup(exe string, removeLegacy bool) error {
+	if _, ok := userRegistry.GetString(runKey, legacyRunValue); ok && removeLegacy {
 		if _, has := userRegistry.GetString(runKey, runName); !has {
 			if err := userRegistry.SetString(runKey, runName, `"`+exe+`" --background`); err != nil {
 				return err
@@ -129,9 +133,13 @@ func migrateStartup(exe string) error {
 	return nil
 }
 
+// startupEnabled also counts the Run value of releases before v0.3.0, which
+// stays until the migration is recorded (see main), so the toggle shows the
+// state that applies at login.
 func startupEnabled() bool {
 	_, ok := userRegistry.GetString(runKey, runName)
-	return ok
+	_, legacy := userRegistry.GetString(runKey, legacyRunValue)
+	return ok || legacy
 }
 
 func setStartup(on bool) {
@@ -140,5 +148,6 @@ func setStartup(on bool) {
 		_ = userRegistry.SetString(runKey, runName, `"`+exe+`" --background`)
 	} else {
 		_ = userRegistry.DeleteValue(runKey, runName)
+		_ = userRegistry.DeleteValue(runKey, legacyRunValue)
 	}
 }

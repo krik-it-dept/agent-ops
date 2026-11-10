@@ -261,7 +261,21 @@ func TestRegistryEntriesMoveToTheNewNames(t *testing.T) {
 	legacyKey := `Software\Classes\` + legacyProtocol
 	reg.SetString(legacyKey, "", "URL:old")
 	reg.SetString(legacyKey+`\shell\open\command`, "", "old.exe")
-	if err := migrateStartup(exe); err != nil {
+	// Before the migration is recorded (a rollback may still restore the previous
+	// release) the old entries stay and startup reads as on.
+	if err := migrateStartup(exe, false); err != nil || registerProtocol(exe, false) != nil {
+		t.Fatal(err)
+	}
+	if _, ok := reg.GetString(runKey, legacyRunValue); !ok || !startupEnabled() {
+		t.Fatal("the old Run value was moved before the migration was recorded")
+	}
+	if _, ok := reg.GetString(legacyKey, ""); !ok {
+		t.Fatal("the old protocol was removed before the migration was recorded")
+	}
+	if _, ok := reg.GetString(runKey, runName); ok {
+		t.Fatal("a second Run value was added next to the old one")
+	}
+	if err := migrateStartup(exe, true); err != nil {
 		t.Fatal(err)
 	}
 	if v, ok := reg.GetString(runKey, runName); !ok || v != `"`+exe+`" --background` || runName != "Agent Ops" {
@@ -273,7 +287,7 @@ func TestRegistryEntriesMoveToTheNewNames(t *testing.T) {
 	if v, _ := reg.GetString(runKey, "Other app"); v != "other.exe" {
 		t.Fatal("another app's Run value changed")
 	}
-	if err := registerProtocol(exe); err != nil {
+	if err := registerProtocol(exe, true); err != nil {
 		t.Fatal(err)
 	}
 	if v, _ := reg.GetString(protocolKey+`\shell\open\command`, ""); v != protocolCommand(exe) {
@@ -292,7 +306,7 @@ func TestRegistryEntriesMoveToTheNewNames(t *testing.T) {
 	if startupEnabled() {
 		t.Fatal("startup still on")
 	}
-	if err := migrateStartup(exe); err != nil || startupEnabled() {
+	if err := migrateStartup(exe, true); err != nil || startupEnabled() {
 		t.Fatal("migration turned startup on")
 	}
 	if !strings.HasPrefix(planURI("p/r/n"), "agent-ops:open?") || activationPlan("agent-ops:open?plan=x") != "x" || activationPlan(legacyProtocol+":open?plan=x") != "" {
