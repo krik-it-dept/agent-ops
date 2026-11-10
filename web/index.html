@@ -577,7 +577,10 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .repo-list small { color: var(--muted-fg); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .project-actions { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-3); }
 .project-actions small { color: var(--muted-fg); font-size: var(--text-xs); }
-.integration-card.is-disabled { opacity: .6; }
+.integration-card.is-disabled .project-title, .integration-card.is-disabled .project-summary { opacity: .6; }
+.integration-edit { display: grid; gap: var(--s-2); margin-top: var(--s-3); }
+.integration-field { display: grid; gap: var(--s-1); font-size: var(--text-xs); color: var(--muted-fg); }
+.integration-field .input { font-family: var(--font-mono); color: var(--fg); }
 .integration-reminder { display: grid; gap: var(--s-1); margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); }
 .integration-reminder-state { display: flex; align-items: center; gap: var(--s-2); color: var(--muted-fg); font-size: var(--text-xs); }
 .diff-panel { margin-top: var(--s-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg); overflow: hidden; }
@@ -1844,10 +1847,10 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     {id:'data-folder',section:'general',title:'Data folder',description:'Where Agent Ops keeps its settings and cache.',keywords:'config json storage path activity history location open explorer'},
     {id:'setup-again',section:'general',title:'Run setup again',description:'Show the first-run setup.',keywords:'onboarding first run welcome wizard'},
     {id:'projects',section:'projects',title:'Projects',description:'',keywords:'project folder repository repositories repo add remove enable disable plans tasks path choose paste'},
-    {id:'integrations',section:'integrations',title:'AI clients',description:'Install the task-plan skill for each AI client.',keywords:'integrations integration skill skills claude codex gemini antigravity agent client install update remove reminder instructions task-plan migration diff'},
+    {id:'integrations',section:'integrations',title:'AI clients',description:'Folders that receive the task-plan skill.',keywords:'integrations integration skill skills folder folders path paste add suggestion detected custom enable claude codex gemini antigravity orca agent client install update remove reminder instructions task-plan migration diff'},
     {id:'version',section:'about',title:'Version and updates',description:'',keywords:'about version update upgrade release check notes'}
   ];
-  var SETTINGS_SECTIONS=[['general','General','App defaults and maintenance.','sliders'],['projects','Projects','Folders Agent Ops reads plans from.','folder'],['integrations','Integrations','Connect AI clients to the task-plan skill.','plug'],['about','About','Version and updates.','info']];
+  var SETTINGS_SECTIONS=[['general','General','App defaults and maintenance.','sliders'],['projects','Projects','Folders Agent Ops reads plans from.','folder'],['integrations','Integrations','Folders your AI clients read the task-plan skill from.','plug'],['about','About','Version and updates.','info']];
 
   async function settingsRequest(path,method,body){
     var options={method:method || 'GET',cache:'no-store',headers:{}};
@@ -1938,14 +1941,15 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       state.notice='Diagnostics copied. Paste them into your report.';
     });
   }
-  // ---------- Integrations: the task-plan skill and an optional one-line reminder per AI client ----------
-  // The server owns every file change; the page only shows its state and posts one action at a time.
-  var integrationsUI={data:null,loading:false,busy:'',error:'',errorFor:'',notice:'',confirm:'',diff:null,diffFor:''};
+  // ---------- Integrations: a list of skills folders, each with the task-plan skill and an optional one-line reminder ----------
+  // The server owns every file change and validation; the page shows state and posts one change at a time.
+  // Detection only suggests folders: nothing is added unless the owner chooses it.
+  var integrationsUI={data:null,loading:false,busy:'',error:'',errorFor:'',notice:'',confirm:'',diff:null,diffFor:'',pasting:false,path:'',instr:'',editing:'',editLabel:'',editPath:'',editInstr:''};
   var INTEGRATION_ACTIONS=['install','update','replace','keep','remove','instructions-on','instructions-off'];
-  function integrationClients(){return integrationsUI.data && Array.isArray(integrationsUI.data.clients)?integrationsUI.data.clients:[];}
+  var INTEGRATION_FIELDS=['path','instr','editLabel','editPath','editInstr'];
+  function integrationTargets(){return integrationsUI.data && Array.isArray(integrationsUI.data.targets)?integrationsUI.data.targets:[];}
+  function integrationSuggestions(){return integrationsUI.data && Array.isArray(integrationsUI.data.suggestions)?integrationsUI.data.suggestions:[];}
   function integrationReadOnly(){return integrationsUI.data && integrationsUI.data.readOnly || '';}
-  function clientName(id){var c=integrationClients().find(function(x){return x.id===id;});return c?c.name:id;}
-  function clientDetected(c){return !!c.detected && (c.skill || {}).state!=='not-detected';}
   async function loadIntegrations(){
     if(integrationsUI.loading)return integrationsUI.data;
     integrationsUI.loading=true;
@@ -1954,83 +1958,177 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     finally{integrationsUI.loading=false;renderPanels();}
     return integrationsUI.data;
   }
-  async function integrationAction(client,action){
-    if(INTEGRATION_ACTIONS.indexOf(action)<0 || integrationsUI.busy || integrationReadOnly())return false;
-    if(['replace','remove'].includes(action) && integrationsUI.confirm!==client+':'+action){integrationsUI.confirm=client+':'+action;renderSettings();return false;}
-    integrationsUI.confirm='';integrationsUI.busy=client+':'+action;integrationsUI.error='';integrationsUI.errorFor='';integrationsUI.notice='';renderSettings();
+  // run performs one request for a target (or 'add'), shows its error inline next to it and returns success.
+  async function integrationRequest(owner,busy,work){
+    if(integrationsUI.busy || integrationReadOnly())return false;
+    integrationsUI.confirm='';integrationsUI.busy=busy;integrationsUI.error='';integrationsUI.errorFor='';integrationsUI.notice='';renderPanels();
     var ok=true;
-    try{
-      integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(client)+'/'+action,'POST',{});
-      if(integrationsUI.diffFor===client){integrationsUI.diff=null;integrationsUI.diffFor='';}
-    }catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=client;ok=false;}
+    try{await work();}catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=owner;ok=false;}
     finally{integrationsUI.busy='';renderPanels();}
     return ok;
   }
-  async function integrationDiff(client){
-    if(integrationsUI.diffFor===client){integrationsUI.diff=null;integrationsUI.diffFor='';renderSettings();return;}
+  function askFirst(key){if(integrationsUI.confirm===key)return false;integrationsUI.confirm=key;renderSettings();return true;}
+  function integrationAction(id,action){
+    if(INTEGRATION_ACTIONS.indexOf(action)<0 || integrationsUI.busy || integrationReadOnly())return Promise.resolve(false);
+    if(['replace','remove'].includes(action) && askFirst(id+':'+action))return Promise.resolve(false);
+    return integrationRequest(id,id+':'+action,async function(){
+      integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id)+'/'+action,'POST',{});
+      if(integrationsUI.diffFor===id){integrationsUI.diff=null;integrationsUI.diffFor='';}
+    });
+  }
+  function addIntegration(body,owner){
+    return integrationRequest(owner || 'add','add',async function(){
+      var result=await settingsRequest('/api/integrations','POST',body);
+      integrationsUI.data=result;integrationsUI.pasting=false;integrationsUI.path='';integrationsUI.instr='';
+      var added=integrationTargets().find(function(t){return t.id===result.added;});
+      integrationsUI.notice=added?'Added '+added.label+'. Install the skill when you are ready.':'Folder added.';
+    });
+  }
+  function changeTarget(id,body,busy){
+    return integrationRequest(id,id+':'+(busy || 'edit'),async function(){
+      integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id),'PATCH',body);
+      if(busy!=='enable')integrationsUI.editing='';
+    });
+  }
+  function dropTarget(id){
+    if(askFirst(id+':drop'))return Promise.resolve(false);
+    return integrationRequest(id,id+':drop',async function(){integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id),'DELETE');});
+  }
+  // The native dialogs reuse the folder picker endpoint; a cancelled dialog changes nothing.
+  async function pickIntegrationPath(purpose){
+    if(integrationsUI.busy)return '';
+    integrationsUI.busy='pick-'+purpose;integrationsUI.error='';integrationsUI.errorFor='';renderSettings();
+    var picked=null;
+    try{picked=await settingsRequest('/api/settings/pick-folder','POST',{purpose:purpose});}
+    catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=integrationsUI.editing || 'add';}
+    integrationsUI.busy='';renderSettings();
+    return picked && picked.path || '';
+  }
+  async function chooseSkillsFolder(){
+    var path=await pickIntegrationPath('skills');
+    if(path)return addIntegration(integrationsUI.instr.trim()?{skillDir:path,instructionFile:integrationsUI.instr.trim()}:{skillDir:path});
+  }
+  async function chooseInstructionFile(){
+    var path=await pickIntegrationPath('instruction-file');
+    if(!path)return;
+    if(integrationsUI.editing)integrationsUI.editInstr=path;else{integrationsUI.instr=path;integrationsUI.pasting=true;}
+    renderSettings();
+  }
+  function pastedIntegration(){
+    var path=integrationsUI.path.trim();
+    if(!path){integrationsUI.error='Enter a full folder path, such as C:\\Users\\me\\tools\\skills.';integrationsUI.errorFor='add';renderSettings();return Promise.resolve(false);}
+    return addIntegration(integrationsUI.instr.trim()?{skillDir:path,instructionFile:integrationsUI.instr.trim()}:{skillDir:path});
+  }
+  function startEdit(id){
+    var t=integrationTargets().find(function(x){return x.id===id;});if(!t)return;
+    if(integrationsUI.editing===id){integrationsUI.editing='';renderSettings();return;}
+    integrationsUI.editing=id;integrationsUI.editLabel=t.label || '';integrationsUI.editPath=t.skillDir || '';integrationsUI.editInstr=(t.instructions || {}).path || '';integrationsUI.error='';integrationsUI.errorFor='';
+    renderSettings();if($('integration-edit-path'))$('integration-edit-path').focus();
+  }
+  function saveEdit(){
+    var t=integrationTargets().find(function(x){return x.id===integrationsUI.editing;});if(!t)return Promise.resolve(false);
+    var body={};
+    if(integrationsUI.editLabel.trim()!==t.label)body.label=integrationsUI.editLabel.trim();
+    if(integrationsUI.editPath.trim()!==t.skillDir)body.skillDir=integrationsUI.editPath.trim();
+    if(integrationsUI.editInstr.trim()!==((t.instructions || {}).path || ''))body.instructionFile=integrationsUI.editInstr.trim();
+    if(!Object.keys(body).length){integrationsUI.editing='';renderSettings();return Promise.resolve(true);}
+    return changeTarget(t.id,body,'edit');
+  }
+  async function integrationDiff(id){
+    if(integrationsUI.diffFor===id){integrationsUI.diff=null;integrationsUI.diffFor='';renderSettings();return;}
     if(integrationsUI.busy)return;
-    integrationsUI.busy=client+':diff';integrationsUI.error='';integrationsUI.errorFor='';renderSettings();
-    try{integrationsUI.diff=await settingsRequest('/api/integrations/'+encodeURIComponent(client)+'/diff');integrationsUI.diffFor=client;}
-    catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=client;}
+    integrationsUI.busy=id+':diff';integrationsUI.error='';integrationsUI.errorFor='';renderSettings();
+    try{integrationsUI.diff=await settingsRequest('/api/integrations/'+encodeURIComponent(id)+'/diff');integrationsUI.diffFor=id;}
+    catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=id;}
     finally{integrationsUI.busy='';renderSettings();}
   }
-  function skillStateText(c){
-    var s=c.skill || {},v=s.installedVersion?' v'+s.installedVersion:'';
-    if(!clientDetected(c))return 'Not detected';
-    if(s.state==='not-installed')return 'Not installed';
-    if(s.state==='installed')return 'Installed'+v;
-    if(s.state==='update-available')return 'Update available'+(v?' ·'+v+' installed':'');
-    if(s.state==='modified')return 'Modified locally'+(s.kept?' · your version is kept':'');
-    return String(s.state || 'Unknown');
+  function skillStateText(t){
+    var v=t.installedVersion?' v'+t.installedVersion:'';
+    if(t.state==='missing-folder')return 'Missing folder';
+    if(t.state==='not-installed')return 'Not installed';
+    if(t.state==='installed')return 'Installed'+v;
+    if(t.state==='update-available')return 'Update available'+(v?' ·'+v+' installed':'');
+    if(t.state==='modified')return 'Modified locally'+(t.kept?' · your version is kept':'');
+    return String(t.state || 'Unknown');
   }
   function instructionStateText(state){
-    return {on:'On',off:'Off',outdated:'On, but the reminder text is out of date',modified:'On, edited by hand','not-detected':'Not available'}[state] || String(state || '');
+    return {on:'On',off:'Off',outdated:'On, but the reminder text is out of date',modified:'Edited by hand','missing-folder':'Its folder is missing'}[state] || String(state || '');
   }
   function baseName(path){return String(path || '').split(/[\\/]/).pop();}
-  function integrationButton(c,action,label,cls){
-    var busy=!!integrationsUI.busy,mine=integrationsUI.busy===c.id+':'+action,confirming=integrationsUI.confirm===c.id+':'+action;
+  function errorFor(owner){return integrationsUI.errorFor===owner && integrationsUI.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'';}
+  function integrationButton(t,action,label,cls){
+    var busy=!!integrationsUI.busy || !t.enabled,mine=integrationsUI.busy===t.id+':'+action,confirming=integrationsUI.confirm===t.id+':'+action;
     var text=confirming?(action==='replace'?'Click again to replace':'Click again to remove'):label;
-    return '<button class="btn btn-xs'+(confirming?' btn-danger':cls?' '+cls:'')+'" id="integration-'+esc(c.id)+'-'+action+'" data-integration-action="'+action+'" data-integration-client="'+esc(c.id)+'"'+(busy || integrationReadOnly()?' disabled':'')+'>'+(mine?spinner():'')+esc(text)+'</button>';
+    return '<button class="btn btn-xs'+(confirming?' btn-danger':cls?' '+cls:'')+'" id="integration-'+esc(t.id)+'-'+action+'" data-integration-action="'+action+'" data-integration-target="'+esc(t.id)+'"'+(busy || integrationReadOnly()?' disabled':'')+'>'+(mine?spinner():'')+esc(text)+'</button>';
   }
-  function integrationActions(c){
-    var s=c.skill || {},out=[];
-    if(!clientDetected(c))return '';
-    if(s.state==='not-installed')out.push(integrationButton(c,'install','Install','btn-primary'));
-    if(s.state==='update-available')out.push(integrationButton(c,'update','Update','btn-primary'));
-    if(s.state==='modified'){
-      var open=integrationsUI.diffFor===c.id;
-      out.push('<button class="btn btn-xs" id="integration-'+esc(c.id)+'-diff" data-integration-diff="'+esc(c.id)+'" aria-expanded="'+open+'"'+(integrationsUI.busy?' disabled':'')+'>'+(integrationsUI.busy===c.id+':diff'?spinner():'')+(open?'Hide diff':'View diff')+'</button>');
-      if(!s.kept)out.push(integrationButton(c,'keep','Keep mine',''));
-      out.push(integrationButton(c,'replace','Replace',''));
+  function integrationActions(t){
+    var out=[],busy=!!integrationsUI.busy || !!integrationReadOnly();
+    if(t.enabled){
+      if(t.state==='not-installed')out.push(integrationButton(t,'install','Install','btn-primary'));
+      if(t.state==='update-available')out.push(integrationButton(t,'update','Update','btn-primary'));
+      if(t.state==='modified'){
+        var open=integrationsUI.diffFor===t.id;
+        out.push('<button class="btn btn-xs" id="integration-'+esc(t.id)+'-diff" data-integration-diff="'+esc(t.id)+'" aria-expanded="'+open+'"'+(integrationsUI.busy?' disabled':'')+'>'+(integrationsUI.busy===t.id+':diff'?spinner():'')+(open?'Hide diff':'View diff')+'</button>');
+        if(!t.kept)out.push(integrationButton(t,'keep','Keep mine',''));
+        out.push(integrationButton(t,'replace','Replace',''));
+      }
+      if(t.state==='installed' || t.state==='update-available')out.push(integrationButton(t,'remove','Remove skill',''));
     }
-    if(s.state==='installed' || s.state==='update-available')out.push(integrationButton(c,'remove','Remove',''));
-    var note=integrationsUI.confirm===c.id+':replace'?'<small>Your file is backed up before Agent Ops writes its version.</small>':integrationsUI.confirm===c.id+':remove'?'<small>The skill file is removed; a backup is kept.</small>':'';
-    return out.length?'<div class="project-actions">'+out.join('')+note+'</div>':'';
+    out.push('<button class="btn btn-xs" id="integration-'+esc(t.id)+'-edit" data-integration-edit="'+esc(t.id)+'" aria-expanded="'+(integrationsUI.editing===t.id)+'"'+(busy?' disabled':'')+'>Edit path</button>');
+    var dropping=integrationsUI.confirm===t.id+':drop';
+    out.push('<button class="btn btn-xs'+(dropping?' btn-danger':'')+'" id="integration-'+esc(t.id)+'-drop" data-integration-drop="'+esc(t.id)+'"'+(busy?' disabled':'')+'>'+icon('trash')+(dropping?'Click again to remove':'Remove from list')+'</button>');
+    var c=integrationsUI.confirm,note=c===t.id+':replace'?'<small>Your file is backed up before Agent Ops writes its version.</small>':c===t.id+':remove'?'<small>The skill file is removed; a backup is kept.</small>':c===t.id+':drop'?'<small>Agent Ops stops managing this folder. Files on disk are not changed.</small>':'';
+    return '<div class="project-actions">'+out.join('')+note+'</div>';
   }
-  function diffPanel(c){
-    if(integrationsUI.diffFor!==c.id || !integrationsUI.diff)return '';
+  function diffPanel(t){
+    if(integrationsUI.diffFor!==t.id || !integrationsUI.diff)return '';
     var d=integrationsUI.diff,lines=Array.isArray(d.lines)?d.lines:[];
     var body=d.identical?'<p class="diff-empty">The file on disk matches what Agent Ops would write.</p>':lines.map(function(l){
       var op=l.op==='-' || l.op==='+'?l.op:' ',cls=op==='-'?' is-del':op==='+'?' is-add':'';
       return '<div class="diff-line'+cls+'"><span class="diff-op" aria-hidden="true">'+op+'</span><span class="sr-only">'+(op==='-'?'On disk: ':op==='+'?'Agent Ops version: ':'')+'</span><span>'+esc(l.text)+'</span></div>';
     }).join('');
-    return '<div class="diff-panel" id="integration-diff-'+esc(c.id)+'" role="region" aria-label="'+esc('Differences for '+c.name)+'"><div class="diff-head"><code>'+esc(d.path || (c.skill || {}).path || '')+'</code><span class="diff-legend"><span class="is-del">− on disk</span><span class="is-add">+ Agent Ops version</span></span></div><div class="diff-body">'+body+'</div></div>';
+    return '<div class="diff-panel" id="integration-diff-'+esc(t.id)+'" role="region" aria-label="'+esc('Differences for '+t.label)+'"><div class="diff-head"><code>'+esc(d.path || t.skillFile || '')+'</code><span class="diff-legend"><span class="is-del">− on disk</span><span class="is-add">+ Agent Ops version</span></span></div><div class="diff-body">'+body+'</div></div>';
   }
-  function instructionRow(c){
-    var ins=c.instructions || {},state=ins.state || 'off',id='integration-instructions-'+c.id,available=clientDetected(c) && state!=='not-detected';
-    if(!available)return '';
-    var on=state!=='off',busy=!!integrationsUI.busy || !!integrationReadOnly();
-    return '<div class="integration-reminder"><label class="project-toggle" for="'+esc(id)+'"><input type="checkbox" role="switch" class="switch" id="'+esc(id)+'" data-integration-instructions="'+esc(c.id)+'"'+(on?' checked':'')+(busy?' disabled':'')+'><span>Add a one-line reminder to '+esc(baseName(ins.path))+'</span></label>'+
-      '<small class="integration-reminder-state">'+esc(instructionStateText(state))+(state==='outdated'?' · ':'')+'</small>'+(state==='outdated'?integrationButton(c,'instructions-on','Refresh reminder',''):'')+
-      (ins.path?'<code class="setting-path">'+esc(ins.path)+'</code>':'')+'</div>';
+  function instructionRow(t){
+    var ins=t.instructions || {},state=ins.state || 'none',id='integration-instructions-'+t.id;
+    if(state==='none' || !ins.path)return '';
+    var on=state!=='off' && state!=='missing-folder',busy=!!integrationsUI.busy || !!integrationReadOnly() || !t.enabled || state==='missing-folder';
+    return '<div class="integration-reminder"><label class="project-toggle" for="'+esc(id)+'"><input type="checkbox" role="switch" class="switch" id="'+esc(id)+'" data-integration-instructions="'+esc(t.id)+'"'+(on?' checked':'')+(busy?' disabled':'')+'><span>Add a one-line reminder to '+esc(baseName(ins.path))+'</span></label>'+
+      '<small class="integration-reminder-state">'+esc(instructionStateText(state))+'</small>'+(state==='outdated' && t.enabled?integrationButton(t,'instructions-on','Refresh reminder',''):'')+
+      '<code class="setting-path">'+esc(ins.path)+'</code></div>';
   }
-  function integrationCard(c){
-    var detected=clientDetected(c),s=c.skill || {},shared=Array.isArray(s.sharedWith) && s.sharedWith.length?'Shared with '+s.sharedWith.map(clientName).join(', '):'';
-    var tag=!detected?'<span class="tag is-off">Not detected</span>':s.state==='modified'?'<span class="tag is-danger">Modified locally</span>':s.state==='update-available'?'<span class="tag">Update available</span>':'';
-    return '<li class="project-card integration-card'+(detected?'':' is-disabled')+'" id="integration-'+esc(c.id)+'"><div class="project-head"><span class="project-icon">'+icon('plug')+'</span><div class="project-title"><strong>'+esc(c.name)+'</strong><small class="mono">'+esc(detected?c.configDir || '':'Not found on this computer')+'</small></div>'+tag+'</div>'+
-      '<div class="project-summary"><span class="integration-state">Skill: '+esc(skillStateText(c))+'</span>'+(shared?' · <span>'+esc(shared)+'</span>':'')+(detected && s.path?'<code class="setting-path">'+esc(s.path)+'</code>':'')+'</div>'+
-      (integrationsUI.errorFor===c.id && integrationsUI.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'')+
-      integrationActions(c)+diffPanel(c)+instructionRow(c)+'</li>';
+  function fieldInput(field,id,label,placeholder,extra){
+    return '<label class="integration-field" for="'+id+'"><span>'+esc(label)+'</span><input id="'+id+'" class="input" data-integration-input="'+field+'" placeholder="'+esc(placeholder)+'" value="'+esc(integrationsUI[field])+'" autocomplete="off" spellcheck="false"'+(extra || '')+'></label>';
+  }
+  function editPanel(t){
+    if(integrationsUI.editing!==t.id)return '';
+    var busy=!!integrationsUI.busy,locked=(t.instructions || {}).state==='on' || (t.instructions || {}).state==='outdated';
+    return '<div class="integration-edit" role="group" aria-label="'+esc('Edit '+t.label)+'">'+fieldInput('editLabel','integration-edit-label','Name','Claude Code')+fieldInput('editPath','integration-edit-path','Skills folder','C:\\Users\\me\\tools\\skills')+
+      fieldInput('editInstr','integration-edit-instr','Instruction file (optional)','C:\\Users\\me\\tools\\AGENTS.md',locked?' disabled title="Turn the reminder off first"':'')+
+      '<div class="project-actions"><button class="btn btn-xs" data-integration-pick-file'+(busy || locked?' disabled':'')+'>Choose file…</button><button class="btn btn-primary btn-xs" id="integration-edit-save" data-integration-save'+(busy?' disabled':'')+'>'+(integrationsUI.busy===t.id+':edit'?spinner():'')+'Save</button><button class="btn btn-ghost btn-xs" data-integration-cancel>Cancel</button>'+(locked?'<small>Turn the reminder off before changing the instruction file.</small>':'')+'</div></div>';
+  }
+  function integrationCard(t){
+    var tag=!t.enabled?'<span class="tag is-off">Off</span>':t.state==='modified'?'<span class="tag is-danger">Modified locally</span>':t.state==='missing-folder'?'<span class="tag is-danger">Missing folder</span>':t.state==='update-available'?'<span class="tag">Update available</span>':'';
+    var busy=!!integrationsUI.busy || !!integrationReadOnly();
+    return '<li class="project-card integration-card'+(t.enabled?'':' is-disabled')+(t.state==='missing-folder'?' is-missing':'')+'" id="integration-'+esc(t.id)+'"><div class="project-head"><span class="project-icon">'+icon('plug')+'</span><div class="project-title"><strong>'+esc(t.label)+'</strong><small class="mono" title="'+esc(t.skillDir)+'">'+esc(t.skillDir)+'</small></div>'+tag+
+      '<label class="project-toggle"><input type="checkbox" role="switch" class="switch" id="integration-enabled-'+esc(t.id)+'" data-integration-enabled="'+esc(t.id)+'"'+(t.enabled?' checked':'')+(busy?' disabled':'')+'><span>Use this folder</span></label></div>'+
+      '<div class="project-summary'+(t.state==='missing-folder'?' is-error':'')+'"><span class="integration-state">Skill: '+esc(skillStateText(t))+'</span> · <span>'+(t.source==='detected'?'Detected':'Added by you')+'</span>'+(t.skillFile?'<code class="setting-path">'+esc(t.skillFile)+'</code>':'')+'</div>'+
+      errorFor(t.id)+integrationActions(t)+editPanel(t)+diffPanel(t)+instructionRow(t)+'</li>';
+  }
+  function addFolderControls(){
+    var busy=integrationsUI.busy,ro=!!integrationReadOnly();
+    var label=busy==='pick-skills'?'Waiting for the folder picker…':busy==='add'?'Checking folder…':'Add folder…';
+    return '<div class="add-project"><button class="option-card" id="integration-choose" data-integration-choose'+(busy || ro?' disabled':'')+'><span class="option-icon">'+(busy==='pick-skills' || busy==='add'?spinner():icon('folderPlus'))+'</span>'+
+      '<span class="option-text"><strong>'+label+'</strong><small>The folder an AI client reads skills from. Agent Ops installs task-plan\\SKILL.md inside it.</small></span></button>'+
+      (integrationsUI.pasting?'<div class="integration-edit">'+fieldInput('path','integration-path','Skills folder','C:\\Users\\me\\tools\\skills',integrationsUI.errorFor==='add'?' aria-invalid="true"':'')+fieldInput('instr','integration-instr','Instruction file (optional)','C:\\Users\\me\\tools\\AGENTS.md')+
+        '<div class="project-actions"><button class="btn btn-xs" data-integration-pick-file'+(busy || ro?' disabled':'')+'>Choose file…</button><button class="btn btn-primary btn-xs" id="integration-add" data-integration-add'+(busy || ro?' disabled':'')+'>'+(busy==='add'?spinner()+'Adding…':'Add')+'</button></div></div>'
+        :'<button class="link-btn" id="integration-paste" data-integration-paste aria-expanded="false"'+(busy || ro?' disabled':'')+'>Paste a path instead</button>')+
+      errorFor('add')+(integrationsUI.notice?'<p class="field-msg is-success" role="status">'+icon('check')+'<span>'+esc(integrationsUI.notice)+'</span></p>':'')+'</div>';
+  }
+  function suggestionRow(s,i){
+    var busy=!!integrationsUI.busy || !!integrationReadOnly(),owner='suggestion-'+i;
+    return '<li class="added-row" id="integration-suggestion-'+i+'"><span class="option-icon">'+icon('plug')+'</span><span class="added-text"><strong>'+esc(s.label)+'</strong><span class="mono" title="'+esc(s.skillDir)+'">'+esc(s.skillDir)+'</span>'+(s.instructionFile?'<small>Reminder file: '+esc(s.instructionFile)+'</small>':'')+errorFor(owner)+'</span>'+
+      '<button class="btn btn-xs" data-integration-suggest="'+i+'"'+(busy?' disabled':'')+'>'+icon('plus')+'Add</button></li>';
   }
   function migrationReview(){
     var m=integrationsUI.data && integrationsUI.data.migration;if(!m)return '';
@@ -2046,40 +2144,49 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function integrationsBody(){
     if(!integrationsUI.data && !integrationsUI.loading && !integrationsUI.error)loadIntegrations();
     var ro=integrationReadOnly(),general=integrationsUI.error && !integrationsUI.errorFor;
-    var head='<p class="settings-desc">Agent Ops can install the task-plan skill (v'+esc(integrationsUI.data && integrationsUI.data.skillVersion || '')+') so each AI client keeps its plan in <code>.tasks/</code>. Files you changed are never overwritten without asking.</p>';
+    var head='<p class="settings-desc">Choose the folders your AI clients read skills from. Agent Ops installs the task-plan skill (v'+esc(integrationsUI.data && integrationsUI.data.skillVersion || '')+') there so each client keeps its plan in <code>.tasks/</code>. Files you changed are never overwritten without asking.</p>';
     if(!integrationsUI.data)return '<section class="settings-group">'+(general?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p><button class="btn btn-xs" data-integrations-reload>Try again</button>':'<p class="setup-empty" role="status">Loading…</p>')+'</section>';
+    var targets=integrationTargets(),suggestions=integrationSuggestions();
     return '<section class="settings-group">'+head+(ro?'<p class="callout callout-danger" role="alert">'+icon('alertCircle')+'<span>'+esc(ro)+'</span></p>':'')+
-      (general?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'')+
-      '<ul class="project-list">'+integrationClients().map(integrationCard).join('')+'</ul></section>'+migrationReview();
+      (general?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'')+addFolderControls()+
+      (targets.length?'<ul class="project-list">'+targets.map(integrationCard).join('')+'</ul>':'<div class="settings-empty"><strong>No folders yet.</strong><span>Add a folder, or one found on this computer below.</span></div>')+'</section>'+
+      (suggestions.length?'<section class="settings-group" id="integration-suggestions"><h3>Found on this computer</h3><p class="settings-desc">Suggestions only. Nothing is added until you choose it.</p><ul class="added-list card">'+suggestions.map(suggestionRow).join('')+'</ul></section>':'')+migrationReview();
   }
-  // First-run step: pre-check only clients that are present and do not have the skill yet.
-  function setupPicks(){
-    if(setup.picked===null && integrationsUI.data){
-      setup.picked={};integrationClients().forEach(function(c){setup.picked[c.id]=clientDetected(c) && (c.skill || {}).state==='not-installed';});
-    }
-    return setup.picked || {};
+  // First-run step: suggestions and listed folders that need the skill, all unchecked until the owner checks them.
+  function setupRows(){
+    var rows=integrationSuggestions().map(function(s,i){return {key:'s'+i,label:s.label,detail:s.skillDir,note:'Found on this computer',suggestion:s};});
+    integrationTargets().forEach(function(t){var action=t.enabled && (t.state==='not-installed'?'install':t.state==='update-available'?'update':'');if(action)rows.push({key:'t-'+t.id,label:t.label,detail:t.skillDir,note:skillStateText(t),target:t,action:action});});
+    return rows;
   }
-  function setupClientAction(c){var st=(c.skill || {}).state;return st==='not-installed'?'install':st==='update-available'?'update':'';}
+  function setupPicks(){if(setup.picked===null)setup.picked={};return setup.picked;}
   function setupClientsBody(){
     var picks=setupPicks(),ro=integrationReadOnly(),busy=!!setup.busy;
-    var lead='<h1 id="onboarding-title">Connect AI clients</h1><p class="onboarding-lead">Optional. Install the task-plan skill so Claude Code, Codex and Antigravity keep their plans in <code>.tasks/</code>, where Agent Ops reads them. You can change this any time in Settings → Integrations.</p>';
+    var lead='<h1 id="onboarding-title">Connect AI clients</h1><p class="onboarding-lead">Optional. Check the folders your AI clients read skills from; Agent Ops installs the task-plan skill there so they keep their plans in <code>.tasks/</code>. Add other folders any time in Settings → Integrations.</p>';
     if(!integrationsUI.data)return lead+(integrationsUI.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'<p class="setup-empty" role="status">Loading…</p>');
-    var rows=integrationClients().map(function(c){
-      var action=setupClientAction(c),enabled=clientDetected(c) && !!action && !ro && !busy,id='setup-client-'+c.id;
-      return '<li class="added-row'+(clientDetected(c)?'':' is-disabled')+'"><input type="checkbox" class="setup-check" id="'+esc(id)+'" data-setup-client="'+esc(c.id)+'"'+(picks[c.id] && action?' checked':'')+(enabled?'':' disabled')+'><label class="added-text" for="'+esc(id)+'"><strong>'+esc(c.name)+'</strong><small>'+esc(skillStateText(c))+(clientDetected(c) && c.configDir?' · '+esc(c.configDir):'')+'</small></label></li>';
-    }).join('');
-    return lead+(ro?'<p class="callout callout-danger" role="alert">'+icon('alertCircle')+'<span>'+esc(ro)+'</span></p>':'')+'<ul class="added-list card">'+rows+'</ul>'+
+    var rows=setupRows();
+    var list=rows.length?'<ul class="added-list card">'+rows.map(function(r){
+      var id='setup-client-'+r.key;
+      return '<li class="added-row"><input type="checkbox" class="setup-check" id="'+esc(id)+'" data-setup-client="'+esc(r.key)+'"'+(picks[r.key]?' checked':'')+(ro || busy?' disabled':'')+'><label class="added-text" for="'+esc(id)+'"><strong>'+esc(r.label)+'</strong><span class="mono">'+esc(r.detail)+'</span><small>'+esc(r.note)+'</small></label></li>';
+    }).join('')+'</ul>':'<p class="setup-empty">No AI client folders were found. You can add folders later in Settings → Integrations.</p>';
+    return lead+(ro?'<p class="callout callout-danger" role="alert">'+icon('alertCircle')+'<span>'+esc(ro)+'</span></p>':'')+list+
       (setup.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(setup.error)+'</span></p>':'');
   }
   async function setupInstallClients(){
     if(setup.busy)return false;
-    var picks=setupPicks(),list=integrationReadOnly()?[]:integrationClients().filter(function(c){return picks[c.id] && clientDetected(c) && setupClientAction(c);});
+    var picks=setupPicks(),list=integrationReadOnly()?[]:setupRows().filter(function(r){return picks[r.key];});
     if(!list.length){setupGo(SETUP_LAST);return true;}
     var failed=[];
     var ok=await runSettingsAction('setup','installing',async function(){
       for(var i=0;i<list.length;i++){
-        try{integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(list[i].id)+'/'+setupClientAction(list[i]),'POST',{});}
-        catch(e){failed.push(list[i].name+': '+e.message);}
+        var r=list[i];
+        try{
+          var id=r.target?r.target.id:'',action=r.action || 'install';
+          if(r.suggestion){
+            var body={skillDir:r.suggestion.skillDir};if(r.suggestion.instructionFile)body.instructionFile=r.suggestion.instructionFile;
+            var added=await settingsRequest('/api/integrations','POST',body);integrationsUI.data=added;id=added.added;
+          }
+          integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id)+'/'+action,'POST',{});
+        }catch(e){failed.push(r.label+': '+e.message);}
       }
       if(failed.length)throw Error(failed.join(' '));
     });
@@ -2352,8 +2459,17 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(hit('[data-open-logs]')){openFolderTarget('logs');return true;}
     if(hit('[data-copy-diagnostics]')){copyDiagnostics();return true;}
     if(hit('[data-settings-check-updates]')){updateUI.card=false;updateAction('check');return true;}
-    if((el=hit('[data-integration-action]'))){integrationAction(el.getAttribute('data-integration-client'),el.getAttribute('data-integration-action'));return true;}
+    if((el=hit('[data-integration-action]'))){integrationAction(el.getAttribute('data-integration-target'),el.getAttribute('data-integration-action'));return true;}
     if((el=hit('[data-integration-diff]'))){integrationDiff(el.getAttribute('data-integration-diff'));return true;}
+    if((el=hit('[data-integration-edit]'))){startEdit(el.getAttribute('data-integration-edit'));return true;}
+    if((el=hit('[data-integration-drop]'))){dropTarget(el.getAttribute('data-integration-drop'));return true;}
+    if((el=hit('[data-integration-suggest]'))){var sg=integrationSuggestions()[Number(el.getAttribute('data-integration-suggest'))];if(sg){var sb={skillDir:sg.skillDir};if(sg.instructionFile)sb.instructionFile=sg.instructionFile;addIntegration(sb,'suggestion-'+el.getAttribute('data-integration-suggest'));}return true;}
+    if(hit('[data-integration-choose]')){chooseSkillsFolder();return true;}
+    if(hit('[data-integration-paste]')){integrationsUI.pasting=true;integrationsUI.error='';integrationsUI.errorFor='';renderSettings();if($('integration-path'))$('integration-path').focus();return true;}
+    if(hit('[data-integration-add]')){pastedIntegration();return true;}
+    if(hit('[data-integration-pick-file]')){chooseInstructionFile();return true;}
+    if(hit('[data-integration-save]')){saveEdit();return true;}
+    if(hit('[data-integration-cancel]')){integrationsUI.editing='';integrationsUI.error='';integrationsUI.errorFor='';renderSettings();return true;}
     if(hit('[data-integrations-reload]')){integrationsUI.error='';loadIntegrations();renderSettings();return true;}
     if(hit('[data-setup-replay]')){closeSettings();openSetup();return true;}
     if((el=hit('[data-setup-goto]'))){setupGo(Number(el.getAttribute('data-setup-goto')));return true;}
@@ -2370,6 +2486,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(target.id==='settings-search'){settingsUI.query=target.value;clearTimeout(settingsSearchTimer);settingsSearchTimer=setTimeout(renderSettings,150);return true;}
     var scope=marked(target,'data-project-path');
     if(scope){scopeState(scope).path=target.value;return true;}
+    var field=marked(target,'data-integration-input');
+    if(field && INTEGRATION_FIELDS.indexOf(field)>=0){integrationsUI[field]=target.value;return true;}
     return false;
   }
   var settingsSearchTimer=null;
@@ -2380,6 +2498,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(project){toggleProject(project,target.checked);return true;}
     var client=marked(target,'data-setup-client');
     if(client){setupPicks()[client]=!!target.checked;renderSetup();return true;}
+    var enabled=marked(target,'data-integration-enabled');
+    if(enabled){changeTarget(enabled,{enabled:!!target.checked},'enable');return true;}
     var reminder=marked(target,'data-integration-instructions');
     if(reminder){integrationAction(reminder,target.checked?'instructions-on':'instructions-off');return true;}
     return false;
@@ -2406,6 +2526,9 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(themeKey(e))return true;
     var scope=marked(e.target,'data-project-path');
     if(e.key==='Enter' && scope){e.preventDefault();addProject(scope,scopeState(scope).path);return true;}
+    var field=marked(e.target,'data-integration-input');
+    if(field && e.key==='Enter'){e.preventDefault();if(field.indexOf('edit')===0)saveEdit();else pastedIntegration();return true;}
+    if(field && e.key==='Escape'){e.preventDefault();if(field.indexOf('edit')===0){integrationsUI.editing='';renderSettings();}else{integrationsUI.pasting=false;integrationsUI.path='';integrationsUI.instr='';renderSettings();if($('integration-paste'))$('integration-paste').focus();}return true;}
     if(e.key==='Escape' && scope){e.preventDefault();var ps=scopeState(scope);ps.pasting=false;ps.path='';ps.error='';renderPanels();if($(scope+'-paste'))$(scope+'-paste').focus();return true;}
     if(setup.open){
       if(trapSetupFocus(e))return true;
