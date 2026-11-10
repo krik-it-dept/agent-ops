@@ -277,6 +277,40 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .status-todo{--status-fg:var(--ds-text-subtle);--status-bg:var(--ds-background-neutral)}.status-doing{--status-fg:var(--ds-text-information);--status-bg:var(--ds-background-information)}.status-review{--status-fg:var(--ds-text-discovery);--status-bg:var(--ds-background-discovery)}.status-waiting{--status-fg:var(--ds-text-warning);--status-bg:var(--ds-background-warning)}.status-blocked{--status-fg:var(--ds-text-danger);--status-bg:var(--ds-background-danger)}.status-done{--status-fg:var(--ds-text-success);--status-bg:var(--ds-background-success)}.status-select[class*=status-],.pill[class*=status-]{color:var(--status-fg,var(--ds-text));background-color:var(--status-bg,var(--ds-background-neutral));border:1px solid color-mix(in srgb,var(--status-fg,var(--ds-border)) 24%,transparent);font-weight:600}.status-select[class*=status-]:hover{background-color:var(--status-bg)}.status-select option{background:var(--ds-surface);color:var(--ds-text);font-weight:400}.status-select option[class*=status-]{color:var(--status-fg)}.plan-state-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--status-fg,var(--ds-text-subtlest));vertical-align:middle}.sidebar-plan.is-done:not(.current) .sidebar-plan-link>span{color:var(--ds-text-subtlest)}.quick-role-line{padding:0 24px 12px}.quick-role-line:empty{display:none}.quick-group-row td{font-size:12px;font-weight:600;color:var(--ds-text-subtle);background:var(--ds-surface-sunken)}.focus-work-list .s-doing,.quick-table .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.focus-work-list .s-blocked,.quick-table .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.focus-work-list .s-partial,.quick-table .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}.quick-table .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}
 .task-card .task-progress .bar i{background:var(--status-fg,var(--ds-link))}.nav .item[data-go=waiting] .badge{background:var(--ds-background-warning);color:var(--ds-text-warning)}.plan-insight p+p{margin-top:8px}
 .update-launcher{min-height:28px;padding:3px 9px;font-size:12px;margin-left:auto}.update-launcher.has-update{background:var(--ds-background-information);color:var(--ds-text-information)}.update-dialog{width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px);padding:0;border:1px solid var(--ds-border);border-radius:12px;background:var(--ds-surface);color:var(--ds-text);box-shadow:0 16px 64px #091e4240}.update-dialog::backdrop{background:#091e4266;backdrop-filter:blur(3px)}.update-shell{display:flex;flex-direction:column;max-height:calc(100dvh - 50px)}.update-header{display:flex;align-items:center;gap:12px;padding:22px 24px;border-bottom:1px solid var(--ds-border)}.update-header img{width:30px;height:30px}.update-header h2{font-size:20px;margin:0;flex:1}.update-body{padding:24px;overflow:auto;min-height:0}.update-version{font-size:15px;font-weight:600;color:var(--ds-link);margin:0 0 8px}.update-current{font-size:13px;color:var(--ds-text-subtle);margin:0 0 20px}.update-notes{font-size:13px;line-height:21px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:270px;overflow:auto;margin:12px 0 0}.update-whats-new{border-top:1px solid var(--ds-border);padding-top:16px;font-size:13px}.update-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:16px 24px;background:var(--ds-surface-sunken);border-top:1px solid var(--ds-border);flex-wrap:wrap}.update-footer .btn{font-size:13px}.update-primary{background:var(--ds-link);color:#fff}.update-primary:hover{background:var(--ds-text-information);color:#fff}.update-progress,.update-error{padding:12px;border-radius:4px;font-size:13px;line-height:21px}.update-progress{background:var(--ds-background-information);color:var(--ds-text-information)}.update-error{background:var(--ds-background-danger);color:var(--ds-text-danger)}.update-dialog button:disabled{opacity:.5;cursor:wait}.update-footer small{margin-right:auto;font-size:11px;color:var(--ds-text-subtlest)}
+/* Banners, first-run setup and Settings. */
+.error{display:flex;align-items:center;gap:var(--ds-space-150)}.error .btn{margin-left:auto;min-height:28px;padding:3px 10px;font-size:12px;background:var(--ds-surface);color:var(--ds-text)}.banner-text{display:grid;gap:2px;min-width:0}.banner-text strong{font-weight:600}.banner-text span{color:inherit;opacity:.85}
+.warning-banner{display:flex;align-items:center;gap:var(--ds-space-150);padding:var(--ds-space-100) var(--ds-space-300);background:var(--ds-background-warning);color:var(--ds-text-warning);font-size:12px;overflow-wrap:anywhere}.warning-banner .btn{margin-left:auto;min-height:28px;padding:3px 10px;font-size:12px;background:var(--ds-surface);color:var(--ds-text)}
+.btn-primary{background:var(--ds-background-brand-bold);color:var(--ds-text-inverse)}.btn-primary:hover{background:var(--ds-background-brand-bold-hovered)}.btn-primary:active{background:var(--ds-background-brand-bold-pressed)}.btn-primary:disabled{background:var(--ds-background-neutral);color:var(--ds-text-disabled)}
+.btn-danger{background:var(--ds-background-danger);color:var(--ds-text-danger);border-color:color-mix(in srgb,var(--ds-text-danger) 30%,transparent)}.btn-danger:hover{background:var(--ds-background-danger);border-color:var(--ds-text-danger)}
+.btn-subtle{background:none;color:var(--ds-text-subtle)}.btn-subtle:hover{color:var(--ds-text)}
+.settings-open{margin-left:4px}
+.empty-projects{max-width:520px;margin:48px auto}.empty-projects p{margin:8px 0 20px;color:var(--ds-text-subtle)}
+code{font-family:var(--ds-font-family-code);font-size:12px;padding:1px 4px;border-radius:3px;background:var(--ds-background-neutral)}
+.switch{appearance:none;-webkit-appearance:none;position:relative;width:32px;height:18px;margin:0;flex-shrink:0;border-radius:9px;background:var(--ds-border-input);transition:background .15s}.switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--ds-surface);transition:transform .15s}.switch:checked{background:var(--ds-background-brand-bold)}.switch:checked::after{transform:translateX(14px)}.switch:disabled{opacity:.5;cursor:default}
+.setting-list{display:grid;border:1px solid var(--ds-border);border-radius:var(--ds-radius-large);margin-bottom:24px}.setting-row{display:flex;align-items:center;gap:16px;padding:14px 16px;border-top:1px solid var(--ds-border)}.setting-row:first-child{border-top:0}.setting-text{display:grid;gap:3px;min-width:0;flex:1}.setting-text label{cursor:pointer}.setting-text strong{font-weight:600}.setting-text small{color:var(--ds-text-subtle);font-size:12px;line-height:16px}.setting-path{display:block;width:fit-content;max-width:100%;margin-top:4px;overflow-wrap:anywhere}
+.inline-error,.inline-notice,.inline-warning{margin:12px 0;padding:8px 12px;border-radius:var(--ds-radius-small);font-size:13px;line-height:19px;overflow-wrap:anywhere}.inline-error{background:var(--ds-background-danger);color:var(--ds-text-danger)}.inline-notice{background:var(--ds-background-information);color:var(--ds-text-information)}.inline-warning{background:var(--ds-background-warning);color:var(--ds-text-warning)}
+.add-project{margin:16px 0}.add-actions{display:flex;gap:8px;flex-wrap:wrap}.paste-row{display:flex;gap:8px;margin-top:10px}.text-input{flex:1;min-width:0;min-height:32px;padding:5px 8px;border:1px solid var(--ds-border-input);border-radius:var(--ds-radius-small);background:var(--ds-background-input);font-size:13px}.text-input:hover{background:var(--ds-background-input-hovered)}.text-input:focus-visible{outline:2px solid var(--ds-border-focused);outline-offset:0}
+.project-list{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px}.project-card{padding:14px 16px;border:1px solid var(--ds-border);border-radius:var(--ds-radius-large);background:var(--ds-surface)}.project-card.is-disabled{background:var(--ds-surface-sunken)}.project-card.is-disabled .project-title strong{color:var(--ds-text-subtle)}.project-card.is-missing{border-color:color-mix(in srgb,var(--ds-text-danger) 35%,transparent)}
+.project-head{display:flex;align-items:center;gap:10px}.project-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:6px;background:var(--ds-background-neutral);color:var(--ds-text-subtle);flex-shrink:0}.project-icon svg{width:18px;height:18px}.project-title{display:grid;min-width:0;flex:1}.project-title strong{font-weight:600;overflow-wrap:anywhere}.project-title small{font-size:12px;color:var(--ds-text-subtlest)}.tag.is-danger{background:var(--ds-background-danger);color:var(--ds-text-danger)}.project-toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ds-text-subtle);cursor:pointer}
+.project-path{margin:10px 0 4px;font-size:12px;color:var(--ds-text-subtle);overflow-wrap:anywhere}.project-summary{font-size:12px;color:var(--ds-text-subtle)}.project-summary.is-error{color:var(--ds-text-danger)}
+.repo-list{list-style:none;margin:10px 0 0;padding:8px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px 16px;border-radius:var(--ds-radius-medium);background:var(--ds-surface-sunken);font-size:12px}.repo-list li{display:flex;justify-content:space-between;gap:8px;min-width:0}.repo-list li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.repo-list small{color:var(--ds-text-subtlest);white-space:nowrap}
+.project-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.project-actions .btn{min-height:28px;padding:3px 10px;font-size:12px}
+.onboarding{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px 16px;overflow:auto;background:var(--ds-surface-sunken)}
+.onboarding-card{display:flex;flex-direction:column;width:min(720px,100%);max-height:calc(100dvh - 48px);border:1px solid var(--ds-border);border-radius:12px;background:var(--ds-surface);box-shadow:0 16px 48px #091e4226}
+.onboarding-head{display:flex;align-items:center;gap:10px;padding:18px 28px;border-bottom:1px solid var(--ds-border);font-size:14px}.onboarding-steps{display:flex;gap:16px;margin:0 0 0 auto;padding:0;list-style:none;font-size:12px;color:var(--ds-text-subtlest)}.onboarding-steps li{display:flex;align-items:center;gap:6px}.onboarding-steps span{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--ds-border-input);font-size:11px}.onboarding-steps li.on{color:var(--ds-text);font-weight:600}.onboarding-steps li.on span{border-color:var(--ds-background-brand-bold);background:var(--ds-background-brand-bold);color:var(--ds-text-inverse)}.onboarding-steps li.done span{border-color:var(--ds-text-success);color:var(--ds-text-success)}
+.onboarding-body{padding:28px;overflow:auto;min-height:280px}.onboarding-body h1{margin:0 0 8px;font-size:24px;line-height:30px;font-weight:var(--ds-font-weight-heading)}.onboarding-lead{margin:0 0 20px;color:var(--ds-text-subtle);font-size:15px;line-height:23px}
+.onboarding-points{display:grid;gap:14px;margin:24px 0 0;padding:0;list-style:none}.onboarding-points li{display:grid;gap:2px;padding-left:14px;border-left:3px solid var(--ds-background-brand-bold)}.onboarding-points span{color:var(--ds-text-subtle);font-size:13px}
+.setup-empty{padding:20px;border:1px dashed var(--ds-border-input);border-radius:var(--ds-radius-large);color:var(--ds-text-subtlest);text-align:center;font-size:13px}
+.onboarding-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 28px;border-top:1px solid var(--ds-border)}.onboarding-nav{display:flex;gap:8px}
+.settings{position:fixed;inset:0;z-index:40;background:var(--ds-surface)}.settings-shell{display:grid;grid-template-columns:260px minmax(0,1fr);height:100%}
+.settings-nav{display:flex;flex-direction:column;gap:4px;min-height:0;padding:16px 12px;border-right:1px solid var(--ds-border);background:var(--ds-surface-sunken);overflow:auto}.settings-back{align-self:flex-start;margin-bottom:8px;padding:6px 8px;border:0;border-radius:var(--ds-radius-small);background:none;color:var(--ds-text-subtle);font-size:13px}.settings-back:hover{background:var(--ds-background-neutral-hovered);color:var(--ds-text)}
+.settings-search{width:100%;min-height:32px;margin-bottom:12px;padding:5px 8px;border:1px solid var(--ds-border-input);border-radius:var(--ds-radius-small);background:var(--ds-background-input);font-size:13px}
+.settings-nav-group{display:grid;gap:2px}.settings-nav-item{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:6px 10px;border:0;border-radius:var(--ds-radius-small);background:none;color:var(--ds-text-subtle);text-align:left;font-size:13px}.settings-nav-item:hover{background:var(--ds-background-neutral-hovered);color:var(--ds-text)}.settings-nav-item.on{background:var(--ds-background-brand-subtlest);color:var(--ds-link);font-weight:600}.settings-nav-item svg{width:16px;height:16px;flex-shrink:0}.settings-nav-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.settings-nav-item.is-missing span{color:var(--ds-text-danger)}
+.settings-nav-heading{margin:16px 10px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ds-text-subtlest)}.settings-nav-projects{display:grid;gap:2px}.settings-nav-empty{margin:4px 10px;font-size:12px;color:var(--ds-text-subtlest)}
+.settings-main{overflow:auto;padding:32px 40px 48px}.settings-main>*{max-width:820px}.settings-main h2{margin:0 0 12px;font-size:20px;line-height:24px;font-weight:var(--ds-font-weight-heading)}.settings-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.settings-section-head h2{margin:0}.settings-lead{margin:8px 0 0;color:var(--ds-text-subtle);font-size:13px;line-height:20px}
+.settings-empty{display:grid;gap:4px;margin-top:16px;padding:24px;border:1px dashed var(--ds-border-input);border-radius:var(--ds-radius-large);text-align:center;color:var(--ds-text-subtle);font-size:13px}
+@media(max-width:760px){.settings-shell{grid-template-columns:1fr;grid-template-rows:auto 1fr}.settings-nav{border-right:0;border-bottom:1px solid var(--ds-border);max-height:40vh}.settings-main{padding:20px 16px 32px}.onboarding-head,.onboarding-body,.onboarding-foot{padding-left:16px;padding-right:16px}.onboarding-steps li{font-size:0;gap:0}.paste-row{flex-direction:column}}
+@media (prefers-reduced-motion: reduce){.switch,.switch::after{transition:none}}
 </style>
 </head>
 <body>
@@ -288,11 +322,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     <button class="btn update-launcher" id="update-launcher" data-update-open title="Software updates">Updates</button>
     <span class="connection" id="connection" role="status">Connecting…</span>
     <span class="live" id="live" title="Connection"></span><small id="upd"></small>
+    <button class="icon-btn settings-open" id="settings-open" data-settings-open="general" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
   </header>
   <div class="workspace">
   <aside class="plan-sidebar" id="plan-sidebar" aria-label="Plans navigation"></aside>
   <main class="main">
-    <div class="error" id="error" role="status" hidden></div>
+    <div class="error" id="error" role="alert" hidden><div class="banner-text"><strong id="error-text"></strong><span id="error-detail"></span></div><button class="btn" id="error-retry" data-retry>Retry</button></div>
+    <div class="warning-banner" id="warnings" role="status" hidden></div>
     <div class="top" id="top"></div>
     <div id="tabs"></div>
     <div class="view" id="view"></div>
@@ -301,6 +337,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 </div>
 <dialog class="quick-plan" id="quick-plan" aria-labelledby="quick-plan-title"><div class="quick-shell" id="quick-plan-content"></div></dialog>
 <dialog class="update-dialog" id="update-dialog" aria-labelledby="update-title"><div id="update-content"></div></dialog>
+<section class="settings" id="settings" aria-labelledby="settings-title" hidden></section>
+<section class="onboarding" id="onboarding" hidden></section>
 <script>
 (function () {
   var D = { state: { plans: [], slots: {} }, activity: [], now: '' };
@@ -336,7 +374,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   }
   function pill(p) { return '<span class="pill status-'+statusTone(p.status)+'">'+esc(stage(p.status) || 'Not started')+'</span>'; }
   function prs(text, gh) { var h = esc(text); return gh ? h.replace(/#(\d+)\b/g, function (m, n) { return '<a class="pr" target="_blank" href="' + esc(gh) + '/pull/' + n + '">#' + n + '</a>'; }) : h; }
-  function key(p) { return p.repo + '/' + p.name; }
+  // Plan identity includes the project, so same-named repositories in two projects stay apart.
+  function key(p) { return (p.project ? p.project + '/' : '') + p.repo + '/' + p.name; }
+  function eventKey(e) { return (e.project ? e.project + '/' : '') + e.repo + '/' + e.plan; }
+  function repoLabel(p) { return D.state.plans.some(function(o){return o.repo===p.repo && o.project!==p.project;}) && p.projectName ? p.repo+' · '+p.projectName : p.repo; }
   function counts(p) { var c = { todo: 0, doing: 0, done: 0, partial: 0, blocked: 0 }; p.steps.forEach(function (s) { c[s.status]++; }); return c; }
   function pct(p) { var c = counts(p); return p.steps.length ? Math.round(c.done * 100 / p.steps.length) : 0; }
   function ago(t) { var m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
@@ -352,9 +393,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   var ACTIVE = /^(planning|implementing|reviewing|fixing review|testing)$/i;
   function isStale(p) { return D.stale ? !!D.stale[key(p)] : ACTIVE.test(stage(p.status)) && (Date.now() - new Date(p.mtime)) >= 120 * 60000; }
   function plans() { return D.state.plans.slice().sort(function (a, b) { return new Date(b.mtime) - new Date(a.mtime); }); }
-  function planByKey(k) { return D.state.plans.find(function (p) { return key(p) === k; }); }
+  function planByKey(k) {
+    var exact = D.state.plans.find(function (p) { return key(p) === k; });
+    if (exact || typeof k !== 'string') return exact;
+    // Links and saved preferences from before projects use repo/plan; accept them when unambiguous.
+    var legacy = D.state.plans.filter(function (p) { return p.repo + '/' + p.name === k; });
+    return legacy.length === 1 ? legacy[0] : undefined;
+  }
   function icon(name){
-    var paths={star:'m12 3 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9Z',sidebar:'M9 4v16M4 4h16v16H4Z',close:'m6 6 12 12M18 6 6 18',preview:'M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6'};
+    var paths={star:'m12 3 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9Z',sidebar:'M9 4v16M4 4h16v16H4Z',close:'m6 6 12 12M18 6 6 18',preview:'M14 4h6v6M20 4l-9 9M10 4H4v16h16v-6',folder:'M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2.2h8.4A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5Z'};
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+paths[name]+'"/></svg>';
   }
   function starButton(p,id){var on=navigation.starred.includes(key(p)),label=(on?'Unstar ':'Star ')+p.name;return '<button'+(id?' id="'+id+'"':'')+' class="icon-btn star-toggle" data-star-plan="'+esc(key(p))+'" aria-pressed="'+on+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+icon('star')+'</button>';}
@@ -409,7 +456,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     if(!p){host.innerHTML='<div class="quick-header"><h2 id="quick-plan-title">Plan unavailable</h2><button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view">'+icon('close')+'</button></div><div class="quick-scroll"><p>This plan is no longer in the current data. Refresh to check again.</p></div>';if($('quick-close'))$('quick-close').focus();return;}
     var body=quick.tab==='checklist'?quickChecklist(p):quick.tab==='activity'?feedHTML(feedFor(p),false,100,true):quickOverview(p);
     var checked=D.state.generatedAt,reason=$('error')?$('error').textContent:'',remaining=p.steps.filter(function(s){return s.status!=='done';}).length;
-    var header='<div class="quick-header"><div class="quick-title"><small>Quick view · '+esc(p.repo)+'</small><h2 id="quick-plan-title">'+esc(p.name)+'</h2></div><span class="quick-state">'+pill(p)+'</span>'+starButton(p,'quick-star')+'<button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view" title="Close (Esc)">'+icon('close')+'</button></div><div class="quick-role-line">'+planRoles(p)+'</div>';
+    var header='<div class="quick-header"><div class="quick-title"><small>Quick view · '+esc(repoLabel(p))+'</small><h2 id="quick-plan-title">'+esc(p.name)+'</h2></div><span class="quick-state">'+pill(p)+'</span>'+starButton(p,'quick-star')+'<button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view" title="Close (Esc)">'+icon('close')+'</button></div><div class="quick-role-line">'+planRoles(p)+'</div>';
     var tabs='<div class="quick-tabs" role="tablist" aria-label="Quick view tabs">'+[['overview','Summary'],['checklist','Work'],['activity','Activity']].map(function(a){return '<button role="tab" id="quick-tab-'+a[0]+'" data-quick-tab="'+a[0]+'" aria-selected="'+(quick.tab===a[0])+'" aria-controls="quick-plan-scroll" tabindex="'+(quick.tab===a[0]?'0':'-1')+'">'+a[1]+(a[0]==='checklist'?' '+remaining:'')+'</button>';}).join('')+'</div>';
     var footer='<div class="quick-footer"><button class="icon-btn" id="quick-prev" data-quick-step="-1" aria-label="Previous plan" title="Previous plan (Alt+Up)">←</button><button class="icon-btn" id="quick-next" data-quick-step="1" aria-label="Next plan" title="Next plan (Alt+Down)">→</button><button class="btn" id="quick-refresh" data-quick-refresh>Refresh</button><small>'+esc(checked?'Checked '+hhmm(checked):'No successful progress check yet')+'</small><button class="btn quick-open-full" id="quick-full" data-quick-full>Open full plan ↗</button></div>';
     host.innerHTML=header+tabs+'<div class="quick-error" id="quick-error" role="status"'+(!reason?' hidden':'')+'>'+esc(reason)+'</div><div class="quick-scroll" id="quick-plan-scroll" role="tabpanel" aria-labelledby="quick-tab-'+quick.tab+'" tabindex="0">'+body+'</div>'+footer;
@@ -443,12 +490,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
   // Activity for a plan: recorded events, plus dated decisions and questions not yet in the log.
   function feedFor(p) {
-    var ev = D.activity.filter(function (e) { return !p || (e.repo === p.repo && e.plan === p.name); });
-    var known = {}; ev.forEach(function (e) { known[e.repo + '/' + e.plan + '|' + e.kind + '|' + e.text] = 1; });
+    var ev = D.activity.filter(function (e) { return !p || (e.repo === p.repo && e.plan === p.name && (!e.project || !p.project || e.project === p.project)); });
+    var known = {}; ev.forEach(function (e) { var pl = planByKey(eventKey(e)); known[(pl ? key(pl) : eventKey(e)) + '|' + e.kind + '|' + e.text] = 1; });
     (p ? [p] : D.state.plans).forEach(function (pl) {
       var who = pl.slot && pl.slot.by ? pl.slot.by : pl.owner || pl.repo;
-      pl.decisions.forEach(function (d) { var t = stampTime(d); if (t && !known[key(pl) + '|decision|' + d.text]) ev.push({ ts: t, repo: pl.repo, plan: pl.name, kind: 'decision', text: d.text, actor: who }); });
-      pl.questions.forEach(function (q) { var t = stampTime(q); if (t && !known[key(pl) + '|question|' + q.ask]) ev.push({ ts: t, repo: pl.repo, plan: pl.name, kind: 'question', text: q.ask, extra: q.open ? '' : q.answer, actor: who }); });
+      pl.decisions.forEach(function (d) { var t = stampTime(d); if (t && !known[key(pl) + '|decision|' + d.text]) ev.push({ ts: t, project: pl.project, repo: pl.repo, plan: pl.name, kind: 'decision', text: d.text, actor: who }); });
+      pl.questions.forEach(function (q) { var t = stampTime(q); if (t && !known[key(pl) + '|question|' + q.ask]) ev.push({ ts: t, project: pl.project, repo: pl.repo, plan: pl.name, kind: 'question', text: q.ask, extra: q.open ? '' : q.answer, actor: who }); });
     });
     return ev.sort(function (a, b) { return new Date(b.ts) - new Date(a.ts); });
   }
@@ -476,10 +523,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     var q = (ignoreQuery ? '' : ui.q || '').toLowerCase(), out = [], lastDay = '';
     list.filter(function (e) { return !q || (e.plan + ' ' + e.text + ' ' + (e.extra || '')).toLowerCase().indexOf(q) >= 0; }).slice(0, limit || 400).forEach(function (e) {
       var d = dayLabel(e.ts); if (d !== lastDay) { out.push('<div class="day">' + d + '</div>'); lastDay = d; }
-      var p = planByKey(e.repo + '/' + e.plan) || {};
+      var p = planByKey(eventKey(e)) || {};
       var actor=e.actor || p.owner || e.repo,contextActor=!showChannel && ([p.name,p.repo,'agent'].includes(actor) || actor===e.agent);
       out.push('<div class="msg'+(contextActor?' context-actor':'')+'">'+(contextActor?'':'<div class="av" aria-hidden="true" style="background:'+color(actor)+'">'+esc(initials(actor))+'</div>')+'<div><div class="mh">'+(contextActor?'':'<b>'+esc(actor)+'</b>')+(e.agent?agentChain({agent:e.agent,executors:e.executors}):'') +
-        (showChannel ? '<span class="ch" data-go="plan:' + esc(e.repo + '/' + e.plan) + '"># ' + esc(e.plan) + '</span>' : '') + '<time>' + hhmm(e.ts) + '</time></div><div class="mb">' + msgBody(e, p.gh) + '</div></div></div>');
+        (showChannel ? '<span class="ch" data-go="plan:' + esc(p.name ? key(p) : eventKey(e)) + '"># ' + esc(e.plan) + '</span>' : '') + '<time>' + hhmm(e.ts) + '</time></div><div class="mb">' + msgBody(e, p.gh) + '</div></div></div>');
     });
     return out.length ? '<div class="feed">' + out.join('') + '</div>' : '<div class="empty">No activity yet</div>';
   }
@@ -516,7 +563,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   function taskCard(p) {
     var c=counts(p), who=owner(p), waiting=p.questions.filter(function(q){return q.open;}).length;
     return '<article class="task-card status-'+statusTone(p.status)+'" draggable="'+(!saving && !!p.revision)+'" data-plan="'+esc(key(p))+'" data-go="plan:'+esc(key(p))+'">' +
-      '<div class="task-heading"><div class="task-repo" title="'+esc(p.repo)+'">'+esc(p.repo)+'</div><time class="task-edited" title="'+esc(p.mtime)+'">'+ago(p.mtime)+'</time>'+starButton(p)+'</div>' +
+      '<div class="task-heading"><div class="task-repo" title="'+esc(repoLabel(p))+'">'+esc(repoLabel(p))+'</div><time class="task-edited" title="'+esc(p.mtime)+'">'+ago(p.mtime)+'</time>'+starButton(p)+'</div>' +
       '<button class="task-title" data-preview-plan="'+esc(key(p))+'" title="Quick view: '+esc(p.name)+'">'+esc(p.name)+'</button>' +
       '<div class="task-status">'+pill(p)+(isStale(p)?'<span class="pill t-bad">Stale</span>':'')+(waiting?'<span class="pill t-pending">'+waiting+' open question'+(waiting>1?'s':'')+'</span>':'')+'</div>' +
       (detail(p.status)?'<div class="stage-detail">'+prs(detail(p.status),p.gh)+'</div>':'') +
@@ -638,7 +685,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     }).join('')+'</select>';
   }
   function workCell(p) {
-    return '<button class="work-link" data-go="plan:'+esc(key(p))+'">'+esc(p.name)+'</button><div class="work-meta">'+esc(p.repo)+'</div>';
+    return '<button class="work-link" data-go="plan:'+esc(key(p))+'">'+esc(p.name)+'</button><div class="work-meta">'+esc(repoLabel(p))+'</div>';
   }
   function progressCell(p) {
     var done=counts(p).done;
@@ -851,7 +898,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     var done=ps.filter(function(p){return stage(p.status)==='Done';}).length, needs=ps.filter(needsAttention).length;
     var updated=ps.filter(function(p){var t=new Date(p.executionUpdatedAt || p.mtime).getTime();return t>=cutoff && t<=now;}).length;
     var stats=[['Active plans',ps.length-done,'Current'],['Done',done,'Current'],['Updated',updated,'Last 7 days'],['Needs attention',needs,'Current']];
-    var keys=new Set(ps.map(key)), history=feedFor(null).filter(function(e){return keys.has(e.repo+'/'+e.plan);}).slice(0,8);
+    var keys=new Set(ps.map(key)), history=feedFor(null).filter(function(e){var pl=planByKey(eventKey(e));return pl && keys.has(key(pl));}).slice(0,8);
     var total=ps.reduce(function(n,p){return n+p.steps.length;},0), completed=ps.reduce(function(n,p){return n+counts(p).done;},0);
     return '<div class="summary"><div class="summary-stats">'+stats.map(function(s){return '<div class="summary-stat"><span>'+s[0]+'</span><strong>'+s[1]+'</strong><small>'+s[2]+'</small></div>';}).join('')+'</div><div class="summary-grid">'+
       '<section class="summary-panel"><h2>Status overview</h2><p class="work-meta">Current state of your plans</p>'+statusSummary(ps)+'</section>'+
@@ -946,6 +993,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     });
   }
   function viewHome() {
+    if(noProjects()){topBar(LAYOUTS[ui.layout],'No projects');if(!viewOnly)$('tabs').innerHTML='';return emptyProjects();}
     if(ui.layout==='list')return viewList(plans());
     var all=plans(), ps=filteredPlans(all);
     topBar(ui.view==='waiting'?'Needs attention':LAYOUTS[ui.layout], ps.length+' of '+all.length+' plans');
@@ -1083,7 +1131,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     showError('');
     render(true);
     try {
-      var body={repo:p.repo,plan:p.name,revision:revision,status:target};
+      var body={repo:p.repo,plan:p.name,revision:revision,status:target};if(p.project)body.project=p.project;
       var response = await fetch('/api/plans/'+field, {method:'POST', headers:{'Content-Type':'application/json','X-Workboard':'1'},
         body:JSON.stringify(body)});
       var result = await response.json();
@@ -1123,8 +1171,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     if(!token || e.target.getAttribute('data-disclosure-auto'))return;
     if(ui.planDetails[token]!==!!e.target.open){ui.planDetails[token]=!!e.target.open;save('wb-ui',ui);}
   },true);
-  document.addEventListener('input',function(e){columnInput(e.target);});
+  document.addEventListener('input',function(e){if(settingsInput(e.target))return;columnInput(e.target);});
   document.addEventListener('change',function(e){
+    if(settingsChange(e.target))return;
     var choice=e.target.closest('[data-column-plan-choice]');
     if(choice && columnMenu && columnMenu.column==='plan'){
       var k=choice.getAttribute('data-column-plan-choice');
@@ -1208,6 +1257,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     if(trigger){trigger.setAttribute('aria-expanded','false');trigger.closest('th').classList.remove('column-open');}
   });
   document.addEventListener('click', function (ev) {
+    if(handleSettingsAction(ev))return;
     if(handleUpdateAction(ev))return;
     if(Date.now()<suppressClickUntil) return;
     if(handleViewAction(ev)) return;
@@ -1218,7 +1268,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   });
 
   function showError(reason) {
-    $('error').hidden = !reason; $('error').textContent = reason || ''; $('error').title = reason || '';
+    $('error').hidden = !reason; $('error-text').textContent = reason || ''; $('error').title = reason || '';
+    var last = D.state && D.state.generatedAt;
+    $('error-detail').textContent = reason ? (last ? 'Showing the last successful check from ' + hhmm(last) + '.' : 'No successful check yet.') : '';
     if($('quick-error')){$('quick-error').hidden=!reason;$('quick-error').textContent=reason || '';}
   }
 
@@ -1279,13 +1331,289 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     Object.assign(ui,saved.ui);save('wb-update-view',{});return saved;
   }
 
+  // ---------- First-run setup and Settings ----------
+  // Both read and change the same settings API; the server validates every path.
+  var setup={open:false,step:0,busy:'',error:'',notice:'',pasting:false,path:'',confirmRemove:''};
+  var settingsUI={open:false,section:'general',query:'',busy:'',error:'',notice:'',adding:false,pasting:false,path:'',confirmRemove:'',returnTo:null};
+  var settingsData=null;
+  var PROJECT_KIND={repo:'Repository',folder:'Folder of repositories'};
+  var SETUP_STEPS=['Welcome','Projects','Preferences'];
+  var SETTING_ITEMS=[
+    {id:'startup',section:'general',title:'Start with Windows',keywords:'startup login sign in boot tray autostart run'},
+    {id:'notifications',section:'general',title:'Notifications',keywords:'toast alert windows notification blocked waiting question stale quiet'},
+    {id:'data-folder',section:'general',title:'Data folder',keywords:'config json settings storage path activity history location open explorer'},
+    {id:'projects',section:'projects',title:'Projects',keywords:'project folder repository repositories repo add remove enable disable plans tasks path choose paste'},
+    {id:'version',section:'about',title:'Version and updates',keywords:'about version update upgrade release check'}
+  ];
+  var SETTINGS_SECTIONS=[['general','General'],['projects','Projects'],['about','About']];
+
+  async function settingsRequest(path,method,body){
+    var options={method:method || 'GET',cache:'no-store',headers:{}};
+    if(options.method!=='GET')options.headers['X-Workboard']='1';
+    if(body!==undefined){options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
+    var response=await fetch(path,options),result={};
+    try{result=await response.json();}catch(e){/* A non-JSON body is reported by its status below. */}
+    if(!response.ok)throw Error(result && result.error || 'The request failed ('+response.status+').');
+    return result;
+  }
+  function settingsProjects(){return settingsData && Array.isArray(settingsData.projects)?settingsData.projects:[];}
+  function settingsLocked(){return !!(settingsData && settingsData.projectsOverridden);}
+  function scopeState(scope){return scope==='setup'?setup:settingsUI;}
+  function renderPanels(){renderSettings();renderSetup();}
+  async function loadSettings(){
+    try{settingsData=await settingsRequest('/api/settings');settingsUI.error='';setup.error='';}
+    catch(e){settingsUI.error=e.message;setup.error=e.message;}
+    renderPanels();return settingsData;
+  }
+  async function runSettingsAction(scope,label,work){
+    var state=scopeState(scope);if(state.busy)return false;
+    state.busy=label;state.error='';state.notice='';renderPanels();
+    var ok=true;
+    try{await work(state);}catch(e){state.error=e.message;ok=false;}
+    finally{state.busy='';renderPanels();}
+    return ok;
+  }
+  function planTotal(project){return (project.repos || []).reduce(function(n,r){return n+(r.planCount || 0);},0);}
+  function plural(n,one,many){return n+' '+(n===1?one:many);}
+  function projectSummaryText(project){
+    if(!project.exists)return project.error || 'Folder not found.';
+    return plural((project.repos || []).length,'repository','repositories')+' · '+plural(planTotal(project),'plan','plans')+' found';
+  }
+  function addProject(scope,path){
+    return runSettingsAction(scope,'adding',async function(state){
+      var value=String(path || '').trim();
+      if(!value)throw Error('Enter the full path of a folder.');
+      var result=await settingsRequest('/api/projects','POST',{path:value});
+      settingsData=result.settings || settingsData;state.path='';state.pasting=false;
+      if(scope==='settings')settingsUI.adding=false;
+      state.notice='Added '+result.name+' · '+(PROJECT_KIND[result.kind] || result.kind)+' · '+plural((result.repos || []).length,'repository','repositories')+'.';
+      get();
+    });
+  }
+  async function chooseFolder(scope){
+    var state=scopeState(scope),picked=null;if(state.busy)return;
+    state.busy='choosing';state.error='';state.notice='';renderPanels();
+    try{picked=await settingsRequest('/api/settings/pick-folder','POST');}
+    catch(e){state.error=e.message;}
+    state.busy='';
+    if(picked && picked.path)return addProject(scope,picked.path);
+    renderPanels();
+  }
+  function removeProject(scope,id){
+    var state=scopeState(scope);
+    if(state.confirmRemove!==id){state.confirmRemove=id;renderPanels();return Promise.resolve(false);}
+    state.confirmRemove='';
+    return runSettingsAction(scope,'removing',async function(){settingsData=await settingsRequest('/api/projects/'+encodeURIComponent(id),'DELETE');get();});
+  }
+  function toggleProject(id,enabled){
+    return runSettingsAction('settings','saving',async function(){settingsData=await settingsRequest('/api/projects/'+encodeURIComponent(id),'PATCH',{enabled:!!enabled});get();});
+  }
+  function saveSetting(scope,field,value){
+    if(!['notifications','startWithWindows'].includes(field))return Promise.resolve(false);
+    var body={};body[field]=!!value;
+    return runSettingsAction(scope,'saving',async function(){settingsData=await settingsRequest('/api/settings','PUT',body);});
+  }
+  function openFolderTarget(target,id){
+    return runSettingsAction('settings','opening',async function(){await settingsRequest('/api/settings/open-folder','POST',target==='data'?{target:'data'}:{target:'project',id:id});});
+  }
+  async function finishSetup(){
+    if(!settingsProjects().length){setup.error='Add at least one project first.';renderSetup();return false;}
+    var ok=await runSettingsAction('setup','finishing',async function(){settingsData=await settingsRequest('/api/settings','PUT',{setupComplete:true});});
+    if(ok){setup.open=false;setup.step=0;D.setupRequired=false;renderSetup();render();get();}
+    return ok;
+  }
+  function syncSetup(){
+    if(D.setupRequired && !setup.open){setup.open=true;setup.step=0;setup.error='';loadSettings();}
+    renderSetup();
+  }
+
+  // Re-render a panel without losing the focused control or caret.
+  function paint(host,html){
+    var active=document.activeElement,id=active && active.id,start=active && active.selectionStart,end=active && active.selectionEnd;
+    host.innerHTML=html;
+    if(id && $(id) && host.contains && host.contains($(id))){var el=$(id);el.focus({preventScroll:true});if(typeof start==='number' && el.setSelectionRange)el.setSelectionRange(start,end);}
+  }
+  function toggleRow(scope,field,title,description,checked,disabledNote){
+    var busy=!!scopeState(scope).busy,id=scope+'-'+field;
+    return '<div class="setting-row"><div class="setting-text"><label for="'+id+'"><strong>'+esc(title)+'</strong></label><small>'+esc(description)+(disabledNote?' '+esc(disabledNote):'')+'</small></div>'+
+      '<input type="checkbox" role="switch" class="switch" id="'+id+'" data-setting="'+field+'" data-scope="'+scope+'"'+(checked?' checked':'')+(disabledNote || busy?' disabled':'')+'></div>';
+  }
+  function addControls(scope){
+    var state=scopeState(scope),busy=state.busy,locked=settingsLocked();
+    return '<div class="add-project"><div class="add-actions"><button class="btn btn-primary" id="'+scope+'-choose" data-project-choose="'+scope+'"'+(busy || locked?' disabled':'')+'>'+(busy==='choosing'?'Waiting for the folder dialog…':'Choose folder…')+'</button>'+
+      '<button class="btn" id="'+scope+'-paste" data-project-paste="'+scope+'" aria-expanded="'+!!state.pasting+'"'+(busy || locked?' disabled':'')+'>Paste path</button></div>'+
+      (state.pasting?'<div class="paste-row"><label class="sr-only" for="'+scope+'-path">Folder path</label><input id="'+scope+'-path" class="text-input mono" data-project-path="'+scope+'" placeholder="C:\\Projects\\my-repo" value="'+esc(state.path)+'" autocomplete="off" spellcheck="false"><button class="btn btn-primary" id="'+scope+'-add" data-project-add="'+scope+'"'+(busy?' disabled':'')+'>'+(busy==='adding'?'Adding…':'Add')+'</button></div>':'')+
+      (state.error?'<p class="inline-error" role="alert">'+esc(state.error)+'</p>':'')+(state.notice?'<p class="inline-notice" role="status">'+esc(state.notice)+'</p>':'')+'</div>';
+  }
+  function projectCard(project,scope){
+    var state=scopeState(scope),confirming=state.confirmRemove===project.id,busy=!!state.busy,locked=settingsLocked(),repos=project.repos || [];
+    var status=project.enabled===false?'<span class="tag">Off</span>':!project.exists?'<span class="tag is-danger">Missing</span>':'';
+    return '<li class="project-card'+(project.exists?'':' is-missing')+(project.enabled===false?' is-disabled':'')+'" id="'+scope+'-project-'+esc(project.id)+'">'+
+      '<div class="project-head"><span class="project-icon">'+icon('folder')+'</span><div class="project-title"><strong>'+esc(project.name)+'</strong><small>'+esc(PROJECT_KIND[project.kind] || project.kind)+'</small></div>'+status+
+      (scope==='settings' && !locked?'<label class="project-toggle"><input type="checkbox" role="switch" class="switch" id="project-toggle-'+esc(project.id)+'" data-project-toggle="'+esc(project.id)+'"'+(project.enabled?' checked':'')+(busy?' disabled':'')+'><span>Read plans</span></label>':'')+'</div>'+
+      '<div class="project-path mono" title="'+esc(project.path)+'">'+esc(project.path)+'</div>'+
+      '<div class="project-summary'+(project.exists?'':' is-error')+'">'+esc(projectSummaryText(project))+'</div>'+
+      (repos.length?'<ul class="repo-list">'+repos.slice(0,8).map(function(r){return '<li><span>'+esc(r.name)+'</span><small>'+(r.hasTasks?plural(r.planCount,'plan','plans'):'no .tasks folder')+'</small></li>';}).join('')+(repos.length>8?'<li><small>+'+(repos.length-8)+' more</small></li>':'')+'</ul>':'')+
+      '<div class="project-actions">'+(scope==='settings'?'<button class="btn" data-project-open="'+esc(project.id)+'"'+(project.exists && !busy?'':' disabled')+'>Open folder</button>':'')+
+      (locked?'':'<button class="btn'+(confirming?' btn-danger':'')+'" id="'+scope+'-remove-'+esc(project.id)+'" data-project-remove="'+esc(project.id)+'" data-scope="'+scope+'"'+(busy?' disabled':'')+'>'+(confirming?'Confirm remove':'Remove')+'</button>')+
+      (confirming?'<small class="work-meta">Plans stay on disk. Agent Ops stops reading this folder.</small>':'')+'</div></li>';
+  }
+
+  function renderSetup(){
+    var host=$('onboarding');if(!host)return;
+    host.hidden=!setup.open;
+    if(!setup.open){host.innerHTML='';return;}
+    var projects=settingsProjects(),count=projects.length,data=settingsData || {},body='',primary='';
+    if(setup.step===0){
+      body='<h1 id="onboarding-title">Welcome to Agent Ops</h1><p class="onboarding-lead">Agent Ops is a work ledger for your plans. For each plan it shows the goal, milestones, step summaries and progress in one place.</p>'+
+        '<ul class="onboarding-points"><li><strong>Reads plan files</strong><span>Plans are Markdown files in <code>.tasks/*.md</code> in the main checkout of each project.</span></li><li><strong>Never edits your code</strong><span>Only a plan\'s status changes when you move it on the board.</span></li><li><strong>Local and free to refresh</strong><span>Refreshing reads files on this computer; it does not call an AI model.</span></li></ul>';
+      primary='<button class="btn btn-primary" id="setup-next" data-setup-next>Get started</button>';
+    }else if(setup.step===1){
+      body='<h1 id="onboarding-title">Add your projects</h1><p class="onboarding-lead">Choose a Git repository, or a folder whose direct subfolders are repositories. You can add several.</p>'+addControls('setup')+
+        (settingsData?(count?'<ul class="project-list">'+projects.map(function(p){return projectCard(p,'setup');}).join('')+'</ul>':'<p class="setup-empty">No projects yet. Add at least one to continue.</p>'):'<p class="setup-empty">Loading…</p>');
+      primary='<button class="btn btn-primary" id="setup-next" data-setup-next'+(count?'':' disabled')+'>Continue</button>';
+    }else{
+      body='<h1 id="onboarding-title">Preferences</h1><p class="onboarding-lead">You can change these any time in Settings.</p><div class="setting-list">'+
+        toggleRow('setup','startWithWindows','Start with Windows','Open Agent Ops in the tray when you sign in.',data.startWithWindows,data.startupManaged===false?'Available in the installed app only.':'')+
+        toggleRow('setup','notifications','Notifications','Show a Windows notification when a plan waits for you, is blocked, has a new question or goes quiet.',data.notifications!==false,'')+'</div>'+
+        (setup.error?'<p class="inline-error" role="alert">'+esc(setup.error)+'</p>':'');
+      primary='<button class="btn btn-primary" id="setup-finish" data-setup-finish'+(setup.busy?' disabled':'')+'>'+(setup.busy==='finishing'?'Finishing…':'Finish')+'</button>';
+    }
+    var steps='<ol class="onboarding-steps" aria-label="Setup steps">'+SETUP_STEPS.map(function(name,i){return '<li class="'+(i===setup.step?'on':i<setup.step?'done':'')+'"'+(i===setup.step?' aria-current="step"':'')+'><span>'+(i+1)+'</span>'+name+'</li>';}).join('')+'</ol>';
+    paint(host,'<div class="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><header class="onboarding-head"><img src="/icons/app.png" alt="" width="28" height="28"><strong>Agent Ops</strong>'+steps+'</header>'+
+      '<div class="onboarding-body">'+body+'</div><footer class="onboarding-foot">'+(count && setup.step<2?'<button class="btn btn-subtle" id="setup-skip" data-setup-skip>Skip for now</button>':'<span></span>')+
+      '<div class="onboarding-nav">'+(setup.step>0?'<button class="btn" id="setup-back" data-setup-back>Back</button>':'')+primary+'</div></footer></div>');
+  }
+
+  function settingsQueryMatches(){
+    var q=settingsUI.query.trim().toLowerCase();if(!q)return null;
+    var items=SETTING_ITEMS.filter(function(item){return (item.title+' '+item.keywords+' '+item.section).toLowerCase().includes(q);});
+    var projects=settingsProjects().filter(function(p){return (p.name+' '+p.path+' '+(p.repos || []).map(function(r){return r.name;}).join(' ')).toLowerCase().includes(q);});
+    return {items:items,projects:projects};
+  }
+  function settingItemHTML(id){
+    var data=settingsData || {};
+    if(id==='startup')return toggleRow('settings','startWithWindows','Start with Windows','Open Agent Ops in the tray when you sign in.',data.startWithWindows,data.startupManaged===false?'Available in the installed app only.':'');
+    if(id==='notifications')return toggleRow('settings','notifications','Notifications','Show a Windows notification when a plan waits for you, is blocked, has a new question or goes quiet.',data.notifications!==false,'');
+    if(id==='data-folder')return '<div class="setting-row"><div class="setting-text"><strong>Data folder</strong><small>Settings (config.json), activity history and the app window profile.</small><code class="setting-path">'+esc(data.dataDir || '')+'</code></div><button class="btn" data-open-data'+(data.dataDir?'':' disabled')+'>Open</button></div>';
+    if(id==='projects')return projectsSection();
+    if(id==='version')return '<div class="setting-row"><div class="setting-text"><strong>Agent Ops '+esc(data.version || D.appVersion || '')+'</strong><small>A local work ledger for the plans in your projects.</small></div><button class="btn" data-settings-check-updates>Check for updates</button></div>';
+    return '';
+  }
+  function projectsSection(){
+    var projects=settingsProjects(),locked=settingsLocked();
+    return '<div class="settings-section-head"><h2>Projects</h2>'+(locked?'':'<button class="btn btn-primary" id="settings-add" data-settings-add aria-expanded="'+settingsUI.adding+'">Add project</button>')+'</div>'+
+      '<p class="settings-lead">Agent Ops reads <code>.tasks/*.md</code> in each repository\'s main checkout. A project is a Git repository, or a folder whose direct subfolders are repositories.</p>'+
+      (locked?'<p class="inline-notice" role="status">'+esc(settingsData.projectsOverridden)+'</p>':'')+
+      (settingsUI.adding?addControls('settings'):(settingsUI.error?'<p class="inline-error" role="alert">'+esc(settingsUI.error)+'</p>':'')+(settingsUI.notice?'<p class="inline-notice" role="status">'+esc(settingsUI.notice)+'</p>':''))+
+      (projects.length?'<ul class="project-list">'+projects.map(function(p){return projectCard(p,'settings');}).join('')+'</ul>':'<div class="settings-empty"><strong>No projects added yet.</strong><span>Add a project to start.</span></div>');
+  }
+  function settingsSectionHTML(section){
+    if(section==='general')return '<h2>General</h2><div class="setting-list">'+settingItemHTML('startup')+settingItemHTML('notifications')+settingItemHTML('data-folder')+'</div>';
+    if(section==='about')return '<h2>About</h2><div class="setting-list">'+settingItemHTML('version')+'</div>';
+    if(section.indexOf('project:')===0){
+      var id=section.slice(8),project=settingsProjects().find(function(p){return p.id===id;});
+      if(!project)return projectsSection();
+      return '<h2>'+esc(project.name)+'</h2>'+(settingsUI.error?'<p class="inline-error" role="alert">'+esc(settingsUI.error)+'</p>':'')+'<ul class="project-list">'+projectCard(project,'settings')+'</ul>';
+    }
+    return projectsSection();
+  }
+  function renderSettings(){
+    var host=$('settings');if(!host)return;
+    host.hidden=!settingsUI.open;
+    if(!settingsUI.open){host.innerHTML='';return;}
+    var data=settingsData || {},matches=settingsQueryMatches(),projects=matches?matches.projects:settingsProjects(),content;
+    if(matches){
+      var groups=SETTINGS_SECTIONS.map(function(s){var items=matches.items.filter(function(i){return i.section===s[0];});return items.length?'<h2>'+s[1]+'</h2><div class="setting-list">'+items.map(function(i){return settingItemHTML(i.id);}).join('')+'</div>':'';}).join('');
+      if(matches.projects.length && !matches.items.some(function(i){return i.id==='projects';}))groups+='<h2>Projects</h2><ul class="project-list">'+matches.projects.map(function(p){return projectCard(p,'settings');}).join('')+'</ul>';
+      content=groups || '<div class="settings-empty"><strong>No matching settings.</strong><span>Try another word, or clear the search.</span></div>';
+    }else content=settingsSectionHTML(settingsUI.section);
+    var notices=(data.readOnly?'<p class="inline-error" role="alert">'+esc(data.readOnly)+'</p>':'')+(data.warning?'<p class="inline-warning" role="status">'+esc(data.warning)+'</p>':'');
+    var nav=SETTINGS_SECTIONS.map(function(s){var on=!matches && settingsUI.section===s[0];return '<button class="settings-nav-item'+(on?' on':'')+'" data-settings-section="'+s[0]+'"'+(on?' aria-current="page"':'')+'>'+s[1]+'</button>';}).join('');
+    var projectNav=projects.length?projects.map(function(p){var on=!matches && settingsUI.section==='project:'+p.id;return '<button class="settings-nav-item settings-nav-project'+(on?' on':'')+(p.exists?'':' is-missing')+'" data-settings-section="project:'+esc(p.id)+'"'+(on?' aria-current="page"':'')+' title="'+esc(p.path)+'">'+icon('folder')+'<span>'+esc(p.name)+'</span></button>';}).join(''):'<p class="settings-nav-empty">'+(matches?'No matching project settings.':'No projects added yet.')+'</p>';
+    paint(host,'<div class="settings-shell"><aside class="settings-nav" aria-label="Settings sections"><button class="settings-back" id="settings-close" data-settings-close>‹ Back to app</button>'+
+      '<input type="search" class="settings-search" id="settings-search" placeholder="Search settings" aria-label="Search settings" value="'+esc(settingsUI.query)+'" autocomplete="off">'+
+      '<nav class="settings-nav-group">'+nav+'</nav><div class="settings-nav-heading">Projects</div><div class="settings-nav-projects">'+projectNav+'</div></aside>'+
+      '<main class="settings-main" id="settings-main"><h1 class="sr-only" id="settings-title">Settings</h1>'+notices+content+'</main></div>');
+  }
+  function openSettings(section,options){
+    if(!settingsUI.open)settingsUI.returnTo=document.activeElement;
+    settingsUI.open=true;settingsUI.section=section || settingsUI.section || 'general';settingsUI.query='';settingsUI.error='';settingsUI.notice='';settingsUI.confirmRemove='';
+    settingsUI.adding=!!(options && options.add);
+    renderSettings();loadSettings();
+    if($('settings-search'))$('settings-search').focus();
+  }
+  function closeSettings(){
+    settingsUI.open=false;settingsUI.adding=false;settingsUI.pasting=false;settingsUI.confirmRemove='';renderSettings();
+    if(settingsUI.returnTo && settingsUI.returnTo.isConnected)settingsUI.returnTo.focus({preventScroll:true});
+  }
+  function handleSettingsAction(ev){
+    var t=ev.target;if(!t || !t.closest)return false;
+    var hit=function(sel){return t.closest(sel);},el;
+    if((el=hit('[data-settings-open]'))){openSettings(el.getAttribute('data-settings-open') || 'general');return true;}
+    if(hit('[data-settings-empty-add]')){openSettings('projects',{add:true});return true;}
+    if(hit('[data-retry]')){refresh();return true;}
+    if(!setup.open && !settingsUI.open)return false;
+    if(hit('[data-settings-close]')){closeSettings();return true;}
+    if((el=hit('[data-settings-section]'))){settingsUI.section=el.getAttribute('data-settings-section');settingsUI.query='';settingsUI.confirmRemove='';renderSettings();if($('settings-main'))$('settings-main').scrollTop=0;return true;}
+    if(hit('[data-settings-add]')){settingsUI.adding=!settingsUI.adding;settingsUI.error='';settingsUI.notice='';renderSettings();if(settingsUI.adding && $('settings-choose'))$('settings-choose').focus();return true;}
+    if((el=hit('[data-project-choose]'))){chooseFolder(el.getAttribute('data-project-choose'));return true;}
+    if((el=hit('[data-project-paste]'))){var ps=scopeState(el.getAttribute('data-project-paste'));ps.pasting=!ps.pasting;ps.error='';renderPanels();var input=$(el.getAttribute('data-project-paste')+'-path');if(input)input.focus();return true;}
+    if((el=hit('[data-project-add]'))){var scope=el.getAttribute('data-project-add');addProject(scope,scopeState(scope).path);return true;}
+    if((el=hit('[data-project-remove]'))){removeProject(el.getAttribute('data-scope'),el.getAttribute('data-project-remove'));return true;}
+    if((el=hit('[data-project-open]'))){openFolderTarget('project',el.getAttribute('data-project-open'));return true;}
+    if(hit('[data-open-data]')){openFolderTarget('data');return true;}
+    if(hit('[data-settings-check-updates]')){openUpdateDialog();updateAction('check');return true;}
+    if(hit('[data-setup-next]')){if(setup.step===1 && !settingsProjects().length)return true;setup.step=Math.min(2,setup.step+1);setup.error='';setup.notice='';if(setup.step===1 && !settingsData)loadSettings();renderSetup();if($('setup-next'))$('setup-next').focus();else if($('setup-finish'))$('setup-finish').focus();return true;}
+    if(hit('[data-setup-back]')){setup.step=Math.max(0,setup.step-1);setup.error='';renderSetup();return true;}
+    if(hit('[data-setup-skip]') || hit('[data-setup-finish]')){finishSetup();return true;}
+    return false;
+  }
+  function marked(target,attribute){var el=target && target.closest && target.closest('['+attribute+']');return el?el.getAttribute(attribute):null;}
+  function settingsInput(target){
+    if(!target)return false;
+    if(target.id==='settings-search'){settingsUI.query=target.value;renderSettings();return true;}
+    var scope=marked(target,'data-project-path');
+    if(scope){scopeState(scope).path=target.value;return true;}
+    return false;
+  }
+  function settingsChange(target){
+    var field=marked(target,'data-setting');
+    if(field){saveSetting(marked(target,'data-scope') || 'settings',field,target.checked);return true;}
+    var project=marked(target,'data-project-toggle');
+    if(project){toggleProject(project,target.checked);return true;}
+    return false;
+  }
+  function settingsKey(e){
+    if(!setup.open && !settingsUI.open)return false;
+    var scope=marked(e.target,'data-project-path');
+    if(e.key==='Enter' && scope){e.preventDefault();addProject(scope,scopeState(scope).path);return true;}
+    if(setup.open)return true;
+    if(e.key==='Escape'){
+      e.preventDefault();
+      if(e.target && e.target.id==='settings-search' && settingsUI.query){settingsUI.query='';renderSettings();}
+      else closeSettings();
+    }
+    return true;
+  }
+  function noProjects(){return Array.isArray(D.projects) && !D.setupRequired && !D.projects.some(function(p){return p.enabled;});}
+  function emptyProjects(){
+    return '<div class="empty empty-projects"><h2>Add a project to start</h2><p>Agent Ops shows plans from <code>.tasks/*.md</code> in the main checkout of each project.</p><button class="btn btn-primary" data-settings-empty-add>Add project</button></div>';
+  }
+  function showWarnings(list){
+    var el=$('warnings');if(!el)return;
+    list=Array.isArray(list)?list:[];
+    el.hidden=!list.length;
+    el.innerHTML=list.length?'<div class="banner-text">'+list.map(function(w){return '<span>'+esc(w)+'</span>';}).join('')+'</div><button class="btn" data-settings-open="projects">Open Settings</button>':'';
+  }
+
   function connection(online) { $('live').className = online ? 'live' : 'live off'; $('connection').textContent = online ? '' : 'Reconnecting…'; }
   function get() { if(dragged || saving) return Promise.resolve(); return fetch('/api/state', { cache: 'no-store' }).then(function (r) { if(!r.ok) throw Error('State request failed: '+r.status); return r.json(); }).then(function (j) {
     if (dragged || saving) return;
     if (!j.state || !Array.isArray(j.state.plans) || !Array.isArray(j.activity)) throw Error(j.error || 'Invalid state response');
     if(D.appVersion && j.appVersion && D.appVersion!==j.appVersion){save('wb-update-view',{version:j.appVersion,ui:ui,scroll:$('view').scrollTop,horizontal:$('view').scrollLeft,quick:{key:quick.key,tab:quick.tab,sequence:quick.sequence,scroll:$('quick-plan-scroll') && $('quick-plan-scroll').scrollTop}});location.reload();return j;}
     var restored=restoreUpdateView(j);
-    D = j; showError(D.error); render();
+    D = j; showError(D.error); render(); showWarnings(D.warnings); syncSetup();
     if(restored){$('view').scrollTop=restored.scroll || 0;$('view').scrollLeft=restored.horizontal || 0;if(restored.quick && restored.quick.key && planByKey(restored.quick.key)){openQuickPlan(restored.quick.key,restored.quick.sequence);quick.tab=restored.quick.tab;renderQuickPlan(true);if($('quick-plan-scroll'))$('quick-plan-scroll').scrollTop=restored.quick.scroll || 0;}}
     return j;
   }).catch(function (e) { if(!updateInstalling())showError(e.message);return null; }); }
@@ -1296,6 +1624,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     es.onerror = function () { connection(false); };
   }
   function jumpHash() {
+    if (location.hash === '#settings') {
+      if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+      openSettings('general');
+      return;
+    }
     if (location.hash.indexOf('#plan=') === 0) {
       try { ui.view = 'plan:' + decodeURIComponent(location.hash.slice(6).replace(/\+/g, ' ')); ui.tab = 'summary'; ui.q = ''; save('wb-ui',ui); } catch(e) { /* An invalid external fragment leaves the current view intact. */ }
     }
@@ -1303,6 +1636,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   window.addEventListener('hashchange',function(){jumpHash();render();});
   if($('quick-plan'))$('quick-plan').addEventListener('cancel',function(e){e.preventDefault();closeQuickPlan();});
   document.addEventListener('keydown',function(e){
+    if(settingsKey(e))return;
     if(updateUI.open){if(e.key==='Escape'){e.preventDefault();closeUpdateDialog();}return;}
     if(e.key==='F5'){e.preventDefault();if(!e.repeat)refresh();return;}
     if(quick.key){
