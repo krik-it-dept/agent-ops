@@ -1,6 +1,6 @@
 # In-app updates
 
-Agent Ops checks the latest stable release in the fixed private repository `krik-it-dept/agent-ops` shortly after startup and every six hours. Open **Updates** for the installed version, release notes and a manual check. New releases show **Update now**, **Skip this version** and **Cancel**. Only an explicit Update now request installs software. F5 remains the task-progress check.
+Agent Ops checks the latest stable release in the fixed private repository `krik-it-dept/agent-ops` shortly after startup and every six hours. A new release appears as a non-modal card at the bottom right and as **Update available** in the status bar; nothing opens a dialog by itself. The card offers **Update and restart**, **Skip this version** and **Dismiss** (remembered per version until a newer one ships). **Settings > About** shows the installed version, release notes and **Check for updates**. Only an explicit Update and restart request installs software. F5 remains the task-progress check.
 
 ## Authentication and integrity
 
@@ -29,6 +29,6 @@ The open UI notices a changed server version, saves its current filters, plan/gr
 
 ## Validation
 
-Unit tests cover version ordering, private-release errors, CSRF/read boundaries, ZIP traversal/unknown entries/symlinks/duplicates, checksum and version mismatch, staged-file tampering, runtime/profile rollback, exact-process health and write rejection during restart. UI tests cover notes escaping, skip/cancel/apply, duplicate submission, expected disconnect and view restoration.
+Unit tests cover version ordering, private-release errors, CSRF/read boundaries, ZIP traversal/unknown entries/symlinks/duplicates, checksum and version mismatch, staged-file tampering, runtime/profile rollback, exact-process health and write rejection during restart. UI tests cover notes escaping, the non-modal card and status-bar item, dismiss/skip/apply, duplicate submission, expected disconnect and view restoration.
 
 `node scripts/smoke.mjs` validates the package without contacting GitHub. After publishing the version in VERSION, `node scripts/update-smoke.mjs` builds an isolated `v0.0.0` test instance of the updater, downloads the actual private release and exercises replacement/restart. This is a test fixture of the current updater, not a claim that historical releases already supported updates. Its profile, data, port and task roots are isolated from the live installation.
