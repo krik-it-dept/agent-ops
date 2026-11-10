@@ -72,6 +72,10 @@ The updater is scoped to the fixed private release repository. The GitHub creden
 
 127 JavaScript tests and the expanded Go suite cover the update UI, reload restoration, request boundaries, version and ZIP validation, staging tamper detection, backup/rollback and exact-process health. Package smoke remains isolated and disables automatic GitHub checks. The optional real-release round trip and operational details are documented in docs/in-app-updates.md.
 
+## 2026-11-10: v0.2.1 release and update foundation
+
+The updater validates a package against a manifest release asset (files, sizes, SHA-256, removals) and fixed path rules instead of a compiled file list, so later releases can change the file set. The v0.2.1 ZIP keeps the exact v0.2.0 file set and the helper accepts the v0.2.0 handoff, so v0.2.0 installs update in the app. Release discovery and downloads are anonymous HTTPS against the public repository; no GitHub CLI or token. A tag push drafts the release after all checks and an isolated N-1 to N update test (previous tag built from source, then a manifest add/remove update and a forced rollback). Local logs (rotating, size-capped), panic recovery with a crash notice, fatal-output capture, Copy diagnostics without plan content or project paths, staging pruning and dev versions for untagged builds were added. The binary remains unsigned by owner decision; SHA-256 and the GitHub digest detect corruption, not a compromised maintainer. Details: docs/in-app-updates.md.
+
 ## 2026-11-10: delegated worker reporting
 
 The missing don-backlog identities came from a legacy plan with no Agent header and direct sandboxed Codex CLI launches with no execution reports. Reviewed Claude/Codex session evidence identified Claude as coordinator and Codex in both worktrees; private attribution registries were updated without changing source plan bytes or status. Reviewed native evidence can opt into an unambiguous exact-task anchor across unrelated edits; renamed/duplicate tasks do not inherit it, and old records keep strict revision matching.

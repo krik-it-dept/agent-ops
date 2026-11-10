@@ -780,6 +780,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     <div class="workspace-strip"><nav class="nav" id="nav" aria-label="Views"></nav><button class="icon-btn inspector-toggle" id="inspector-toggle" data-inspector-toggle aria-label="Toggle plan details" title="Plan details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M15 4v16M4 4h16v16H4Z"/></svg></button></div>
     <div class="banner banner-danger" id="error" role="alert" aria-atomic="true" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 8v5M12 16h.01"/></svg><div class="banner-text"><strong id="error-text"></strong><span id="error-detail"></span><pre class="banner-raw" id="error-raw" hidden></pre></div><div class="banner-actions"><button class="btn btn-xs" id="error-details" data-error-details aria-expanded="false" aria-controls="error-raw" hidden>Details</button><button class="btn btn-xs" id="error-retry" data-retry>Retry</button></div></div>
     <div class="banner banner-warning" id="warnings" role="status" hidden></div>
+    <div class="banner banner-warning" id="crash" role="status" hidden></div>
     <div class="top" id="top"></div>
     <div id="tabs"></div>
     <div class="view" id="view"></div>
@@ -2141,7 +2142,39 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     });
   }
   function openFolderTarget(target,id){
-    return runSettingsAction('settings','opening',async function(){await settingsRequest('/api/settings/open-folder','POST',target==='data'?{target:'data'}:{target:'project',id:id});});
+    return runSettingsAction('settings','opening',async function(){await settingsRequest('/api/settings/open-folder','POST',target==='project'?{target:'project',id:id}:{target:target});});
+  }
+  async function writeClipboard(text){
+    if(typeof navigator!=='undefined' && navigator.clipboard && navigator.clipboard.writeText){await navigator.clipboard.writeText(text);return;}
+    throw Error('Copying is not available here. Open the logs folder instead.');
+  }
+  function copyDiagnostics(){
+    return runSettingsAction('settings','copying',async function(state){
+      var result=await settingsRequest('/api/diagnostics');
+      await writeClipboard(String(result.text || ''));
+      state.notice='Diagnostics copied. Paste them into your report.';
+    });
+  }
+  // A crash notice is non-modal: it never takes focus and stays until dismissed.
+  var crashUI={error:'',busy:false};
+  function showCrash(c){
+    var el=$('crash');if(!el)return;
+    el.hidden=!c;
+    if(!c){el.innerHTML='';crashUI.error='';return;}
+    var when=c.time?new Date(c.time).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',timeZone:'Asia/Ho_Chi_Minh'})+' '+hhmm(c.time):'';
+    var title=c.kind==='fatal'?'Agent Ops closed unexpectedly last time.':'Agent Ops recovered from an internal error.';
+    var text=(when?'At '+esc(when)+'. ':'')+(c.count>1?esc(c.count)+' errors since the last dismissal. ':'')+'The log has the details.';
+    el.innerHTML=icon('alert')+'<div class="banner-text"><strong>'+title+'</strong><span>'+text+(crashUI.error?' '+esc(crashUI.error):'')+'</span></div>'+
+      '<div class="banner-actions"><button class="btn btn-xs" data-crash-logs'+(crashUI.busy?' disabled':'')+'>Open logs</button><button class="btn btn-xs" data-crash-dismiss'+(crashUI.busy?' disabled':'')+'>Dismiss</button></div>';
+  }
+  async function crashAction(kind){
+    if(crashUI.busy)return;
+    crashUI.busy=true;crashUI.error='';showCrash(D.crash);
+    try{
+      if(kind==='logs')await settingsRequest('/api/settings/open-folder','POST',{target:'logs'});
+      else{await settingsRequest('/api/diagnostics/dismiss-crash','POST');D.crash=null;}
+    }catch(e){crashUI.error=e.message;}
+    finally{crashUI.busy=false;showCrash(D.crash);}
   }
   // Setup may finish, or be skipped, with no project: the board then offers "Add a project to start".
   async function finishSetup(){
@@ -2285,7 +2318,13 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     else if(s.checkedAt && !checking)status='<div class="setting-status" role="status"><span>You\u2019re on the latest version. Last checked '+esc(hhmm(s.checkedAt))+'.</span></div>';
     var notes=s.notes?'<details class="release-notes"><summary>Release notes</summary><div class="update-notes">'+esc(s.notes)+'</div></details>':'';
     return '<div class="setting-row about-head">'+appLogo()+'<div class="setting-text"><span class="setting-label">Agent Ops '+esc(data.version || s.current || D.appVersion || '')+'</span><small>A local work ledger for the plans in your projects.'+(s.commit?' Commit <span class="mono">'+esc(String(s.commit).slice(0,12))+'</span>':'')+'</small></div>'+
-      '<div class="setting-control"><button class="btn btn-xs" id="settings-check-updates" data-settings-check-updates'+(busy?' disabled':'')+'>'+(checking?spinner()+'Checking…':'Check for updates')+'</button></div></div>'+status+notes;
+      '<div class="setting-control"><button class="btn btn-xs" id="settings-check-updates" data-settings-check-updates'+(busy?' disabled':'')+'>'+(checking?spinner()+'Checking…':'Check for updates')+'</button></div></div>'+status+notes+troubleshootingRow();
+  }
+  // Diagnostics are versions, counts, switches and fixed failure categories only (TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths).
+  function troubleshootingRow(){
+    var busy=settingsUI.busy;
+    return '<div class="setting-row" id="settings-row-diagnostics"><div class="setting-text"><span class="setting-label">Troubleshooting</span><small>Diagnostics hold only versions, counts and on/off settings: never plan content, project names or paths. Logs stay on this computer and can contain folder paths, so do not post them publicly.</small>'+fieldMessage(settingsUI)+'</div>'+
+      '<div class="setting-control"><button class="btn btn-xs" id="settings-open-logs" data-open-logs'+(busy?' disabled':'')+'>'+icon('folder')+'Open logs folder</button><button class="btn btn-xs" id="settings-copy-diagnostics" data-copy-diagnostics'+(busy?' disabled':'')+'>'+(busy==='copying'?spinner():'')+'Copy diagnostics</button></div></div>';
   }
   function group(title,rows){return '<section class="settings-group">'+(title?'<h3>'+esc(title)+'</h3>':'')+'<div class="setting-list">'+rows+'</div></section>';}
   function projectsBody(){
@@ -2356,6 +2395,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(hit('[data-settings-empty-add]')){openSettings('projects',{add:true});return true;}
     if(hit('[data-retry]')){refresh();showError(errorUI.reason);return true;}
     if(hit('[data-error-details]')){errorUI.details=!errorUI.details;showError(errorUI.reason);return true;}
+    if(hit('[data-crash-logs]')){crashAction('logs');return true;}
+    if(hit('[data-crash-dismiss]')){crashAction('dismiss');return true;}
     if(!setup.open && !settingsUI.open)return false;
     if(hit('[data-settings-close]')){closeSettings();return true;}
     if(hit('[data-settings-clear-search]')){settingsUI.query='';renderSettings();if($('settings-search'))$('settings-search').focus();return true;}
@@ -2369,6 +2410,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if((el=hit('[data-project-open]'))){openFolderTarget('project',el.getAttribute('data-project-open'));return true;}
     if((el=hit('[data-theme-choice]'))){saveSetting(el.getAttribute('data-scope') || 'settings','theme',el.getAttribute('data-theme-choice'));return true;}
     if(hit('[data-open-data]')){openFolderTarget('data');return true;}
+    if(hit('[data-open-logs]')){openFolderTarget('logs');return true;}
+    if(hit('[data-copy-diagnostics]')){copyDiagnostics();return true;}
     if(hit('[data-settings-check-updates]')){updateUI.card=false;updateAction('check');return true;}
     if(hit('[data-setup-replay]')){closeSettings();openSetup();return true;}
     if((el=hit('[data-setup-goto]'))){setupGo(Number(el.getAttribute('data-setup-goto')));return true;}
@@ -2459,7 +2502,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(D.appVersion && j.appVersion && D.appVersion!==j.appVersion){save('wb-update-view',{version:j.appVersion,ui:ui,scroll:$('view').scrollTop,horizontal:$('view').scrollLeft,quick:{key:quick.key,tab:quick.tab,sequence:quick.sequence,scroll:$('quick-plan-scroll') && $('quick-plan-scroll').scrollTop}});location.reload();return j;}
     var restored=restoreUpdateView(j);
     D = j; if(!storedKeysMigrated && D.state.plans.length){storedKeysMigrated=true;migrateStoredPlanKeys();}
-    showError(D.error); render(); showWarnings(D.warnings); syncSetup(); renderUpdate();
+    showError(D.error); render(); showWarnings(D.warnings); showCrash(D.crash); syncSetup(); renderUpdate();
     if(restored){$('view').scrollTop=restored.scroll || 0;$('view').scrollLeft=restored.horizontal || 0;if(restored.quick && restored.quick.key && planByKey(restored.quick.key)){openQuickPlan(restored.quick.key,restored.quick.sequence);quick.tab=restored.quick.tab;renderQuickPlan(true);if($('quick-plan-scroll'))$('quick-plan-scroll').scrollTop=restored.quick.scroll || 0;}}
     return j;
   }).catch(function (e) { if(!updateInstalling())showError(e.message);return null; }); }

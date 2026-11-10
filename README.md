@@ -20,7 +20,7 @@ F5 and Refresh run the local Node collector. They do not call a model or consume
 
 ## Install
 
-Download the Windows x64 ZIP and checksum from this private repository's releases. Follow [INSTALL.md](INSTALL.md) for installation, configuration and rollback. Node.js 24 and Microsoft Edge are required.
+Download the Windows x64 ZIP and checksum from this repository's [releases](https://github.com/krik-it-dept/agent-ops/releases). Follow [INSTALL.md](INSTALL.md) for installation, configuration and rollback. Node.js 24 and Microsoft Edge are required.
 
 The default runtime stays at `~/.claude/tools/workboard` so existing launch links and private registries remain usable. The application and new executable are named Agent Ops. Legacy startup, URL protocol and persistence identifiers are retained.
 
@@ -38,8 +38,9 @@ Tests cover parsing, all three reporters, delegated execution, historical eviden
 - `dist/agent-ops.exe`
 - `dist/agent-ops-windows-amd64.zip`
 - `dist/agent-ops-windows-amd64.zip.sha256`
+- `dist/agent-ops-windows-amd64.manifest.json` (the package manifest the in-app updater verifies)
 
-Packaging uses an explicit file list and a fresh staging directory. Task sources, private attribution registries, execution history, browser profiles and session logs are excluded. CI runs the same checks on Windows and retains only the ZIP and checksum.
+Packaging uses an explicit file list and a fresh staging directory. Task sources, private attribution registries, execution history, browser profiles and session logs are excluded. A build of a commit not tagged with `VERSION` reports `vX.Y.Z-dev.<commit>`. CI runs the same checks plus `node scripts/update-e2e.mjs` (previous release to this build, then a manifest update and a rollback, all isolated) on Windows and retains the ZIP, checksum and manifest. Releases are drafted by `.github/workflows/release.yml` from a pushed version tag; see [in-app updates](docs/in-app-updates.md#release-flow) and [CHANGELOG.md](CHANGELOG.md).
 
 ## Architecture
 

@@ -705,6 +705,10 @@ func handleOpenFolder(w http.ResponseWriter, r *http.Request) {
 	switch body.Target {
 	case "data":
 		path = dataDir
+	case "logs":
+		if logDir != "" && os.MkdirAll(logDir, 0o700) == nil {
+			path = logDir
+		}
 	case "project":
 		for _, p := range knownProjects() {
 			if p.ID == body.ID {

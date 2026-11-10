@@ -19,7 +19,15 @@ try {
   const listed=[];
   function list(dir){for(const entry of readdirSync(dir,{withFileTypes:true})){const file=join(dir,entry.name);if(entry.isDirectory())list(file);else listed.push(file.slice(pkg.length+1).replaceAll('\\','/'));}}
   list(pkg);
+  // The bridge package keeps exactly the v0.2.0 file set: the v0.2.0 updater rejects anything else.
   assert.deepEqual(listed.sort(),['agent-ops.exe','tasks-overview.mjs','task-sync.mjs','task-report.mjs','plan-reader.mjs','execution-roles.mjs','execution-reports.mjs','historical-executions.mjs','agent-attribution.mjs','NOTICE.md','INSTALL.md','scripts/install.ps1','integrations/install-task-reporting.mjs','skills/task-plan/SKILL.md'].sort());
+  // The manifest asset describes the package exactly: every file, its size and digest.
+  const manifest=JSON.parse(readFileSync(join(root,'dist','agent-ops-windows-amd64.manifest.json'),'utf8'));
+  assert.equal(manifest.format,1);assert.match(manifest.version,/^v\d+\.\d+\.\d+(-dev\.[0-9a-f]+)?$/);assert.deepEqual(manifest.remove,[]);
+  assert.deepEqual(manifest.files.map(f=>f.path).sort(),listed.slice().sort());
+  for(const f of manifest.files){const body=readFileSync(join(pkg,f.path));assert.equal(f.size,body.length,f.path);assert.equal(f.sha256,createHash('sha256').update(body).digest('hex'),f.path);}
+  const reported=spawnSync('node',['-e',"process.stdout.write(require('node:child_process').execFileSync(process.argv[1],['--version'],{encoding:'utf8',windowsHide:true}))",join(pkg,'agent-ops.exe')],{encoding:'utf8',windowsHide:true}).stdout.trim();
+  assert.equal(reported,manifest.version,'the manifest names the packaged version');
   const runtime=join(fixture,'installed runtime'),profile=join(fixture,'profile');
   put(join(runtime,'historical-executions.json'),'private fixture sentinel');
   put(join(profile,'.codex','AGENTS.md'),'# Existing instructions\nPreserve this.\n');
