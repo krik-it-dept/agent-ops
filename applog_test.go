@@ -229,3 +229,29 @@ func TestOpenLogsFolderOpensOnlyTheLogDirectory(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String(), opened)
 	}
 }
+
+func TestRotationNeverTruncatesALogAnotherProcessHolds(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "logs", "agent-ops.log")
+	w, err := openRotating(file, 100, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { w.f.Close() }()
+	first := []byte(strings.Repeat("a", 79) + "\n")
+	if _, err := w.Write(first); err != nil {
+		t.Fatal(err)
+	}
+	// A second handle without delete sharing stands in for another instance.
+	other, err := os.Open(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	if _, err := w.Write([]byte(strings.Repeat("b", 39) + "\n")); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(file)
+	if !strings.HasPrefix(string(b), string(first)) || len(b) != 120 {
+		t.Fatal("the held log was truncated:", len(b))
+	}
+}

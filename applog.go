@@ -87,8 +87,15 @@ func (r *rotatingFile) Write(p []byte) (int, error) {
 		for i := r.keep - 1; i >= 1; i-- {
 			_ = os.Rename(r.rotated(i), r.rotated(i+1))
 		}
-		_ = os.Rename(r.path, r.rotated(1))
-		if err := r.open(os.O_TRUNC); err != nil {
+		if err := os.Rename(r.path, r.rotated(1)); err != nil {
+			// Another process (a second instance on the same data folder) still
+			// has the file open, so Windows refuses the rename. Keep appending
+			// instead of truncating its log, and retry after another max bytes.
+			if err := r.open(os.O_APPEND); err != nil {
+				return 0, err
+			}
+			r.size = 0
+		} else if err := r.open(os.O_TRUNC); err != nil {
 			return 0, err
 		}
 	}
