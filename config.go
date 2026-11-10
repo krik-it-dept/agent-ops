@@ -48,7 +48,8 @@ type AppConfig struct {
 	// Theme is "system", "light" or "dark"; empty means system.
 	Theme string `json:"theme,omitempty"`
 	// Shortcuts turns the single-key shortcuts (/, comma, R, ?) on or off.
-	Shortcuts bool `json:"shortcuts"`
+	Shortcuts       bool `json:"shortcuts"`
+	AutoArchiveDone bool `json:"autoArchiveDone"`
 }
 
 type RepoInfo struct {

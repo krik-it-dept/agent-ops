@@ -42,6 +42,8 @@ Notifications appear as **Agent Ops** with the app icon. The installed instance 
 
 F5/Refresh rereads source files and execution reports. Failures retain the last good state and show the reason. It does not run an AI model or assign agents. An execution report describes an observed event; it is not proof of a currently running OS process.
 
+In **Settings > General > Plans**, **Automatically archive Done plans** keeps plans whose explicit status is Done in the app's **Archive** collection. It starts off. Enabling it hides those plans from the main workspace; turning it off shows them there again. A plan whose status is reopened returns to the workspace automatically. Archiving preserves the original files, task markers and execution evidence. Archive remains searchable and can open plan details and the full plan.
+
 Historical attribution registries are optional private runtime data and are not in the repository/release. Upgrades preserve existing registries. New installations show unreported identity until clients report actual execution.
 
 ## Rollback

@@ -6,6 +6,8 @@ A local Windows dashboard for a tech lead to follow work reported by Codex, Anti
 
 - Summary opens new workspaces with current work first, next actions, status, workload and recent changes. Existing view preferences are preserved.
 - Local Geist typography, layered neutral light/dark surfaces, a distinct plans sidebar and quieter task rows.
+- A project tree, workspace plan tabs and a resizable details pane. Wide windows keep details beside the work; narrow windows use a focused dialog. Project folders, open tabs and pane width are local navigation preferences.
+- Optional automatic archiving in Settings > General > Plans. Plans explicitly marked Done move into the app's Archive collection and leave the main views. Reopening a status returns the plan to the workspace. Files and execution evidence stay in place; this preference starts off.
 - Search plans and commands with Ctrl+K; use Up/Down and Enter to open a result, Esc to close. Ctrl+1 through Ctrl+4 switch Summary/List/Board/Timeline; Ctrl+B toggles the sidebar. `/` filters the current view, F5 refreshes progress, Alt+Up/Down moves between plans, and Ctrl+, opens Settings. In Settings, Ctrl+F focuses search. Single-key shortcuts can be disabled in General.
 - A task-level List with column filters, sorting and expandable plan groups. Each group keeps its plan stage and whole-plan completion visible when collapsed or expanded; the matching-task count is separate from completion. The initial filter focuses on work in progress.
 - Board and day-by-day recorded progress history.
