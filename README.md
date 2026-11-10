@@ -20,7 +20,7 @@ F5 and Refresh run the local Node collector. They do not call a model or consume
 
 ## Install
 
-Download the Windows x64 ZIP and checksum from this repository's [releases](https://github.com/krik-it-dept/agent-ops/releases). Follow [INSTALL.md](INSTALL.md) for installation, configuration and rollback. Node.js 24 and Microsoft Edge are required.
+Download `agent-ops.exe` and its checksum from this repository's public [releases](https://github.com/krik-it-dept/agent-ops/releases), then open it and accept **Install Agent Ops?**, or run `agent-ops.exe --install`. It installs for the current user into `%LOCALAPPDATA%\Programs\AgentOps`, adds a Start menu shortcut and an Apps & features uninstall entry, and keeps existing data. The unsigned download may require **More info > Run anyway** in SmartScreen. Node.js 24 and Microsoft Edge are required. See [INSTALL.md](INSTALL.md) for migration, optional startup, uninstall and isolated ZIP installation.
 
 ## Develop and validate
 
@@ -36,6 +36,7 @@ node scripts/update-e2e.mjs
 Tests cover plan parsing, refresh failures, the read-only HTTP surface and its local request protection, settings, integrations, the one-time migration from earlier releases, the retired command stubs and UI behavior. Build regenerates native icons from the approved artwork, verifies all five embedded sizes and produces:
 
 - `dist/agent-ops.exe`
+- `dist/agent-ops.exe.sha256`
 - `dist/agent-ops-windows-amd64.zip`
 - `dist/agent-ops-windows-amd64.zip.sha256`
 - `dist/agent-ops-windows-amd64.manifest.json` (the package manifest the in-app updater verifies)

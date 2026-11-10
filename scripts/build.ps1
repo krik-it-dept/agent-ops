@@ -40,6 +40,8 @@ try {
     if ($null -ne $reported) { $reported = $reported.Trim() }
     if ($LASTEXITCODE -ne 0 -or $reported -ne $Version) { throw 'Built executable version mismatch.' }
     Invoke-Checked -File $goExecutable -Arguments @('run','./cmd/icon','--verify-exe',$executable)
+    $exeHash = (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash.ToLowerInvariant()
+    [IO.File]::WriteAllText($executable + '.sha256', $exeHash + '  agent-ops.exe' + "`n")
     # A fresh package directory prevents leftovers from entering a release. From
     # v0.3.0 the file set differs from v0.2.0's, so only installs at v0.2.1 or later
     # (manifest-based updater) can update in the app (docs/in-app-updates.md).

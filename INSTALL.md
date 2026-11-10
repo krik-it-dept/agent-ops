@@ -2,16 +2,16 @@
 
 Requires Windows x64, Microsoft Edge and Node.js 24. No model/API account is needed for the dashboard or F5.
 
-1. Quit a running Agent Ops from its tray menu.
-2. Extract the release ZIP to a temporary folder. Verify its SHA-256 against the adjacent checksum:
-   `(Get-FileHash .\agent-ops-windows-amd64.zip -Algorithm SHA256).Hash.ToLower()` must equal the value in `agent-ops-windows-amd64.zip.sha256`.
-3. A ZIP downloaded with a browser marks every extracted file as coming from the internet, and Windows' default PowerShell policy refuses unsigned scripts. In PowerShell, from the extracted package folder, clear the mark and run the installer with a one-time policy bypass (this changes no system setting):
-   ```powershell
-   Get-ChildItem -LiteralPath . -Recurse -File | Unblock-File
-   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1
-   ```
-   It installs into the install folder of earlier releases, `%USERPROFILE%\.claude\tools\workboard` (a later release moves it to `%LOCALAPPDATA%\Programs\AgentOps`), clears the download mark on every file it installs, runs the one-time migration from earlier releases (below) and starts the app. It installs no skill: choose that in the app.
-4. Pass `-NoLaunch` to install without starting the app, and start it later with `Start-Process "$env:USERPROFILE\.claude\tools\workboard\agent-ops.exe"`. If SmartScreen still shows "Windows protected your PC", choose **More info**, check that the file is the one you just installed, then **Run anyway**. The first launch opens the setup. Turn on **Start with Windows** in Settings to start it at sign-in.
+1. Download **agent-ops.exe** and **agent-ops.exe.sha256** from the public [releases](https://github.com/krik-it-dept/agent-ops/releases). No GitHub account or token is needed. Verify `(Get-FileHash .\agent-ops.exe -Algorithm SHA256).Hash.ToLower()` against the first field of `agent-ops.exe.sha256`.
+2. Open the executable. It is unsigned by design: if SmartScreen shows **Windows protected your PC**, select **More info > Run anyway** after checking the download and checksum.
+3. Accept the native **Install Agent Ops?** prompt. It installs into **%LOCALAPPDATA%\Programs\AgentOps** for this user, without administrator access, adds **Agent Ops** to the Start menu (AppUserModelID `KrikIT.AgentOps`), and registers **Agent Ops** in Windows Apps & features. Choose whether to start with Windows; this starts off for a new install. It then launches the installed app.
+4. Alternatively run `.\agent-ops.exe --install`; add `--install-startup` to enable login startup. Repeating installation preserves settings, the data folder and an existing startup preference. Running `--install` from the installed executable uses a temporary helper so Windows can replace its locked executable. Later changes to startup are available in Settings and the tray menu.
+
+The executable carries all runtime files listed by its generated package manifest, with sizes and SHA-256 hashes checked before copying. It installs no skill; choose skills in **Settings > Integrations**. If replacement or startup health fails, runtime files, shortcut and owned registry values are restored; recovery files are retained at the temporary transaction path printed in the error. A housekeeping failure after health succeeds keeps the healthy replacement and reports the error.
+
+A release first started from the earlier runtime `%USERPROFILE%\.claude\tools\workboard` moves once to the new location, including a default login start. You can also run the newly downloaded EXE with `--install` to migrate. Setup stops only processes whose exact executable path belongs to the old or new runtime, installs the manifest's files, repoints startup, protocol and AUMID, then verifies the replacement's PID, version and state. Only after health succeeds is the whole old directory renamed with a `.backup-<timestamp>` suffix beside its previous location. Unknown files stay in that recovery copy. App data remains in `%LOCALAPPDATA%\AgentOps`; the in-app updater follows the installed executable's new location. Development builds and launches with explicit test configuration do not automatically offer installation.
+
+The ZIP and its checksum remain available for isolated or scripted copies. Extract it, verify its SHA-256, and use `scripts/install.ps1 -RuntimeDir <absolute-isolated-path> -ProfileDir <temporary-profile> -NoLaunch`. Browser-downloaded scripts may need `Unblock-File` and a one-time `powershell -NoProfile -ExecutionPolicy Bypass -File ...` invocation. Use the executable installer for the normal per-user installation and Windows registrations.
 
 The app offers later releases itself. It checks on startup and every six hours, or on demand from **Settings > About**; a new release appears as a card and as **Update available** in the status bar, and **Update and restart** verifies, backs up, installs and restarts in place. It downloads public releases over HTTPS and needs no GitHub CLI or token. An installation older than v0.2.1 cannot install v0.3.0 or later in the app: install this package with the steps above once. See [in-app updates](docs/in-app-updates.md).
 
@@ -66,4 +66,8 @@ The desktop service is loopback-only, with Host/Origin/Fetch-Metadata checks, pr
 
 ## Uninstall
 
-Quit Agent Ops and turn off **Start with Windows** first. Remove the task-plan skill and reminder lines you installed in **Settings > Integrations**. Then remove the runtime directory, and in PowerShell remove the registrations the app wrote: `Remove-Item -Recurse HKCU:\Software\Classes\AppUserModelId\KrikIT.AgentOps, HKCU:\Software\Classes\agent-ops`. Delete `%LOCALAPPDATA%\AgentOps` only if its settings, backups and Edge profile are no longer wanted; `%LOCALAPPDATA%\krik-workboard` holds only leftovers of earlier releases (logs, update staging) after the migration.
+Open Windows **Apps & features > Agent Ops > Uninstall**, or run `"%LOCALAPPDATA%\Programs\AgentOps\agent-ops.exe" --uninstall` (in PowerShell: `& "$env:LOCALAPPDATA\Programs\AgentOps\agent-ops.exe" --uninstall`). The native dialog defaults to **Keep settings, backups and browser data**. Cancel leaves the installation alone. Uncheck that box only to delete `%LOCALAPPDATA%\AgentOps` as well.
+
+**Remove managed AI skills and reminder lines** is unchecked by default. Checking it uses the same guarded **Remove skill** and **reminder off** actions as Settings > Integrations, including backups and recorded hash/marker checks. Locally modified files stop uninstall and remain for manual review. With the box unchecked, AI client files are untouched, even when deleting app data.
+
+Uninstall stops the installed app, removes its Start menu shortcut, Run value, protocol class, AUMID and uninstall registration, then schedules removal of the install directory after the uninstall process exits. Other Run values, projects, source plans and the retained legacy runtime backup are left alone. Deferred deletion refuses redirected paths and retries file locks briefly; a remaining directory can be removed after closing processes that still hold it. Isolated ZIP copies have no Windows uninstall registration: stop their isolated process and remove only their own runtime directory.
