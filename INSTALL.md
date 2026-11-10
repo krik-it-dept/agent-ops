@@ -3,9 +3,15 @@
 Requires Windows x64, Microsoft Edge and Node.js 24. No model/API account is needed for the dashboard or F5.
 
 1. Quit the previous Workboard instance from its tray menu.
-2. Extract the release ZIP to a temporary folder. Verify its SHA-256 against the adjacent checksum.
-3. In PowerShell, run `./scripts/install.ps1` from the extracted package. It installs to `~/.claude/tools/workboard` and updates only the managed reporting instructions for Codex, Anti and Claude. Existing instructions are preserved with backups.
-4. Launch `~/.claude/tools/workboard/agent-ops.exe`. Existing Workboard data and Edge profile are reused.
+2. Extract the release ZIP to a temporary folder. Verify its SHA-256 against the adjacent checksum:
+   `(Get-FileHash .\agent-ops-windows-amd64.zip -Algorithm SHA256).Hash.ToLower()` must equal the value in `agent-ops-windows-amd64.zip.sha256`.
+3. A ZIP downloaded with a browser marks every extracted file as coming from the internet, and Windows' default PowerShell policy refuses unsigned scripts. In PowerShell, from the extracted package folder, clear the mark and run the installer with a one-time policy bypass (this changes no system setting):
+   ```powershell
+   Get-ChildItem -LiteralPath . -Recurse -File | Unblock-File
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1
+   ```
+   It installs to `~/.claude/tools/workboard` and updates only the managed reporting instructions for Codex, Anti and Claude. Existing instructions are preserved with backups.
+4. Launch the app: `Start-Process "$env:USERPROFILE\.claude\tools\workboard\agent-ops.exe"`. If SmartScreen shows "Windows protected your PC", choose **More info**, check that the file is the one you just installed, then **Run anyway**; or run `Unblock-File "$env:USERPROFILE\.claude\tools\workboard\agent-ops.exe"` first. The first launch opens the setup; existing Workboard data and Edge profile are reused. Turn on **Start with Windows** in Settings to start it at sign-in.
 
 From v0.1.2 onward, use **Updates** in the app for later releases. It checks on startup and every six hours, or on demand; **Update now** verifies, backs up, installs and restarts in place. GitHub CLI must already be signed in to an account with access to this private repository. No token is entered in the app. See [in-app updates](docs/in-app-updates.md) for recovery and validation details. An installation older than the updater needs this bootstrap procedure once.
 
