@@ -5,9 +5,9 @@ A local Windows dashboard for a tech lead to follow work reported by Codex, Anti
 ## What it shows
 
 - Summary with current status, workload, recent changes and items needing attention.
-- A task-level List with column filters, sorting and expandable plan groups. The initial filter focuses on work in progress.
+- A task-level List with column filters, sorting and expandable plan groups. Each group keeps its plan stage and whole-plan completion visible when collapsed or expanded; the matching-task count is separate from completion. The initial filter focuses on work in progress.
 - Board and day-by-day recorded progress history.
-- A plan Summary with the recorded goal, next action, blockers and open decisions first. Completed work and detailed execution evidence are collapsed.
+- A plan Summary with the recorded goal, next action, blockers and open decisions first. Completed work and detailed execution evidence are collapsed. Full-plan headings, tabs and content share the workspace gutter.
 - Starred/recent plans, quick view and agent icons. Navigation preferences survive refresh.
 - Separate coordinator and executor identities, including Claude delegating to Codex or Anti. Multiple contributors display as Multi; missing evidence stays unreported.
 

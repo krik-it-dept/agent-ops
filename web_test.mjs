@@ -419,11 +419,53 @@ test('Updated header filters inclusive Vietnam dates and missing dates, rejectin
 
 test('Group by Plan renders accurate counts and independently expands or collapses each repository plan',()=>{
  const h=harness(),a=plan('Implementing','Same'),b=plan('Implementing','Same');b.repo='second';setList(h,[a,b]);
- changeControl(h,'data-task-group','plan');assert.equal((h.ids.view.innerHTML.match(/class="task-group-heading"/g)||[]).length,2);assert.equal((h.ids.view.innerHTML.match(/2 tasks/g)||[]).length,2);assert.equal((h.ids.view.innerHTML.match(/data-open-task=/g)||[]).length,4);
+ changeControl(h,'data-task-group','plan');assert.equal((h.ids.view.innerHTML.match(/class="task-group-heading"/g)||[]).length,2);assert.equal((h.ids.view.innerHTML.match(/2 of 2 tasks matched/g)||[]).length,2);assert.equal((h.ids.view.innerHTML.match(/data-open-task=/g)||[]).length,4);
  h.api.handleViewAction(actionEvent('data-task-group-toggle','workboard/Same'));assert.equal(h.api.ui.collapsedPlans['workboard/Same'],true);assert.equal((h.ids.view.innerHTML.match(/data-open-task=/g)||[]).length,2);assert.match(h.ids.view.innerHTML,/aria-expanded="false"/);
  changeControl(h,'data-task-group','none');assert.equal((h.ids.view.innerHTML.match(/data-open-task=/g)||[]).length,4);
  changeControl(h,'data-task-group','plan');assert.equal((h.ids.view.innerHTML.match(/data-open-task=/g)||[]).length,2);
  h.api.handleViewAction(actionEvent('data-task-group-toggle','workboard/Same'));assert.equal((h.ids.view.innerHTML.match(/data-open-task=/g)||[]).length,4);
+});
+
+test('Plan group progress includes hidden done tasks and stays visible when collapsed or expanded',()=>{
+ const h=harness(),p=plan('Blocked - waiting for input','Plan <one>');
+ p.steps=['done','doing','done','todo','partial','blocked'].map((status,i)=>({status,text:'Task '+i}));
+ p.milestones=[{id:'M1',title:'Duplicate presentation',steps:p.steps}];
+ setList(h,[p]);h.api.ui.taskStatus='doing';changeControl(h,'data-task-group','plan');
+ const assertProgress=()=>{
+   const heading=h.ids.view.innerHTML.match(/<tbody class="task-group-heading">[\s\S]*?<\/tbody>/)[0];
+   assert.match(heading,/1 of 6 tasks matched/);assert.match(heading,/2\/6 · 33%/);
+   assert.match(heading,/aria-valuenow="33"/);assert.match(heading,/aria-valuetext="2 of 6 tasks complete across the whole plan"/);
+   assert.match(heading,/status-blocked">Blocked<\/span>/);assert.match(heading,/Plan &lt;one&gt;/);
+   assert.match(heading,/colspan="3"/);assert.match(heading,/class="task-group-status"/);
+ };
+ assertProgress();assert.equal(listRows(h).length,1);
+ h.api.handleViewAction(actionEvent('data-task-group-toggle','workboard/Plan <one>'));
+ assertProgress();assert.doesNotMatch(h.ids.view.innerHTML,/data-open-task=/);assert.match(h.ids.view.innerHTML,/aria-expanded="false"/);
+ h.api.handleViewAction(actionEvent('data-task-group-toggle','workboard/Plan <one>'));
+ assertProgress();assert.equal(listRows(h).length,1);
+});
+
+test('Same-named plans retain independent completion and plan stages are not inferred from completion',()=>{
+ const h=harness(),a=plan('Done','Same'),b=plan('Implementing','Same');b.repo='second';
+ a.steps=[{status:'done',text:'Done'},{status:'todo',text:'Unfinished'}];
+ b.steps=[{status:'done',text:'One'},{status:'done',text:'Two'},{status:'done',text:'Three'}];
+ setList(h,[a,b]);changeControl(h,'data-task-group','plan');
+ const headings=Array.from(h.ids.view.innerHTML.matchAll(/<tbody class="task-group-heading">([\s\S]*?)<\/tbody>/g),m=>m[1]);
+ assert.match(headings[0],/second · 3 of 3 tasks matched/);assert.match(headings[0],/3\/3 · 100%/);assert.match(headings[0],/status-doing">Implementing/);
+ assert.match(headings[1],/workboard · 2 of 2 tasks matched/);assert.match(headings[1],/1\/2 · 50%/);assert.match(headings[1],/status-done">Done/);
+});
+
+test('Refresh updates whole-plan completion in a collapsed group while retaining its task filter',async()=>{
+ const h=harness({layout:'list'}),p=plan();p.steps=[{status:'done',text:'One'},{status:'doing',text:'Two'},{status:'todo',text:'Three'}];
+ setList(h,[p]);h.api.ui.taskStatus='doing';changeControl(h,'data-task-group','plan');
+ h.api.handleViewAction(actionEvent('data-task-group-toggle','workboard/'+p.name));
+ assert.match(h.ids.view.innerHTML,/1\/3 · 33%/);
+ const newer=structuredClone(p);newer.steps[2].status='done';
+ h.context.fetch=async path=>({ok:true,json:async()=>path==='/api/refresh'?{refreshedAt:new Date().toISOString()}:data([newer])});
+ await h.api.refresh();
+ assert.equal(h.api.ui.taskStatus,'doing');assert.equal(h.api.ui.collapsedPlans['workboard/'+p.name],true);
+ assert.match(h.ids.view.innerHTML,/1 of 3 tasks matched/);assert.match(h.ids.view.innerHTML,/2\/3 · 67%/);
+ assert.doesNotMatch(h.ids.view.innerHTML,/data-open-task=/);
 });
 
 test('Expand/collapse all affects visible filtered groups and Clear filters keeps grouping, collapse and sort',()=>{

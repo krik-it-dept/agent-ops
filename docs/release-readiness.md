@@ -59,3 +59,9 @@ No scanner failure was converted into a claim that an unavailable manual visual 
 Run `./scripts/test.ps1 -VulnerabilityScan`, `./scripts/build.ps1`, then `node scripts/smoke.mjs` from a clean Windows checkout. The smoke uses only isolated temporary roots and stops only the process it created. The package contains no test task data.
 
 Follow INSTALL.md to quit the old process, install and roll back from runtime/instruction backups. Do not roll back or delete live task sources, execution reports or user preferences as part of a code rollback.
+
+## 2026-11-10: plan alignment and grouped progress
+
+Full-plan headings, tabs and all content sections now share the workspace gutter instead of independently centered maximum widths. List group headers retain the explicit plan stage, whole-plan done/total and percentage in both expanded and collapsed states. Matching-task counts are separate and filters do not change the completion denominator. Header chevrons use centered SVGs.
+
+The JavaScript suite now has 123 tests, including filtered/collapsed progress, same-named plans, stage/completion independence and refresh updates. Native visual inspection was attempted but Computer Use stopped because it could not confidently determine the Edge URL. No visual sign-off is claimed for this patch; automated DOM and extracted-package checks remain the verification path.
