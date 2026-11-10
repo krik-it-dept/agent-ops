@@ -29,7 +29,10 @@ const next=`v${major}.${minor}.${patch+1}`,broken=`v${major}.${minor}.${patch+2}
 const ps=['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass'];
 const fixture=mkdtempSync(join(root,'.test-e2e-'));
 const pids=new Set();
-function run(file,args,options={}){const p=spawnSync(file,args,{encoding:'utf8',windowsHide:true,maxBuffer:64<<20,...options});assert.equal(p.status,0,(p.stderr||'')+(p.stdout||'')+(p.error?.message||''));return p.stdout;}
+// Windows PowerShell 5.1 started from pwsh 7 (the CI default shell) inherits pwsh's PSModulePath and
+// then cannot load its own core modules (Get-FileHash missing), so it gets a clean module path.
+const ps51Env=env=>{const e={...env};for(const k of Object.keys(e))if(k.toUpperCase()==='PSMODULEPATH')delete e[k];return e;};
+function run(file,args,options={}){if(/^powershell(\.exe)?$/i.test(file))options={...options,env:ps51Env(options.env||process.env)};const p=spawnSync(file,args,{encoding:'utf8',windowsHide:true,maxBuffer:64<<20,...options});assert.equal(p.status,0,(p.stderr||'')+(p.stdout||'')+(p.error?.message||''));return p.stdout;}
 function put(file,text){mkdirSync(dirname(file),{recursive:true});writeFileSync(file,text);}
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -113,7 +116,7 @@ else process.exit(2);
     const ownerSkill=readFileSync(skill,'utf8')+'\n## Owner rule\n- Keep this local rule.\n';put(skill,ownerSkill);
     const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','check.md'),source='Agent: Codex\nStatus: Testing\nGoal: Isolated update verification\nNext: Verify update\n\n## M1: Work\n- [doing] Verify the app\n';put(plan,source);
     const port=await freePort(),base='http://127.0.0.1:'+port;
-    const env={...process.env,PATH:bin+';'+process.env.PATH,FAKE_GH_FEED:feedURL,KRIK_AGENT_MAP:join(fixture,'missing-agent.json'),KRIK_HISTORY_MAP:join(fixture,'missing-history.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')};
+    const env=ps51Env({...process.env,PATH:bin+';'+process.env.PATH,FAKE_GH_FEED:feedURL,KRIK_AGENT_MAP:join(fixture,'missing-agent.json'),KRIK_HISTORY_MAP:join(fixture,'missing-history.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')});
     const args=['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',dataDir];
     const start=extra=>{const p=spawn(join(runtime,'agent-ops.exe'),[...args,...extra],{windowsHide:true,stdio:'ignore',env,detached:true});pids.add(p.pid);p.unref();return p.pid;};
     const status=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(2000)});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId))pids.add(s.processId);return s;};
