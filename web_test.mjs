@@ -1104,10 +1104,26 @@ test('Stage glyphs remain static, labelled and independent of completion in both
  assert.doesNotMatch(html,/@font-face|rel="preload"[^>]+font/);
 });
 
-const edgePath=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
-test('Native DOM preserves unaffected plan nodes, focus, caret, scroll, disclosures and browser history', {skip:!edgePath,timeout:60000},()=>{
+// Headless Chromium for the native DOM checks: AGENT_OPS_TEST_BROWSER, then Edge, then Chrome.
+// Some Edge builds hand a headless start to the Edge already running on the desktop and exit
+// 0 with no output, so each candidate must first render a probe page. When browsers are
+// installed but none renders, the test fails instead of skipping.
+const browserArgs=['--headless=new','--disable-gpu','--enable-logging=stderr','--no-first-run','--no-default-browser-check','--disable-background-networking','--host-resolver-rules=MAP * ~NOTFOUND'];
+const browserCandidates=[process.env.AGENT_OPS_TEST_BROWSER,'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'].filter(p=>p && existsSync(p));
+function headlessBrowser(fixture){
+ const probe=join(fixture,'probe.html');writeFileSync(probe,'<p id="probe">static</p><script>document.getElementById("probe").textContent="script ran"</script>');
+ const tried=[];
+ for(const [i,browser] of browserCandidates.entries()){
+  const run=spawnSync(browser,[...browserArgs,'--user-data-dir='+join(fixture,'probe-profile-'+i),'--dump-dom',pathToFileURL(probe).href],{encoding:'utf8',windowsHide:true,timeout:45000});
+  if(run.stdout && run.stdout.includes('script ran'))return browser;
+  tried.push(browser+' (exit '+run.status+', '+(run.error || (run.stdout || '').length+' bytes')+')');
+ }
+ assert.fail('No installed browser renders a headless page: '+tried.join('; '));
+}
+test('Native DOM preserves unaffected plan nodes, focus, caret, scroll, disclosures and browser history', {skip:!browserCandidates.length,timeout:150000},()=>{
  const fixture=mkdtempSync(join(fileURLToPath(new URL('.',import.meta.url)),'.test-ledger-ui-'));
  try{
+  const browser=headlessBrowser(fixture);
   const payload=data(Array.from({length:28},(_,i)=>({...plan('Testing','Plan '+i),project:'p1',projectName:'Project One',mtime:new Date(Date.now()-i*60000).toISOString()})));
   const detail=focusPlan();detail.steps.push(...Array.from({length:30},(_,i)=>({status:'todo',text:'Loose task '+i,line:50+i})));
   payload.state.plans[0].diagnostics=[{message:'Sample plan warning'}];
@@ -1140,10 +1156,10 @@ test('Native DOM preserves unaffected plan nodes, focus, caret, scroll, disclosu
   const page=html.replace('jumpHash(); get(); connect(); initUpdates(); loadSettings();',check);
   new vm.Script(page.match(/<script>([\s\S]*?)<\/script>/)[1]);
   const pagePath=join(fixture,'index.html');writeFileSync(pagePath,page);
-  const run=spawnSync(edgePath,['--headless=new','--disable-gpu','--enable-logging=stderr','--no-first-run','--no-default-browser-check','--disable-background-networking','--host-resolver-rules=MAP * ~NOTFOUND','--user-data-dir='+join(fixture,'profile'),'--virtual-time-budget=5000','--dump-dom',pathToFileURL(pagePath).href],{encoding:'utf8',windowsHide:true,timeout:45000,maxBuffer:8<<20});
+  const run=spawnSync(browser,[...browserArgs,'--user-data-dir='+join(fixture,'profile'),'--virtual-time-budget=5000','--dump-dom',pathToFileURL(pagePath).href],{encoding:'utf8',windowsHide:true,timeout:90000,maxBuffer:8<<20});
   assert.equal(run.error,undefined,String(run.error));assert.equal(run.status,0,run.stderr);
   const report=run.stdout.match(/<pre id="ledger-dom-result">([\s\S]*?)<\/pre>/);
-  assert.ok(report,'Edge did not complete the isolated DOM checks: '+run.stderr.slice(-1500));
+  assert.ok(report,browser+' did not complete the isolated DOM checks: '+run.stderr.slice(-1500));
   const result=JSON.parse(report[1].replaceAll('&quot;','"').replaceAll('&lt;','<').replaceAll('&gt;','>').replaceAll('&amp;','&'));
   assert.equal(result.ok,true,result.error);assert.ok(result.results.length>=16);
  }finally{
