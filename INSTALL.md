@@ -38,6 +38,8 @@ Precedence for each value is flag, then environment variable, then `config.json`
 
 Use `--background` to start only the tray. Start with Windows is a preference in Settings and the tray menu; it always registers a plain `--background` launch, and the rest of the configuration comes from `config.json`; login starts the tray quietly. Persistence and the legacy protocol/run-key names remain compatible to avoid losing preferences or creating duplicate startup entries.
 
+Notifications appear as **Agent Ops** with the app icon. The installed instance (default port and data folder) registers the AppUserModelID `KrikIT.AgentOps` at `HKCU\Software\Classes\AppUserModelId\KrikIT.AgentOps` (`DisplayName`, `IconUri`) on each start and extracts the icon to `%LOCALAPPDATA%\krik-workboard\icons\agent-ops-toast.png`; development, test and smoke instances never write it and their notifications show as Windows PowerShell. Clicking a notification opens the plan through the `krik-workboard:` protocol.
+
 F5/Refresh rereads source files and execution reports. Failures retain the last good state and show the reason. It does not run an AI model or assign agents. An execution report describes an observed event; it is not proof of a currently running OS process.
 
 Historical attribution registries are optional private runtime data and are not in the repository/release. Upgrades preserve existing registries. New installations show unreported identity until clients report actual execution.
@@ -47,3 +49,7 @@ Historical attribution registries are optional private runtime data and are not 
 Quit Agent Ops. Copy the previous runtime files from the printed `backups/<timestamp>` directory back into the runtime directory. Reporting-instruction backups are under `~/.agents/workboard-backups`. Keep the current task sources, execution directory and app-data directory; they are not code rollback targets. Relaunch the previous binary and verify `/api/state` and one F5 check.
 
 The desktop service is loopback-only, with Host/Origin/Fetch-Metadata checks, protected POST actions, script-hash CSP and frame protection. It is not a public multi-user server and must not be exposed through a reverse proxy or port forwarding.
+
+## Uninstall
+
+Quit Agent Ops and turn off **Start with Windows** first. Then remove the runtime directory, and in PowerShell remove the registrations the app wrote: `Remove-Item -Recurse HKCU:\Software\Classes\AppUserModelId\KrikIT.AgentOps, HKCU:\Software\Classes\krik-workboard`. Delete `%LOCALAPPDATA%\krik-workboard` only if its settings, state and Edge profile are no longer wanted.
