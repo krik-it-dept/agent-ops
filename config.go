@@ -70,7 +70,14 @@ func projectIDFor(path string) string {
 
 var projectIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
 
+// errNewerConfig marks a config.json written by a newer release (for example after
+// a rollback). It is kept as it is, never moved aside or migrated.
+var errNewerConfig = errors.New("settings were saved by a newer Agent Ops")
+
 func validateAppConfig(c *AppConfig) error {
+	if c.Version > configVersion {
+		return fmt.Errorf("%w (settings version %d)", errNewerConfig, c.Version)
+	}
 	if c.Version != configVersion {
 		return fmt.Errorf("unsupported settings version %d", c.Version)
 	}
@@ -102,6 +109,15 @@ func validateAppConfig(c *AppConfig) error {
 			return fmt.Errorf("project %q needs a name of at most 120 characters", p.ID)
 		}
 	}
+	// A folder inside another project would be collected twice under two keys.
+	for i, a := range c.Projects {
+		for _, b := range c.Projects[i+1:] {
+			pa, pb := projectPathKey(a.Path), projectPathKey(b.Path)
+			if pathWithin(pa, pb) || pathWithin(pb, pa) {
+				return fmt.Errorf("projects %q and %q overlap: one folder contains the other", a.Path, b.Path)
+			}
+		}
+	}
 	for _, file := range []string{c.StateFile, c.SlotsFile} {
 		if file != "" && !filepath.IsAbs(file) {
 			return fmt.Errorf("settings file paths must be absolute")
@@ -121,14 +137,29 @@ func readAppConfig(file string) (AppConfig, error) {
 		Notifications *bool `json:"notifications"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return AppConfig{}, fmt.Errorf("invalid JSON: %w", err)
+		return AppConfig{}, &configContentError{fmt.Errorf("invalid JSON: %w", err)}
 	}
 	c := raw.AppConfig
 	c.Notifications = raw.Notifications == nil || *raw.Notifications
 	if err := validateAppConfig(&c); err != nil {
-		return AppConfig{}, err
+		if errors.Is(err, errNewerConfig) {
+			return AppConfig{}, err
+		}
+		return AppConfig{}, &configContentError{err}
 	}
 	return c, nil
+}
+
+// configContentError is a config.json that was read but is not valid settings;
+// only this kind of file is moved aside.
+type configContentError struct{ err error }
+
+func (e *configContentError) Error() string { return e.err.Error() }
+func (e *configContentError) Unwrap() error { return e.err }
+
+// projectPathKey compares project folders case-insensitively, without I/O.
+func projectPathKey(path string) string {
+	return strings.ToLower(filepath.Clean(path))
 }
 
 // writeAppConfig replaces the file atomically: a reader sees the old or the new
@@ -172,7 +203,14 @@ func loadOrMigrateConfig(file string, legacy legacyPaths, now time.Time) (cfg Ap
 	if err == nil {
 		return cfg, "", nil
 	}
-	if !errors.Is(err, fs.ErrNotExist) {
+	var corrupt *configContentError
+	if !errors.Is(err, fs.ErrNotExist) && !errors.As(err, &corrupt) {
+		// A read failure (file locked by an editor or antivirus, access denied) or
+		// a newer release's file is kept untouched: no move aside, no migration.
+		// The caller makes settings read-only until the next start.
+		return defaultAppConfig(), "", fmt.Errorf("settings file %s could not be used (%v); it was left unchanged", file, err)
+	}
+	if corrupt != nil {
 		aside := file + ".corrupt-" + now.Format("20060102-150405")
 		if renameErr := os.Rename(file, aside); renameErr != nil {
 			return defaultAppConfig(), "", fmt.Errorf("settings file %s is unreadable (%v) and could not be moved aside: %v", file, err, renameErr)

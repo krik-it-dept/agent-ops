@@ -124,7 +124,8 @@ func setupRequired() bool {
 	}
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
-	return !appCfg.SetupComplete
+	// Setup could not save while the settings file is unusable; show the warning instead.
+	return !appCfg.SetupComplete && configReadOnly == ""
 }
 
 // legacyProjectFor maps a pre-project "repo/plan" key to the single project that

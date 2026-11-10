@@ -167,3 +167,49 @@ func TestProjectValidation(t *testing.T) {
 		t.Fatal("missing project accepted")
 	}
 }
+
+// Only a file that was read and is not valid settings is moved aside. A read
+// failure or a newer release's file is kept, and nothing is migrated over it.
+func TestUnreadableOrNewerConfigIsKeptAndNotMigrated(t *testing.T) {
+	dir := isolated(t)
+	repos := filepath.Join(dir, "legacy")
+	mkRepo(t, filepath.Join(repos, "one"), "plan")
+	legacy := legacyPaths{repos: repos}
+	newer := configFilePath(filepath.Join(dir, "newer"))
+	os.MkdirAll(filepath.Dir(newer), 0o700)
+	os.WriteFile(newer, []byte(`{"version":2,"projects":[],"future":true}`), 0o600)
+	cfg, _, err := loadOrMigrateConfig(newer, legacy, time.Now())
+	if err == nil || len(cfg.Projects) != 0 {
+		t.Fatal("a newer settings file must not be replaced by migration", cfg, err)
+	}
+	if b, _ := os.ReadFile(newer); string(b) != `{"version":2,"projects":[],"future":true}` {
+		t.Fatal("a newer settings file was changed")
+	}
+	// A path that cannot be read as a file (here a folder) stands in for a locked file.
+	locked := configFilePath(filepath.Join(dir, "locked"))
+	os.MkdirAll(locked, 0o700)
+	if _, _, err := loadOrMigrateConfig(locked, legacy, time.Now()); err == nil {
+		t.Fatal("a read failure must be reported")
+	}
+	if matches, _ := filepath.Glob(locked + ".corrupt-*"); len(matches) != 0 || !exists(locked) {
+		t.Fatal("an unreadable settings file was moved aside")
+	}
+}
+
+func TestOverlappingProjectsAreRejectedOnLoad(t *testing.T) {
+	dir := isolated(t)
+	file := configFilePath(dir)
+	outer, inner := filepath.Join(dir, "R"), filepath.Join(dir, "r", "app")
+	b := []byte(`{"version":1,"setupComplete":true,"notifications":true,"projects":[` +
+		`{"id":"outer","path":` + strconvQuote(outer) + `,"name":"R","kind":"folder","enabled":true},` +
+		`{"id":"inner","path":` + strconvQuote(inner) + `,"name":"app","kind":"repo","enabled":true}]}`)
+	os.WriteFile(file, b, 0o600)
+	if _, err := readAppConfig(file); err == nil || !strings.Contains(err.Error(), "overlap") {
+		t.Fatal("overlapping projects were accepted", err)
+	}
+	cfg := defaultAppConfig()
+	cfg.Projects = []Project{{ID: "a", Path: filepath.Join(dir, "ab"), Name: "ab", Kind: "repo"}, {ID: "b", Path: filepath.Join(dir, "a"), Name: "a", Kind: "repo"}}
+	if err := validateAppConfig(&cfg); err != nil {
+		t.Fatal("sibling folders sharing a prefix are not nested", err)
+	}
+}
