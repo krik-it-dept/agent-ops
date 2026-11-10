@@ -179,7 +179,7 @@ func config() {
 	flag.BoolVar(&background, "background", false, "Start tray without opening a window")
 	flag.StringVar(&activation, "activate", "", "Toast activation URI")
 	home, _ := os.UserHomeDir()
-	flag.StringVar(&profileDir, "profile-dir", home, "Profile whose managed reporting instructions are updated")
+	flag.StringVar(&profileDir, "profile-dir", home, "Profile whose AI client files Settings > Integrations manages")
 	flag.BoolVar(&disableUpdateChecks, "no-update-check", false, "Disable automatic release checks (manual checks remain available)")
 	flag.BoolVar(&printVersion, "version", false, "Print the application version and exit")
 	flag.StringVar(&applyUpdateFile, "apply-update", "", "Internal verified update-helper manifest")
