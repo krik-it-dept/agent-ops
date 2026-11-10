@@ -28,7 +28,7 @@ func localBoundary(next http.Handler) http.Handler {
 		script = bytes.ReplaceAll(script, []byte("\r"), []byte("\n"))
 	}
 	hash := sha256.Sum256(script)
-	// The page uses the system font stack; nothing is loaded from another origin.
+	// Fonts and all other UI assets are bundled and served from this origin.
 	csp := "default-src 'self'; script-src 'sha256-" + base64.StdEncoding.EncodeToString(hash[:]) + "'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy", csp)

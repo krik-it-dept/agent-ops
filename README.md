@@ -1,10 +1,14 @@
 # Agent Ops
 
-A local Windows work ledger for a tech lead. It reads the Markdown plans that Codex, Antigravity and Claude keep in each repository's `.tasks/` folder and shows goals, milestones, steps, decisions, questions and progress in a compact interface. It only reads plans: it records no runs, assigns no agents and edits no plan. Orchestration (worktrees, workers, hand-offs) belongs to Orca.
+A local Windows work ledger for a tech lead. It reads the Markdown plans that Codex, Antigravity and Claude keep in each repository's `.tasks/` folder and shows goals, milestones, steps, decisions, questions and progress in a quiet desktop interface inspired by Orca. It only reads plans: it records no runs, assigns no agents and edits no plan. Orchestration (worktrees, workers, hand-offs) belongs to Orca.
 
 ## What it shows
 
-- Summary with current status, recent changes and items needing attention.
+- Summary opens new workspaces with current work first, next actions, status and recent changes. Existing view preferences are preserved.
+- Local Geist typography, layered neutral light/dark surfaces, a distinct plans sidebar and quieter task rows.
+- A project tree, workspace plan tabs and a resizable details pane. Wide windows keep details beside the work; narrow windows use a focused dialog. Project folders, open tabs and pane width are local navigation preferences.
+- Optional automatic archiving in Settings > General > Plans. Plans whose file says Done move into the app's Archive collection and leave the main views; a reopened status returns the plan to the workspace. Archive is a read-only view filter: no file is moved or edited. It starts off.
+- Search plans and commands with Ctrl+K; use Up/Down and Enter to open a result, Esc to close. Ctrl+1 through Ctrl+4 switch Summary/List/Board/Timeline; Ctrl+B toggles the sidebar. `/` filters the current view, F5 refreshes, Alt+Up/Down moves between plans, and Ctrl+, opens Settings. In Settings, Ctrl+F focuses search. Single-key shortcuts can be disabled in General.
 - A task-level List with column filters, sorting and expandable plan groups. Each group keeps its plan stage and whole-plan completion visible when collapsed or expanded.
 - Board and day-by-day history of plan changes.
 - A plan Summary with the recorded goal, next action, blockers and open decisions first.
@@ -57,4 +61,8 @@ The app writes AI client files only when you act in Settings > Integrations, and
 
 The service binds only to loopback, checks Host/Origin/browser metadata, protects writes with a custom header, sends frame/security headers and uses a hash-based script CSP. Same-user local programs and browser extensions remain inside the desktop trust boundary. Do not expose it as a public server.
 
-The interface uses the system font; nothing is loaded from another origin. Artwork and third-party identity notices are in [NOTICE.md](NOTICE.md). See [release readiness](docs/release-readiness.md) for audit evidence and remaining manual checks.
+Geist is bundled with its OFL license and a system fallback. No interface assets require a remote CDN. Artwork and third-party identity notices are in [NOTICE.md](NOTICE.md). See [release readiness](docs/release-readiness.md) for audit evidence and remaining manual checks.
+
+## Scope retained for review
+
+The proposed business-task parent/child migration and richer problem/impact/acceptance brief are separate, unapproved data changes. This release does not invent missing business context, acceptance results or task ownership.

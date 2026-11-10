@@ -6,9 +6,13 @@ The release workflow takes the section whose heading starts with the pushed tag.
 ## v0.3.0 - A read-only work ledger
 
 Agent Ops now only reads plans. Orchestration (worktrees, workers, hand-offs)
-belongs to Orca. Install v0.2.1 first: an older installation cannot take this
-release in the app and is reinstalled once from the package.
+belongs to Orca. The previous release is v0.2.2; v0.2.1 and v0.2.2 update to this
+release in the app. An older installation cannot, and is reinstalled once from
+the package.
 
+- Keeps the v0.2.2 desktop workspace, command search, Geist font and the
+  optional Done archive. Archive is a read-only view filter: it never edits or
+  moves a plan file.
 - Run reporting is retired: no run history, no executor or agent attribution,
   no worktree slots, and no status changes from the app. `task-sync.mjs` and
   `task-report.mjs` stay as stubs that exit 0, so older sessions and hooks keep
@@ -33,6 +37,20 @@ release in the app and is reinstalled once from the package.
   removed), `AGENT_OPS_*` variables and the `X-Agent-Ops` request header.
 - The plan list, board, history and summary no longer show agents, executors,
   run evidence or slots.
+
+## v0.2.2 - Desktop workspace and Archive
+
+- Quieter light and dark surfaces, bundled Geist typography and readable task rows.
+- A project tree, persistent plan tabs and a resizable details pane keep plans
+  beside the workspace on wide windows. Narrow windows use a focused dialog.
+- Ctrl+K searches plans and commands, including Vietnamese without accents.
+  Shortcut hints expose view switching, sidebar navigation and Settings search.
+- Summary puts current work and recorded next actions first, with direct plan
+  previews and the existing status and execution evidence.
+- Settings > General > Plans adds automatic archiving, off by default. Plans
+  explicitly marked Done enter Archive and return when their status is reopened.
+  Original files, task markers and execution evidence stay in place.
+- Fixed a false error in plan previews caused by reading hidden banner buttons.
 
 ## v0.2.1 - Release and update foundation
 

@@ -666,6 +666,38 @@ func TestConfigWithoutShortcutsKeyDefaultsToOn(t *testing.T) {
 	}
 }
 
+func TestArchivePreferencePersistsWithoutMovingPlanSources(t *testing.T) {
+	dir := settingsFixture(t)
+	file := filepath.Join(dir, "repo", ".tasks", "finished.md")
+	source := []byte("Agent: Codex\nStatus: Done\n\n- [done] Delivered\n")
+	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, source, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if w, out := call(t, handleSettings, "GET", "/api/settings", nil); w.Code != 200 || out["autoArchiveDone"] != false {
+		t.Fatal(w.Code, out)
+	}
+	for _, enabled := range []bool{true, false} {
+		w, out := call(t, handleSettings, "PUT", "/api/settings", map[string]any{"autoArchiveDone": enabled})
+		if w.Code != 200 || out["autoArchiveDone"] != enabled {
+			t.Fatal(w.Code, out)
+		}
+		saved, err := readAppConfig(configFilePath(dataDir))
+		if err != nil || saved.AutoArchiveDone != enabled {
+			t.Fatal(saved, err)
+		}
+		got, err := os.ReadFile(file)
+		if err != nil || !bytes.Equal(got, source) {
+			t.Fatal("archiving changed source", err)
+		}
+	}
+	if w, _ := call(t, handleSettings, "PUT", "/api/settings", map[string]any{"autoArchiveDone": "true"}); w.Code != 400 {
+		t.Fatal("non-boolean archive preference accepted", w.Code)
+	}
+}
+
 // recordToasts replaces the notification seam and returns the notices shown.
 func recordToasts(t *testing.T) func() []string {
 	t.Helper()

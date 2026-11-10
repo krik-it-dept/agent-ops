@@ -158,10 +158,13 @@ else process.exit(2);
       return after;
     }
 
-    // 1. Previous release -> N. Releases from v0.2.1 check the HTTP feed, earlier ones gh.
-    start(older(from,'v0.2.1')?[]:['--update-feed',feedURL]);
+    // Releases since v0.2.1 use the HTTP client, so their initial process needs the local feed too.
+    const oldUsesGh=older(from,'v0.2.1');
+    start(oldUsesGh?[]:['--update-feed',feedURL]);
     const initial=await until(status,s=>s.current===from,60000,'previous release');
+    const initialFeedCalls=seen.latest;
     await update(version);
+    assert.ok(seen.latest>initialFeedCalls,'the previous release checked the isolated feed');
     assert.ok(existsSync(join(dataDir,'logs','update.log')),'the N helper logs its steps');
     assert.match(result().message,/Run reporting is retired[^]*Your changes were kept[^]*SKILL\.md \(modified locally\)/,'migration and kept SKILL.md reported');
     for(const name of builtRemove)assert.ok(!existsSync(join(runtime,name)),'retired file removed: '+name);

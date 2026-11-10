@@ -56,6 +56,8 @@ Notifications appear as **Agent Ops** with the app icon. The installed instance 
 
 F5/Refresh rereads the plan files. Failures retain the last good state and show the reason. It does not run an AI model.
 
+In **Settings > General > Plans**, **Automatically archive Done plans** keeps plans whose explicit status is Done in the app's **Archive** collection. It starts off. Enabling it hides those plans from the main workspace; turning it off shows them there again. A plan whose status is reopened in its file returns to the workspace automatically. Archive is a read-only view: the app never moves or edits a plan file. Archive remains searchable and can open plan details and the full plan.
+
 ## Rollback
 
 Quit Agent Ops. Copy the previous runtime files from the printed `backups/<timestamp>` directory back into the runtime directory. AI client files changed by the migration or by Settings > Integrations are backed up under `%LOCALAPPDATA%\AgentOps\backups`. Keep the task sources and the data folder; they are not code rollback targets. Relaunch the previous binary and verify `/api/state` and one F5 check.

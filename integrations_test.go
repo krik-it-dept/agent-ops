@@ -199,7 +199,7 @@ func TestRemovedPlanWriteRoutesAreGone(t *testing.T) {
 		}
 	}
 	// Every route the app registers, from the sources.
-	allowed := map[string]bool{"/": true, "/icons/": true, "/events": true, "/api/state": true, "/api/refresh": true,
+	allowed := map[string]bool{"/": true, "/icons/": true, "/fonts/": true, "/events": true, "/api/state": true, "/api/refresh": true,
 		"/api/settings": true, "/api/settings/pick-folder": true, "/api/settings/open-folder": true, "/api/projects": true, "/api/projects/": true,
 		"/api/integrations": true, "/api/integrations/": true, "/api/updates": true, "/api/updates/": true, "/api/diagnostics": true, "/api/diagnostics/dismiss-crash": true}
 	pattern := regexp.MustCompile(`(?:mux\.HandleFunc|mux\.Handle)\("([^"]+)"`)

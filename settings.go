@@ -319,6 +319,7 @@ type settingsPayload struct {
 	Notifications      bool              `json:"notifications"`
 	Theme              string            `json:"theme"`
 	Shortcuts          bool              `json:"shortcuts"`
+	AutoArchiveDone    bool              `json:"autoArchiveDone"`
 	StartWithWindows   bool              `json:"startWithWindows"`
 	StartupManaged     bool              `json:"startupManaged"`
 	DataDir            string            `json:"dataDir"`
@@ -354,7 +355,7 @@ func currentSettings() settingsPayload {
 	cfgMu.Unlock()
 	out := settingsPayload{
 		SetupRequired: setupRequired(), SetupComplete: cfg.SetupComplete, Notifications: cfg.Notifications,
-		Theme: themeOrSystem(cfg.Theme), Shortcuts: cfg.Shortcuts,
+		Theme: themeOrSystem(cfg.Theme), Shortcuts: cfg.Shortcuts, AutoArchiveDone: cfg.AutoArchiveDone,
 		StartWithWindows: startupReader(), StartupManaged: startupManaged(),
 		DataDir: dataDir, ConfigFile: configFilePath(dataDir), StateFile: stateFile,
 		Warning: warning, ReadOnly: readOnly, Version: appVersion, Projects: []settingsProject{},
@@ -475,6 +476,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		StartWithWindows *bool   `json:"startWithWindows"`
 		Theme            *string `json:"theme"`
 		Shortcuts        *bool   `json:"shortcuts"`
+		AutoArchiveDone  *bool   `json:"autoArchiveDone"`
 	}
 	if !decodeOne(w, r, &body) {
 		return
@@ -491,7 +493,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		startupWriter(*body.StartWithWindows)
 		syncStartupMenu()
 	}
-	if body.Notifications != nil || body.SetupComplete != nil || body.Theme != nil || body.Shortcuts != nil {
+	if body.Notifications != nil || body.SetupComplete != nil || body.Theme != nil || body.Shortcuts != nil || body.AutoArchiveDone != nil {
 		if updateRestarting.Load() {
 			settingsFail(w, http.StatusServiceUnavailable, "Agent Ops is restarting for an update. Try again after it reconnects.")
 			return
@@ -515,6 +517,9 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		if body.Shortcuts != nil {
 			next.Shortcuts = *body.Shortcuts
+		}
+		if body.AutoArchiveDone != nil {
+			next.AutoArchiveDone = *body.AutoArchiveDone
 		}
 		// Setup may be skipped with no project; the board then offers "Add a project to start".
 		if body.SetupComplete != nil {
