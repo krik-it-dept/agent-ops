@@ -12,6 +12,8 @@
 //      remove the reporting hooks (also from an Orca Claude profile) and instruction
 //      blocks the previous installer wrote, replace an unedited old skill, keep an
 //      owner-edited one ("modified locally"), and delete the old run history.
+//      From v0.3.0 or later there is nothing to migrate: the update must remove the Node
+//      collector files and leave the owner's client settings and edited skill untouched.
 //   2. N -> N+1 over the anonymous HTTP feed (--update-feed), with a manifest that adds
 //      a file and removes one.
 //   3. N+1 -> N+2 whose plan collector fails (a build linked with
@@ -148,19 +150,28 @@ else process.exit(2);
     run('powershell.exe',[...ps,'-File',join(oldPkg,'scripts','install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch']);
     const ownerFile=join(runtime,'owner-notes.json');put(ownerFile,'{"private":"keep"}');
     const registry=join(runtime,'historical-executions.json');put(registry,'{"old":"history"}');
+    // Releases before v0.3.0 recorded runs: their installer wrote reporting hooks, instruction
+    // blocks and skills, which the update migrates. v0.3.0 and later write none, so the profile
+    // gets owner settings and an owner-edited skill that the update must leave alone.
+    const reporting=older(from,'v0.3.0');
     const claudeSettings=join(profile,'.claude','settings.json');
-    assert.match(readFileSync(claudeSettings,'utf8'),/task-sync\.mjs/,'the previous installer wrote its hooks');
+    const skill=join(profile,'.agents','skills','task-plan','SKILL.md'),claudeSkill=join(profile,'.claude','skills','task-plan','SKILL.md');
+    if(!reporting){
+      assert.ok(!existsSync(claudeSettings)&&!existsSync(skill)&&!existsSync(claudeSkill),'the previous installer wrote no client file');
+      put(claudeSettings,'{\n  "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "owner-hook.cmd"}]}]}\n}\n');
+      put(skill,'---\nname: task-plan\n---\n# Owner copy\n');
+    }
+    if(reporting)assert.match(readFileSync(claudeSettings,'utf8'),/task-sync\.mjs/,'the previous installer wrote its hooks');
     const blockedAgents=readFileSync(join(profile,'.codex','AGENTS.md'),'utf8');
-    assert.match(blockedAgents,/workboard-task-reporting:start/,'the previous installer wrote its block');
+    if(reporting)assert.match(blockedAgents,/workboard-task-reporting:start/,'the previous installer wrote its block');
     // An Orca Claude profile holds a copy of the settings with the same hooks.
     const orcaSettings=join(profile,'AppData','Roaming','orca','claude-profiles','fixture','home','settings.json');
     put(orcaSettings,readFileSync(claudeSettings,'utf8'));
     const hookedSettings=readFileSync(claudeSettings,'utf8');
     // The owner edits the shared skill; the Claude copy stays as installed.
-    const skill=join(profile,'.agents','skills','task-plan','SKILL.md'),claudeSkill=join(profile,'.claude','skills','task-plan','SKILL.md');
-    assert.ok(existsSync(skill)&&existsSync(claudeSkill),'the previous installer wrote both skills');
+    if(reporting)assert.ok(existsSync(skill)&&existsSync(claudeSkill),'the previous installer wrote both skills');
     const ownerSkill=readFileSync(skill,'utf8')+'\n## Owner rule\n- Keep this local rule.\n';put(skill,ownerSkill);
-    const oldClaudeSkill=readFileSync(claudeSkill,'utf8');
+    const oldClaudeSkill=reporting?readFileSync(claudeSkill,'utf8'):null;
     // Run history the previous release recorded next to its state file.
     const history=join(oldData,'state','workboard-executions','run.json');put(history,'{"event":"start"}');
     const repos=join(dir,'repos'),plan=join(repos,'sample','.tasks','check.md'),source='Agent: Codex\nStatus: Testing\nGoal: Isolated update verification\nNext: Verify update\n\n## M1: Work\n- [doing] Verify the app\n';put(plan,source);
@@ -197,7 +208,8 @@ else process.exit(2);
       assert.equal(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),ownerAgents,'owner instructions kept, reporting block removed');
       assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved');
       for(const file of [claudeSettings,orcaSettings])assert.doesNotMatch(readFileSync(file,'utf8'),/task-sync/,'reporting hooks removed from '+file);
-      assert.match(readFileSync(claudeSkill,'utf8'),/^agent-ops-skill: 2$/m,'the unedited old skill was replaced');
+      if(reporting)assert.match(readFileSync(claudeSkill,'utf8'),/^agent-ops-skill: 2$/m,'the unedited old skill was replaced');
+      else{for(const file of [claudeSettings,orcaSettings])assert.equal(readFileSync(file,'utf8'),hookedSettings,'owner client settings untouched: '+file);assert.ok(!existsSync(claudeSkill),'the update installs no skill');}
       return after;
     }
 
@@ -231,21 +243,24 @@ else process.exit(2);
     await update(version);
     assert.ok(seen.latest>initialFeedCalls,'the previous release checked the isolated feed');
     assert.ok(existsSync(join(dataDir,'logs','update.log')),'the N helper logs its steps in the new data folder');
-    assert.match(result().message,/Run reporting is retired[^]*Your changes were kept[^]*SKILL\.md \(modified locally\)/,'migration and kept SKILL.md reported');
     for(const name of builtRemove)assert.ok(!existsSync(join(runtime,name)),'retired file removed: '+name);
+    for(const name of ['tasks-overview.mjs','plan-reader.mjs'])assert.ok(!existsSync(join(runtime,name)),'Node collector removed: '+name);
     assert.ok(readFileSync(join(runtime,'task-sync.mjs'),'utf8').includes('no longer records runs'),'task-sync is the stub');
-    assert.ok(!existsSync(history)&&!existsSync(registry),'old run history deleted');
     const migration=JSON.parse(readFileSync(join(dataDir,'migration.json'),'utf8'));
     assert.equal(migration.done,true,'migration recorded as done');
-    assert.ok(existsSync(join(migration.backup,'data'))&&existsSync(join(migration.backup,'profile','.claude','settings.json')),'history and client files backed up');
-    assert.ok(!existsSync(join(profile,'.agents','workboard-integrations.json')),'old integration record carried into config.json and deleted');
     const config=JSON.parse(readFileSync(join(dataDir,'config.json'),'utf8'));
-    assert.ok(Array.isArray(config.integrations)&&config.integrations.some(t=>t.skillDir===dirname(dirname(claudeSkill))&&t.sha256&&t.source==='detected')&&config.integrations.some(t=>t.skillDir===dirname(dirname(skill))&&!t.sha256),'the folder list is seeded from the skill folders found; the edited one stays Modified locally');
+    if(reporting){
+      assert.match(result().message,/Run reporting is retired[^]*Your changes were kept[^]*SKILL\.md \(modified locally\)/,'migration and kept SKILL.md reported');
+      assert.ok(!existsSync(history)&&!existsSync(registry),'old run history deleted');
+      assert.ok(existsSync(join(migration.backup,'data'))&&existsSync(join(migration.backup,'profile','.claude','settings.json')),'history and client files backed up');
+      assert.ok(!existsSync(join(profile,'.agents','workboard-integrations.json')),'old integration record carried into config.json and deleted');
+      assert.ok(Array.isArray(config.integrations)&&config.integrations.some(t=>t.skillDir===dirname(dirname(claudeSkill))&&t.sha256&&t.source==='detected')&&config.integrations.some(t=>t.skillDir===dirname(dirname(skill))&&!t.sha256),'the folder list is seeded from the skill folders found; the edited one stays Modified locally');
+    }
     if(redirect){
       assert.equal(config.stateFile,stateFile,'config.json copied from the previous default data folder');
       assert.ok(!existsSync(join(oldData,'state'))&&!existsSync(join(oldData,'activity.jsonl')),'the previous data folder\'s run data deleted');
     }
-    console.log(`  ${from} -> ${version}: installed through the ${from} updater (${oldUsesGh?'gh':'anonymous HTTP'} fixture${redirect?', default data folders moved':''}); hooks, blocks and run history removed, owner SKILL.md kept`);
+    console.log(`  ${from} -> ${version}: installed through the ${from} updater (${oldUsesGh?'gh':'anonymous HTTP'} fixture${redirect?', default data folders moved':''}); Node collector removed, ${reporting?'hooks, blocks and run history removed':'owner client settings untouched'}, owner SKILL.md kept`);
     if(redirect)return {from,initialPid:initial.processId};
 
     // Restart N against the HTTP feed (the restart keeps --update-feed for later relaunches).
