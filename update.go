@@ -26,7 +26,7 @@ const updateRepository = "krik-it-dept/agent-ops"
 const updateArchive = "agent-ops-windows-amd64.zip"
 const maxUpdateBytes = 128 << 20
 
-var appVersion = "v0.1.2"
+var appVersion = "v0.1.3"
 var appCommit = "development"
 var updates *appUpdater
 var updateRestarting atomic.Bool
@@ -129,6 +129,13 @@ func newAppUpdater(root, data, profile string, args []string) *appUpdater {
 }
 
 func (u *appUpdater) snapshot() updateState { u.mu.Lock(); defer u.mu.Unlock(); return u.state }
+
+// Keep recovery feedback visible until a manual check or the six-hour retry.
+func (u *appUpdater) startInitialCheck() {
+	if u.snapshot().Phase != "error" {
+		u.startCheck()
+	}
+}
 func (u *appUpdater) failure(message string) {
 	u.mu.Lock()
 	defer u.mu.Unlock()

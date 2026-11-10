@@ -227,6 +227,23 @@ func TestCheckFailureDoesNotLeakCLIOutputOrAllowStaleApply(t *testing.T) {
 		t.Fatal("applied stale release")
 	}
 }
+func TestInitialCheckDoesNotEraseARecoveryFailure(t *testing.T) {
+	u, _ := updateFixture(t)
+	if err := writeUpdateJSON(filepath.Join(u.data, "update-result.json"), updateResult{"error", "v0.2.0", "Previous version restored."}); err != nil {
+		t.Fatal(err)
+	}
+	restarted := newAppUpdater(u.root, u.data, u.profile, nil)
+	called := false
+	restarted.run = func(context.Context, string, ...string) ([]byte, error) {
+		called = true
+		return nil, errors.New("unexpected network call")
+	}
+	restarted.startInitialCheck()
+	if called || restarted.snapshot().Error != "Previous version restored." {
+		t.Fatal("Recovery receipt was overwritten")
+	}
+}
+
 func TestUpdateEndpointsRejectCrossSiteRequestsAndUnselectedVersions(t *testing.T) {
 	u, _ := updateFixture(t)
 	previous := updates

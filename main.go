@@ -250,7 +250,7 @@ func main() {
 	if !disableUpdateChecks {
 		go func() {
 			time.Sleep(3 * time.Second)
-			updates.startCheck()
+			updates.startInitialCheck()
 			ticker := time.NewTicker(6 * time.Hour)
 			defer ticker.Stop()
 			for range ticker.C {

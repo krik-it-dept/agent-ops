@@ -21,6 +21,8 @@ SHA-256 detects corruption and mismatch with the trusted GitHub release. It does
 
 Task Markdown, execution/historical registries, activity, browser profile, navigation preferences and owner data are not replacement targets. Backups and a small result receipt stay under the data directory. There is no recursive cleanup of live runtime or task directories.
 
+Recovery failures remain visible after restart instead of being immediately overwritten by a startup check. A manual check acknowledges the message; the six-hour retry schedule remains available.
+
 The open UI notices a changed server version, saves its current filters, plan/group/collapse state, scroll and quick view, then reloads itself. It restores that snapshot only for the expected new version. Ordinary startup still uses the usual default filters.
 
 `--profile-dir` selects the profile whose managed instructions are maintained; default is the current user. `--no-update-check` disables automatic checks, while leaving explicit checks available. These flags support isolated validation and portable setups. Updating from a release older than the updater requires one initial bootstrap installation; subsequent releases use the in-app action.
