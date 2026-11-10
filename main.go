@@ -462,6 +462,10 @@ var (
 	// project that appears are seeded quietly; plans of one that disappears are
 	// dropped quietly, so adding or removing a project never floods the activity feed.
 	lastProjects map[string]bool
+	// Projects whose history has been seeded into the activity log once. A project
+	// that returns (re-enabled, or its drive reconnected) is not seeded again, so
+	// toggling it never duplicates history. Persisted in seen-projects.json.
+	seenProjects map[string]bool
 	// Per-project results of the last collector run.
 	projectStates []ProjectState
 )
@@ -540,7 +544,7 @@ func refresh(first bool) {
 		for k, p := range cur {
 			if p.Project == "" || lastProjects == nil || lastProjects[p.Project] {
 				changed[k] = p
-			} else {
+			} else if !seenProjects[p.Project] {
 				added[k] = p
 			}
 		}
@@ -548,6 +552,12 @@ func refresh(first bool) {
 		quiet = seed(added)
 	} else {
 		quiet = seed(cur)
+	}
+	if seenProjects == nil {
+		seenProjects = map[string]bool{}
+	}
+	for id := range readable {
+		seenProjects[id] = true
 	}
 	lastProjects = readable
 	prev = cur
@@ -902,10 +912,20 @@ func isStale(p Plan, now time.Time) bool {
 
 func staleEvents(cur map[string]Plan, seen map[string]time.Time, now time.Time) []Event {
 	var fresh []Event
+	// Plans of a project that is not read now (disabled or disconnected) keep their
+	// entry, so a returning project does not announce the same stale work again.
+	read := map[string]bool{}
+	for _, p := range cur {
+		read[p.Project] = true
+	}
 	for k := range seen {
-		if _, ok := cur[k]; !ok {
-			delete(seen, k)
+		if _, ok := cur[k]; ok {
+			continue
 		}
+		if project, rest, _ := strings.Cut(k, "/"); strings.Contains(rest, "/") && !read[project] {
+			continue
+		}
+		delete(seen, k)
 	}
 	for k, p := range cur {
 		if !isStale(p, now) {
@@ -965,6 +985,10 @@ func loadPersisted() {
 	if staleSeen == nil {
 		staleSeen = map[string]time.Time{}
 	}
+	seenProjects = map[string]bool{}
+	if b, err := os.ReadFile(filepath.Join(dataDir, "seen-projects.json")); err == nil {
+		_ = json.Unmarshal(b, &seenProjects)
+	}
 	mapLegacyKeys(knownProjects())
 }
 
@@ -974,6 +998,9 @@ func persist(fresh []Event) {
 	}
 	if b, err := json.Marshal(staleSeen); err == nil {
 		_ = os.WriteFile(filepath.Join(dataDir, "stale.json"), b, 0o644)
+	}
+	if b, err := json.Marshal(seenProjects); err == nil && seenProjects != nil {
+		_ = os.WriteFile(filepath.Join(dataDir, "seen-projects.json"), b, 0o644)
 	}
 	if len(fresh) == 0 {
 		return

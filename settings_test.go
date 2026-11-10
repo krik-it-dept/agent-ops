@@ -37,8 +37,10 @@ func settingsFixture(t *testing.T) string {
 		opener                            func(string) error
 		legacy                            legacyPaths
 		allowLegacy                       func() bool
-	}{reposDir, stateFile, slotsFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed}
+		seen                              map[string]bool
+	}{reposDir, stateFile, slotsFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed, seenProjects}
 	t.Cleanup(func() {
+		seenProjects = old.seen
 		reposDir, stateFile, slotsFile, scriptFile, dataDir = old.repos, old.state, old.slots, old.script, old.data
 		appCfg, configWarning, configReadOnly = old.cfg, old.warning, old.readOnly
 		prev, events, rawState, refreshError, staleSeen = old.prevPlans, old.ev, old.raw, old.errText, old.stale
@@ -53,6 +55,7 @@ func settingsFixture(t *testing.T) string {
 	scriptFile, _ = filepath.Abs("tasks-overview.mjs")
 	appCfg, configWarning, configReadOnly = defaultAppConfig(), "", ""
 	prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates = nil, nil, nil, "", map[string]time.Time{}, nil, nil
+	seenProjects = nil
 	startupState := false
 	startupReader = func() bool { return startupState }
 	startupWriter = func(on bool) { startupState = on }
@@ -438,5 +441,54 @@ func TestV014RelaunchArgumentsAreNotOverrides(t *testing.T) {
 		if strings.Contains(args, flagName) {
 			t.Fatal("legacy values are passed on to the next update", args)
 		}
+	}
+}
+
+// Disabling and re-enabling a project (or its drive dropping and returning) must
+// not seed its history into the activity log again or repeat stale notices.
+func TestReenabledProjectDoesNotReseedHistory(t *testing.T) {
+	dir := settingsFixture(t)
+	plan := "Agent: Codex\nStatus: Implementing\nGoal: Ship\n\n## Decisions\n- 2026-01-02 10:00: Keep it small\n\n## M1: Build [done]\nSummary: Built\n- [done] Step\n"
+	alpha, beta := mkRepo(t, filepath.Join(dir, "alpha")), mkRepo(t, filepath.Join(dir, "beta"))
+	for _, repo := range []string{alpha, beta} {
+		os.MkdirAll(filepath.Join(repo, ".tasks"), 0o700)
+		os.WriteFile(filepath.Join(repo, ".tasks", "plan.md"), []byte(plan), 0o600)
+		old := time.Now().Add(-3 * staleAfter)
+		os.Chtimes(filepath.Join(repo, ".tasks", "plan.md"), old, old)
+	}
+	if w, out := call(t, handleProjects, "POST", "/api/projects", map[string]any{"path": alpha}); w.Code != 200 {
+		t.Fatal(w.Code, out)
+	}
+	w, out := call(t, handleProjects, "POST", "/api/projects", map[string]any{"path": beta})
+	if w.Code != 200 {
+		t.Fatal(w.Code, out)
+	}
+	id := out["project"].(map[string]any)["id"].(string)
+	lines := func() int {
+		b, _ := os.ReadFile(filepath.Join(dataDir, "activity.jsonl"))
+		return strings.Count(string(b), "\n")
+	}
+	if kinds(events)["decision"] != 2 || kinds(events)["stale"] != 2 {
+		t.Fatal("a newly added project seeds its history once", kinds(events))
+	}
+	count, logged := len(events), lines()
+	for i := 0; i < 2; i++ {
+		for _, enabled := range []bool{false, true} {
+			if w, _ := call(t, handleProject, "PATCH", "/api/projects/"+id, map[string]any{"enabled": enabled}); w.Code != 200 {
+				t.Fatal(w.Code, w.Body)
+			}
+		}
+	}
+	refresh(false)
+	if len(events) != count || lines() != logged {
+		t.Fatal("re-enabling a project duplicated its history", count, len(events), kinds(events))
+	}
+	// After a restart the returning project is still known.
+	prev, events, lastProjects, seenProjects = nil, nil, nil, nil
+	loadPersisted()
+	call(t, handleProject, "PATCH", "/api/projects/"+id, map[string]any{"enabled": false})
+	call(t, handleProject, "PATCH", "/api/projects/"+id, map[string]any{"enabled": true})
+	if lines() != logged {
+		t.Fatal("history was seeded again after a restart", lines(), logged)
 	}
 }
