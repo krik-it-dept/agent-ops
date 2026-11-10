@@ -33,7 +33,8 @@ var (
 	openFolder     = func(path string) error { return exec.Command("explorer.exe", path).Start() }
 	pickerBusy     sync.Mutex
 	// The first release's fixed paths, replaced in tests.
-	legacyDefaults = legacyPaths{repos: legacyReposDir, state: legacyStateFile, slots: legacySlotsFile}
+	legacyDefaults         = legacyPaths{repos: legacyReposDir, state: legacyStateFile, slots: legacySlotsFile}
+	legacyMigrationAllowed = func() bool { return strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir())) }
 )
 
 func defaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard") }
@@ -47,7 +48,12 @@ func defaultInstance() bool {
 // initSettings loads (or migrates) config.json and resolves the state and slots
 // files: flag > environment > config.json > default under dataDir.
 func initSettings() {
-	legacy := legacyDefaults
+	// The first release's fixed paths only migrate into the installed app's own data
+	// folder; isolated, test and smoke runs never adopt the owner's real folders.
+	legacy := legacyPaths{}
+	if legacyMigrationAllowed() {
+		legacy = legacyDefaults
+	}
 	if reposDir != "" {
 		legacy.repos = reposDir
 	}

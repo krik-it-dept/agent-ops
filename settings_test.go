@@ -36,14 +36,15 @@ func settingsFixture(t *testing.T) string {
 		picker                            func(context.Context) (string, error)
 		opener                            func(string) error
 		legacy                            legacyPaths
-	}{reposDir, stateFile, slotsFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults}
+		allowLegacy                       func() bool
+	}{reposDir, stateFile, slotsFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed}
 	t.Cleanup(func() {
 		reposDir, stateFile, slotsFile, scriptFile, dataDir = old.repos, old.state, old.slots, old.script, old.data
 		appCfg, configWarning, configReadOnly = old.cfg, old.warning, old.readOnly
 		prev, events, rawState, refreshError, staleSeen = old.prevPlans, old.ev, old.raw, old.errText, old.stale
 		lastProjects, projectStates = old.last, old.states
 		startupReader, startupWriter, startupManaged, pickFolder, openFolder = old.reader, old.writer, old.managed, old.picker, old.opener
-		legacyDefaults = old.legacy
+		legacyDefaults, legacyMigrationAllowed = old.legacy, old.allowLegacy
 	})
 	legacyDefaults = legacyPaths{repos: filepath.Join(dir, "no-legacy-repos"), state: filepath.Join(dir, "legacy-state.json"), slots: filepath.Join(dir, "legacy-slots.json")}
 	reposDir, stateFile, slotsFile = "", "", ""
@@ -371,5 +372,24 @@ func TestPickFolderReturnsPathOrCancelledAndOpensOnlyKnownFolders(t *testing.T) 
 	}
 	if w, _ := call(t, handleOpenFolder, "POST", "/api/settings/open-folder", map[string]string{"target": "project", "id": "none"}); w.Code != 404 {
 		t.Fatal("unknown project opened", w.Code)
+	}
+}
+
+func TestLegacyFolderMigratesOnlyIntoTheInstalledDataFolder(t *testing.T) {
+	dir := settingsFixture(t)
+	legacy := filepath.Join(dir, "legacy repos")
+	os.MkdirAll(filepath.Join(legacy, "sample", ".git"), 0o700)
+	legacyDefaults = legacyPaths{repos: legacy, state: filepath.Join(dir, "legacy-state.json"), slots: filepath.Join(dir, "legacy-slots.json")}
+	os.Remove(configFilePath(dataDir))
+	stateFile, slotsFile = "", ""
+	initSettings()
+	if !setupRequired() || len(effectiveProjects()) != 0 || exists(configFilePath(dataDir)) {
+		t.Fatal("an isolated data folder adopted the legacy folder")
+	}
+	legacyMigrationAllowed = func() bool { return true }
+	stateFile, slotsFile = "", ""
+	initSettings()
+	if setupRequired() || len(effectiveProjects()) != 1 || effectiveProjects()[0].Path != legacy || stateFile != legacyDefaults.state || slotsFile != legacyDefaults.slots {
+		t.Fatal("the installed data folder must migrate the legacy folder and keep its state and slots files", stateFile, slotsFile)
 	}
 }
