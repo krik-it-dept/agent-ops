@@ -21,9 +21,11 @@ func TestToastPlanTextCannotRunPowerShell(t *testing.T) {
 		" $(New-Item -ItemType File -Path '" + marker("3") + "') \" <b>&amp; \x01 Tiếng Việt"
 	target := "agent-ops://plan/p’);calc;(’/r/n"
 	payload := toastXML(title, body, target)
-	real := toastCommand(context.Background(), toastLoadScript+toastShowScript, payload)
-	if args := strings.Join(real.Args, " "); strings.Contains(args, "New-Item") || strings.Contains(args, "’") || strings.Contains(args, "calc") {
-		t.Fatal("plan text reached the PowerShell command line", args)
+	for _, id := range []string{toastAppID, powershellAppID} {
+		real := toastCommand(context.Background(), toastLoadScript+toastShowScript(id), payload)
+		if args := strings.Join(real.Args, " "); strings.Contains(args, "New-Item") || strings.Contains(args, "’") || strings.Contains(args, "calc") {
+			t.Fatal("plan text reached the PowerShell command line", args)
+		}
 	}
 	for _, q := range []string{"’", "‘", "‚", "‛", "'"} {
 		if strings.Contains(payload, q) {

@@ -313,6 +313,7 @@ func main() {
 	if defaultInstance() {
 		registerProtocol()
 		migrateStartup()
+		_ = registerToastApp(dataDir)
 	}
 	initSettings()
 	loadPersisted()
@@ -1234,8 +1235,16 @@ const (
 	toastLoadScript = `[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null;` +
 		`[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null;` +
 		`$x = New-Object Windows.Data.Xml.Dom.XmlDocument; $x.LoadXml([Environment]::GetEnvironmentVariable('` + toastEnv + `'));`
-	toastShowScript = `[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($x))`
 )
+
+// toastShowScript shows $x under one of two AUMIDs fixed in this program (the
+// registered app or PowerShell's), never under text that came from a plan.
+func toastShowScript(appID string) string {
+	if appID != toastAppID {
+		appID = powershellAppID
+	}
+	return `[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('` + appID + `').Show([Windows.UI.Notifications.ToastNotification]::new($x))`
+}
 
 func toastXML(title, body, target string) string {
 	return `<toast activationType="protocol" launch="` + xmlEsc(target) + `"><visual><binding template="ToastGeneric"><text>` +
@@ -1259,7 +1268,7 @@ func toast(title, body, target string) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		_ = toastCommand(ctx, toastLoadScript+toastShowScript, xml).Run()
+		_ = toastCommand(ctx, toastLoadScript+toastShowScript(currentToastAppID()), xml).Run()
 	}()
 }
 
