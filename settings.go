@@ -48,7 +48,7 @@ func legacyDefaultDataDir() string {
 // The installed instance owns the Run key and protocol registration; dev, test
 // and smoke instances on other ports or data folders never rewrite them.
 func defaultInstance() bool {
-	return addr == "127.0.0.1:7790" && strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir()))
+	return !explicitAddr && strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir()))
 }
 
 // initSettings loads (or migrates) config.json and resolves the state file: flag > environment > config.json > default under dataDir.

@@ -177,9 +177,11 @@ else process.exit(2);
     const args=['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--script',join(runtime,'tasks-overview.mjs'),
       ...(redirect?['--state-file',stateFile,'--slots-file',join(dir,'slots.json')]:['--data-dir',dataDir])];
     const start=extra=>{const p=spawn(join(runtime,'agent-ops.exe'),[...args,...extra],{windowsHide:true,stdio:'ignore',env,detached:true});pids.add(p.pid);p.unref();return p.pid;};
-    const status=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(2000)});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId))pids.add(s.processId);return s;};
+    // Releases after v0.3.x require the session secret from session.json; earlier ones ignore the header.
+    const sessionHeader=()=>{try{return {'X-Agent-Ops-Session':JSON.parse(readFileSync(join(dataDir,'session.json'),'utf8')).secret};}catch{return {};}};
+    const status=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(2000),headers:sessionHeader()});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId))pids.add(s.processId);return s;};
     // Releases before v0.3.0 check X-Workboard; later ones X-Agent-Ops.
-    const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','X-Agent-Ops':'1','Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());};
+    const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','X-Agent-Ops':'1','Content-Type':'application/json',...sessionHeader()},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());};
     // After a rolled-back update the previous release keeps showing that error; only a new one is fatal.
     let staleError=null;
     const fatal=s=>{if(s.phase==='error'&&s.error!==staleError)throw Object.assign(Error('Update error: '+s.error),{fatal:true});};
@@ -190,7 +192,7 @@ else process.exit(2);
       await post('apply',{version:to});
       const after=await until(status,s=>{fatal(s);return s.current===to&&s.processId!==before.processId;},180000,'restart on '+to);
       await until(async()=>result(),r=>r.phase==='updated'&&r.version===to,30000,'update receipt');
-      const snapshot=await (await fetch(base+'/api/state')).json();assert.equal(snapshot.appVersion,to);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
+      const snapshot=await (await fetch(base+'/api/state',{headers:sessionHeader()})).json();assert.equal(snapshot.appVersion,to);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
       assert.equal(readFileSync(plan,'utf8'),source,'task source unchanged');assert.equal(readFileSync(ownerFile,'utf8'),'{"private":"keep"}','owner runtime file preserved');
       assert.equal(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),ownerAgents,'owner instructions kept, reporting block removed');
       assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved');

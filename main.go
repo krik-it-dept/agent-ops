@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	addr = "127.0.0.1:7790"
+	addr = defaultAddr
 	// reposDir is set only by --repos-dir or AGENT_OPS_REPOS_DIR and then replaces the
 	// configured projects for this run. stateFile falls back to config.json.
 	reposDir  string
@@ -169,7 +169,8 @@ func config() {
 	flag.StringVar(&ignoredSlotsFile, "slots-file", "", "Ignored; accepted from earlier releases")
 	flag.StringVar(&stateFile, "state-file", "", `Generated state JSON file (default <data-dir>\state\tong-hop-chung.json)`)
 	flag.StringVar(&ignoredScript, "script", "", "Ignored; accepted from earlier releases")
-	flag.StringVar(&addr, "addr", env("AGENT_OPS_ADDR", addr), "Loopback listen address")
+	flag.StringVar(&addr, "addr", env("AGENT_OPS_ADDR", addr), "Loopback listen address (default 127.0.0.1:7790, another free port when it is taken)")
+	flag.BoolVar(&resumeSession, "resume-session", false, "Internal: keep the session of the instance this restart replaces")
 	flag.StringVar(&dataDir, "data-dir", defaultDataDir(), "Persistence directory")
 	flag.BoolVar(&background, "background", false, "Start tray without opening a window")
 	flag.StringVar(&activation, "activate", "", "Toast activation URI")
@@ -218,6 +219,9 @@ func config() {
 		}
 	}
 	explicitRepos, explicitState = reposDir != "", stateFile != ""
+	// The default address given back by an earlier release's relaunch is not a
+	// choice: the default port may still fall back to another one.
+	explicitAddr = (given["addr"] || os.Getenv("AGENT_OPS_ADDR") != "") && addr != defaultAddr
 	// Releases before v0.3.0 used another data folder and relaunch an update with
 	// it. The installed app now always uses the Agent Ops folder; the old one is
 	// only read once to copy config.json (see adoptLegacyConfig).
@@ -234,7 +238,10 @@ func samePath(a, b string) bool {
 // values given by flag or environment are passed on; everything else comes from
 // config.json, so a restart never pins the current config into flags.
 func launchArgs() []string {
-	args := []string{"--background", "--addr", addr, "--data-dir", dataDir, "--profile-dir", profileDir}
+	args := []string{"--background", "--resume-session", "--data-dir", dataDir, "--profile-dir", profileDir}
+	if explicitAddr {
+		args = append(args, "--addr", addr)
+	}
 	if explicitRepos {
 		args = append(args, "--repos-dir", reposDir)
 	}
@@ -270,17 +277,33 @@ func main() {
 	if err != nil || (host != "127.0.0.1" && host != "localhost" && host != "::1") {
 		return
 	}
-	// A second manual launch or toast opens the existing instance; login stays quiet.
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
+	// A second manual launch or toast asks the running instance of this data
+	// folder to open its window; a login start stays quiet.
+	if !acquireInstance(dataDir) {
 		if !background || activation != "" {
-			openWindow()
+			handOff(dataDir, true, activationPlan(activation), 45*time.Second)
 		}
 		return
 	}
 	_ = os.MkdirAll(dataDir, 0o755)
 	if err := initLogging(dataDir, "agent-ops.log"); err == nil {
 		initCrashOutput()
+	}
+	previous, _ := readSession(dataDir)
+	ln, err := listen(listenCandidates(addr, explicitAddr, previous.Addr))
+	if err != nil {
+		// Another program or Windows user holds the address. Its page is never
+		// opened: it is not this app.
+		logError("could not listen on a loopback port", "addr", addr, "explicit", explicitAddr, "error", err.Error())
+		return
+	}
+	if bound := ln.Addr().String(); bound != addr {
+		logWarn("the configured port is in use by another program or user; using another one", "configured", addr, "addr", bound)
+		addr = bound
+	}
+	sessionSecret = chooseSecret(dataDir, resumeSession)
+	if err := writeSession(dataDir, sessionInfo{PID: os.Getpid(), Addr: addr, Secret: sessionSecret, Version: appVersion}); err != nil {
+		logWarn("could not write session.json; a second launch cannot reach this instance", "error", err.Error())
 	}
 	defer func() {
 		if v := recover(); v != nil {
@@ -1129,6 +1152,7 @@ func serve(ln net.Listener) {
 func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	updateRoutes(mux)
+	instanceRoutes(mux)
 	settingsRoutes(mux)
 	diagnosticsRoutes(mux)
 	icons, _ := fs.Sub(iconFiles, "web/icons")
@@ -1259,10 +1283,16 @@ func openPlanWindow(plan string) {
 	openWindowAt(fragment)
 }
 func openWindowAt(fragment string) {
-	target := "http://" + addr + "/"
+	// A single-use token signs the window in (see handleLaunch).
+	target := "http://" + addr + launchPath + "?token=" + newLaunchToken()
 	if fragment != "" {
 		target += "#" + fragment
 	}
+	launchWindow(target)
+}
+
+// launchWindow opens target in an Edge app window; tests replace it.
+var launchWindow = func(target string) {
 	for _, p := range []string{
 		`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
 		`C:\Program Files\Microsoft\Edge\Application\msedge.exe`,

@@ -287,7 +287,7 @@ func TestReleaseCheckUsesAnonymousAPIWithETagSkipAndReadOnlyStatus(t *testing.T)
 	mux := http.NewServeMux()
 	updateRoutes(mux)
 	for i := 0; i < 3; i++ {
-		req := httptest.NewRequest("GET", "http://"+addr+"/api/updates", nil)
+		req := withSession(httptest.NewRequest("GET", "http://"+addr+"/api/updates", nil))
 		w := httptest.NewRecorder()
 		localBoundary(mux).ServeHTTP(w, req)
 		if w.Code != 200 {
@@ -377,7 +377,7 @@ func TestUpdateEndpointsRejectCrossSiteRequestsAndUnselectedVersions(t *testing.
 	handler := localBoundary(mux)
 	for _, action := range []string{"check", "apply", "skip"} {
 		for _, origin := range []string{"", "https://other.invalid"} {
-			req := httptest.NewRequest("POST", "http://"+addr+"/api/updates/"+action, strings.NewReader(`{"version":"v0.2.0"}`))
+			req := withSession(httptest.NewRequest("POST", "http://"+addr+"/api/updates/"+action, strings.NewReader(`{"version":"v0.2.0"}`)))
 			if origin != "" {
 				req.Header.Set("Origin", origin)
 				req.Header.Set("X-Agent-Ops", "1")
@@ -389,14 +389,14 @@ func TestUpdateEndpointsRejectCrossSiteRequestsAndUnselectedVersions(t *testing.
 			}
 		}
 	}
-	req := httptest.NewRequest("POST", "http://"+addr+"/api/updates/apply", strings.NewReader(`{"version":"v0.2.0","root":"C:/elsewhere"}`))
+	req := withSession(httptest.NewRequest("POST", "http://"+addr+"/api/updates/apply", strings.NewReader(`{"version":"v0.2.0","root":"C:/elsewhere"}`)))
 	req.Header.Set("X-Agent-Ops", "1")
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	if w.Code != 400 {
 		t.Fatal(w.Code)
 	}
-	req = httptest.NewRequest("POST", "http://"+addr+"/api/updates/apply", strings.NewReader(`{"version":"v0.2.0"}`))
+	req = withSession(httptest.NewRequest("POST", "http://"+addr+"/api/updates/apply", strings.NewReader(`{"version":"v0.2.0"}`)))
 	req.Header.Set("X-Agent-Ops", "1")
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
@@ -774,13 +774,13 @@ func TestUpdateHealthMustMatchVersionAndExactStartedProcess(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(updateState{Current: "v0.2.0", ProcessID: 123})
 	}))
 	defer server.Close()
-	if !updateHealth(server.URL, "v0.2.0", 123, time.Second) {
+	if !updateHealth(server.URL, "", "v0.2.0", 123, time.Second) {
 		t.Fatal("healthy process not recognized")
 	}
-	if updateHealth(server.URL, "v0.2.0", 456, time.Millisecond) {
+	if updateHealth(server.URL, "", "v0.2.0", 456, time.Millisecond) {
 		t.Fatal("accepted another process")
 	}
-	if updateHealth(server.URL, "v0.3.0", 123, time.Millisecond) {
+	if updateHealth(server.URL, "", "v0.3.0", 123, time.Millisecond) {
 		t.Fatal("accepted another version")
 	}
 	if h, err := openUpdateParent(os.Getpid(), t.TempDir()); err == nil {

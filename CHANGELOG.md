@@ -17,6 +17,11 @@ The release workflow takes the section whose heading starts with the pushed tag.
 - Nothing is written into your repositories any more (no `.tasks/tong-hop.md`).
 - State, settings and config files are replaced atomically and survive files
   held by an editor or antivirus; the activity log is kept to a bounded size.
+- Other Windows users on the same PC can no longer read your board: every
+  request needs this session's secret. When port 7790 is taken by another user
+  or program, Agent Ops uses another port, and a second launch or a
+  notification click still opens the running app. After this update, close a
+  window that was already open and open Agent Ops again from the tray.
 
 ## v0.3.0 - A read-only work ledger
 

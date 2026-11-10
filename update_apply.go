@@ -319,17 +319,38 @@ func installUpdateFiles(m updateManifest) (func() error, error) {
 	return rollback, nil
 }
 
-func updateHealth(base, version string, pid int, timeout time.Duration) bool {
-	client := &http.Client{Timeout: time.Second}
+// updateHealthSession finds the started app through the session.json it
+// writes (it may have moved to another port) and checks its health.
+func updateHealthSession(data, version string, pid int, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		resp, err := client.Get(base + "/api/updates")
+		if s, ok := readSession(data); ok && s.PID == pid {
+			return updateHealth("http://"+s.Addr, s.Secret, version, pid, time.Until(deadline))
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return false
+}
+
+func updateHealth(base, secret, version string, pid int, timeout time.Duration) bool {
+	client := &http.Client{Timeout: time.Second}
+	get := func(path string) (*http.Response, error) {
+		req, err := http.NewRequest(http.MethodGet, base+path, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set(sessionHeader, secret)
+		return client.Do(req)
+	}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		resp, err := get("/api/updates")
 		if err == nil {
 			var state updateState
 			decodeErr := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&state)
 			resp.Body.Close()
 			if resp.StatusCode == 200 && decodeErr == nil && state.Current == version && state.ProcessID == pid {
-				data, err := client.Get(base + "/api/state")
+				data, err := get("/api/state")
 				if err == nil {
 					var snapshot struct {
 						Version string `json:"appVersion"`
@@ -437,7 +458,7 @@ func applyUpdateManifest(file string) error {
 	if err != nil {
 		return recoverOld(err)
 	}
-	if !updateHealth("http://"+m.Addr, m.Tag, cmd.Process.Pid, 45*time.Second) {
+	if !updateHealthSession(appData, m.Tag, cmd.Process.Pid, 45*time.Second) {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
 		return recoverOld(errors.New("Updated application failed its startup check"))

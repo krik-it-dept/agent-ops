@@ -205,14 +205,14 @@ func TestNoProjectsNeverRunsTheCollectorAndStaysHealthy(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(updateState{Current: appVersion, ProcessID: 7})
 	}))
 	defer server.Close()
-	if !updateHealth(server.URL, appVersion, 7, 2*time.Second) {
+	if !updateHealth(server.URL, "", appVersion, 7, 2*time.Second) {
 		t.Fatal("an update must not roll back because no project is configured")
 	}
 	appCfg.Projects = []Project{{ID: "gone", Path: filepath.Join(dataDir, "missing"), Name: "Gone", Kind: "folder", Enabled: true}}
 	collectPlans = saved
 	writeAppConfig(configFilePath(dataDir), appCfg)
 	refresh(true)
-	if refreshError != "" || !updateHealth(server.URL, appVersion, 7, 2*time.Second) {
+	if refreshError != "" || !updateHealth(server.URL, "", appVersion, 7, 2*time.Second) {
 		t.Fatal("a missing project folder must be a warning, not an unhealthy update", refreshError)
 	}
 }

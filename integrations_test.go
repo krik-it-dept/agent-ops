@@ -455,7 +455,9 @@ func TestRemovedPlanWriteRoutesAreGone(t *testing.T) {
 	// Every route the app registers, from the sources.
 	allowed := map[string]bool{"/": true, "/icons/": true, "/fonts/": true, "/events": true, "/api/state": true, "/api/refresh": true,
 		"/api/settings": true, "/api/settings/pick-folder": true, "/api/settings/open-folder": true, "/api/projects": true, "/api/projects/": true,
-		"/api/integrations": true, "/api/integrations/": true, "/api/updates": true, "/api/updates/": true, "/api/diagnostics": true, "/api/diagnostics/dismiss-crash": true}
+		"/api/integrations": true, "/api/integrations/": true, "/api/updates": true, "/api/updates/": true, "/api/diagnostics": true, "/api/diagnostics/dismiss-crash": true,
+		// The running instance: who it is, and opening its window for a second launch.
+		"/api/instance": true, "/api/instance/open": true}
 	pattern := regexp.MustCompile(`(?:mux\.HandleFunc|mux\.Handle)\("([^"]+)"`)
 	files, _ := filepath.Glob("*.go")
 	seen := 0

@@ -24,14 +24,15 @@ try{
   const state=join(fixture,'output','state.json');mkdirSync(dirname(state),{recursive:true});
   const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const port=server.address().port;await new Promise(r=>server.close(r));const base='http://127.0.0.1:'+port;
   app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--state-file',state,'--data-dir',dataDir],{windowsHide:true,stdio:'ignore',env:{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''}});
-  const get=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(1000)});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId) && s.processId!==app.pid)newPID=s.processId;return s;};
+  const sessionHeader=()=>{try{return {'X-Agent-Ops-Session':JSON.parse(readFileSync(join(dataDir,'session.json'),'utf8')).secret};}catch{return {};}};
+  const get=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(1000),headers:sessionHeader()});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId) && s.processId!==app.pid)newPID=s.processId;return s;};
   const initial=await until(get,s=>s.current==='v0.0.0');assert.equal(initial.processId,app.pid);
-  const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Agent-Ops':'1','Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());return r.json();};
+  const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Agent-Ops':'1','Content-Type':'application/json',...sessionHeader()},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());return r.json();};
   await post('check');const available=await until(get,s=>{if(s.phase==='error')throw Object.assign(Error(s.error),{fatal:true});return s.available;});assert.equal(available.latest,target,'Publish VERSION as the latest stable release before running this test');
   await post('apply',{version:target});
   const installed=await until(get,s=>{if(s.phase==='error')throw Object.assign(Error(s.error),{fatal:true});return s.current===target && s.processId!==initial.processId;});newPID=installed.processId;
   await until(async()=>existsSync(join(dataDir,'update-result.json'))?JSON.parse(readFileSync(join(dataDir,'update-result.json'),'utf8')):{},s=>s.phase==='updated');
-  const snapshot=await (await fetch(base+'/api/state')).json();assert.equal(snapshot.appVersion,target);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
+  const snapshot=await (await fetch(base+'/api/state',{headers:sessionHeader()})).json();assert.equal(snapshot.appVersion,target);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
   assert.equal(readFileSync(plan,'utf8'),source);assert.equal(readFileSync(privateFile,'utf8'),'{"private":"keep"}');assert.equal(readFileSync(preference,'utf8'),'{"preference":"keep"}');
   const instructions=readFileSync(join(profile,'.codex','AGENTS.md'),'utf8');assert.ok(instructions.startsWith('# Owner instructions\nKeep the existing user rule.\n'));
   console.log(JSON.stringify({update:'passed',from:'v0.0.0 test fixture',to:target,source:'public GitHub release',restart:'new process verified',tasks:'unchanged',privateData:'preserved',profile:'isolated and preserved'}));

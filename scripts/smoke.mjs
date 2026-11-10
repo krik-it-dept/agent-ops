@@ -11,6 +11,10 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const fixture=mkdtempSync(join(root,'.test-release-'));
 let app,firstRun;
 const put=(file,text)=>{mkdirSync(dirname(file),{recursive:true});writeFileSync(file,text);};
+// Every request but icons and fonts needs the app session: the secret the app writes
+// to session.json in its data folder (a window gets it as a cookie instead).
+const session=dir=>{try{return JSON.parse(readFileSync(join(dir,'session.json'),'utf8'));}catch{return null;}};
+const appFetch=dir=>(url,options={})=>fetch(url,{...options,headers:{'X-Agent-Ops-Session':session(dir)?.secret||'',...(options.headers||{})}});
 const run=(file,args)=>{const p=spawnSync(file,args,{encoding:'utf8',windowsHide:true});assert.equal(p.status,0,p.stderr||p.stdout||p.error?.message);};
 try {
   const archive=join(root,'dist','agent-ops-windows-amd64.zip'),pkg=join(fixture,'package');
@@ -59,9 +63,10 @@ try {
   const port=server.address().port;await new Promise(res=>server.close(res));
   const base='http://127.0.0.1:'+port;
   app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--state-file',state,'--data-dir',join(fixture,'data')],{windowsHide:true,stdio:'ignore',env:{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''}});
+  const dataDir=join(fixture,'data'),appGet=appFetch(dataDir);
   let response;
   for(let i=0;i<100;i++){
-    try{response=await fetch(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)break;}catch{/* Retry only while the isolated process is starting. */}
+    try{response=await appGet(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)break;}catch{/* Retry only while the isolated process is starting. */}
     if(app.exitCode!==null)throw Error('Isolated app exited before serving');
     await new Promise(res=>setTimeout(res,100));
   }
@@ -72,7 +77,7 @@ try {
   assert.deepEqual(stateResponse.state.plans[0].milestones[0].progress,{done:0,total:1});
   assert.deepEqual(stateResponse.state.diagnostics,[]);assert.equal(stateResponse.state.repos[0].name,'sample');assert.deepEqual(stateResponse.state.repos[0].worktrees,[]);
   assert.ok(!existsSync(join(repos,'sample','.tasks','tong-hop.md')),'no generated index in the repository');
-  const page=await fetch(base),html=await page.text();assert.equal(page.status,200);assert.ok(html.includes('<title>Agent Ops</title>'));
+  const page=await appGet(base),html=await page.text();assert.equal(page.status,200);assert.ok(html.includes('<title>Agent Ops</title>'));
   const script=html.match(/<script>([\s\S]*?)<\/script>/)[1].replaceAll('\r\n','\n').replaceAll('\r','\n');
   const digest=createHash('sha256').update(script).digest('base64');
   assert.ok(page.headers.get('content-security-policy').includes("script-src 'sha256-"+digest+"'"));
@@ -80,53 +85,61 @@ try {
   assert.equal(page.headers.get('x-frame-options'),'DENY');
   const rebindingStatus=await new Promise((res,rej)=>{const req=request(base+'/api/state',{headers:{Host:'rebinding.invalid'}},r=>{r.resume();res(r.statusCode);});req.on('error',rej);req.end();});
   assert.equal(rebindingStatus,403);
-  assert.equal((await fetch(base+'/api/state',{headers:{Origin:'https://other.invalid'}})).status,403);
-  assert.equal((await fetch(base+'/api/refresh',{method:'POST'})).status,403);
+  assert.equal((await appGet(base+'/api/state',{headers:{Origin:'https://other.invalid'}})).status,403);
+  // J5: without this session's secret nothing but icons and fonts is served, and a
+  // forged launch token signs nothing in.
+  const anonymous=await fetch(base+'/api/state');assert.equal(anonymous.status,403);assert.match((await anonymous.json()).error,/not signed in/);
+  assert.equal((await fetch(base+'/')).status,403);
+  assert.equal((await fetch(base+'/api/state',{headers:{'X-Agent-Ops-Session':'0'.repeat(64)}})).status,403);
+  const forged=await fetch(base+'/open?token='+'1'.repeat(64),{redirect:'manual'});assert.equal(forged.status,403);assert.equal(forged.headers.get('set-cookie'),null);
+  assert.equal((await fetch(base+'/icons/app.png')).status,200);
+  const appSession=session(dataDir);assert.equal(appSession.addr,'127.0.0.1:'+port);assert.equal(appSession.pid,app.pid);assert.match(appSession.secret,/^[0-9a-f]{64}$/);
+  assert.equal((await appGet(base+'/api/refresh',{method:'POST'})).status,403);
   for(const path of ['/api/plans/status','/api/plans/agent']){
-    const gone=await fetch(base+path,{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base,'Content-Type':'application/json'},body:'{}'});
+    const gone=await appGet(base+path,{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base,'Content-Type':'application/json'},body:'{}'});
     assert.equal(gone.status,404,path+' is retired');
   }
-  const integrations=await (await fetch(base+'/api/integrations')).json();
+  const integrations=await (await appGet(base+'/api/integrations')).json();
   assert.deepEqual(integrations.targets,[],'no folder is added without the owner');assert.equal(integrations.skillVersion,2);
   assert.ok(integrations.suggestions.length>0 && integrations.suggestions.every(s=>s.skillDir.startsWith(profile)),'suggestions come from the isolated profile only');
-  const refresh=await fetch(base+'/api/refresh',{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base}});
+  const refresh=await appGet(base+'/api/refresh',{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base}});
   assert.equal(refresh.status,200);assert.ok((await refresh.json()).refreshedAt);
-  const controller=new AbortController(),stream=await fetch(base+'/events',{signal:controller.signal});
+  const controller=new AbortController(),stream=await appGet(base+'/events',{signal:controller.signal});
   assert.equal(stream.headers.get('content-type'),'text/event-stream');
   const chunk=await stream.body.getReader().read();assert.ok(new TextDecoder().decode(chunk.value).includes('retry: 3000'));controller.abort();
   assert.equal(readFileSync(plan,'utf8'),source);
   // First run without any path flags: setup mode, no collector error, then a project added through the API.
   const freshServer=createServer();await new Promise((res,rej)=>{freshServer.once('error',rej);freshServer.listen(0,'127.0.0.1',res);});
   const freshPort=freshServer.address().port;await new Promise(res=>freshServer.close(res));
-  const fresh='http://127.0.0.1:'+freshPort,freshData=join(fixture,'fresh-data');
+  const fresh='http://127.0.0.1:'+freshPort,freshData=join(fixture,'fresh-data'),freshGet=appFetch(freshData);
   const cleanEnv={...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''};
   firstRun=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+freshPort,'--data-dir',freshData],{windowsHide:true,stdio:'ignore',env:cleanEnv});
   let freshState;
   for(let i=0;i<100;i++){
-    try{const r=await fetch(fresh+'/api/state',{signal:AbortSignal.timeout(1000)});if(r.ok){freshState=await r.json();break;}}catch{/* Retry only while the isolated process is starting. */}
+    try{const r=await freshGet(fresh+'/api/state',{signal:AbortSignal.timeout(1000)});if(r.ok){freshState=await r.json();break;}}catch{/* Retry only while the isolated process is starting. */}
     if(firstRun.exitCode!==null)throw Error('First-run app exited before serving');
     await new Promise(res=>setTimeout(res,100));
   }
   assert.ok(freshState,'First-run app did not start');
   assert.equal(freshState.setupRequired,true);assert.equal(freshState.error,'');assert.deepEqual(freshState.state.plans,[]);assert.deepEqual(freshState.projects,[]);
-  const write=(path,method,body)=>fetch(fresh+path,{method,headers:{'X-Agent-Ops':'1',Origin:fresh,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  assert.equal((await fetch(fresh+'/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:repos})})).status,403);
+  const write=(path,method,body)=>freshGet(fresh+path,{method,headers:{'X-Agent-Ops':'1',Origin:fresh,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  assert.equal((await freshGet(fresh+'/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:repos})})).status,403);
   // Setup can be skipped before any project exists; the board then shows the empty state.
   assert.equal((await write('/api/settings','PUT',{setupComplete:true,theme:'dark'})).status,200);
-  const skipped=await (await fetch(fresh+'/api/state')).json();
+  const skipped=await (await freshGet(fresh+'/api/state')).json();
   assert.equal(skipped.setupRequired,false);assert.equal(skipped.error,'');assert.deepEqual(skipped.projects,[]);
   const added=await write('/api/projects','POST',{path:repos});assert.equal(added.status,200);
   const addedBody=await added.json();assert.equal(addedBody.kind,'folder');assert.equal(addedBody.repos.length,1);assert.equal(addedBody.repos[0].planCount,1);
   assert.equal((await write('/api/settings','PUT',{startWithWindows:true})).status,409);
   assert.equal((await write('/api/settings','PUT',{setupComplete:true})).status,200);
-  const configured=await (await fetch(fresh+'/api/state')).json();
+  const configured=await (await freshGet(fresh+'/api/state')).json();
   assert.equal(configured.setupRequired,false);assert.equal(configured.error,'');assert.equal(configured.state.plans.length,1);assert.equal(configured.state.plans[0].project,addedBody.project.id);
   const savedConfig=JSON.parse(readFileSync(join(freshData,'config.json'),'utf8'));
   assert.equal(savedConfig.setupComplete,true);assert.equal(savedConfig.projects[0].path,repos);assert.equal(savedConfig.theme,'dark');assert.equal(savedConfig.shortcuts,true);
   assert.ok(readFileSync(join(freshData,'state','tong-hop-chung.json'),'utf8').includes('"plans"'));
   assert.equal(readFileSync(plan,'utf8'),source);
   console.log('First-run smoke passed: setup mode without flags, setup skipped with no project, protected settings writes, project added, config.json and default state under the data folder.');
-  console.log('Release smoke passed: exact package allowlist and removals, repeat install with the migration inside the isolated profile, untouched owner instructions, retired write routes, integrations API, real HTTP/SSE/F5, script CSP, request protection and unchanged task source.');
+  console.log('Release smoke passed: exact package allowlist and removals, session secret required on every request, repeat install with the migration inside the isolated profile, untouched owner instructions, retired write routes, integrations API, real HTTP/SSE/F5, script CSP, request protection and unchanged task source.');
 } finally {
   for(const child of [app,firstRun])if(child && child.exitCode===null){const exited=new Promise(res=>child.once('exit',res));child.kill();await exited;}
   if(dirname(fixture)!==root || !fixture.startsWith(join(root,'.test-release-')))throw Error('Unsafe cleanup path');

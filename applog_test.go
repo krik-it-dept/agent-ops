@@ -192,7 +192,7 @@ func TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths(t *testing.T) {
 	diagnosticsRoutes(mux)
 	handler := localBoundary(mux)
 	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, httptest.NewRequest("GET", "http://"+addr+"/api/diagnostics", nil))
+	handler.ServeHTTP(w, withSession(httptest.NewRequest("GET", "http://"+addr+"/api/diagnostics", nil)))
 	if w.Code != 200 || !strings.Contains(w.Body.String(), "Agent Ops diagnostics") {
 		t.Fatal(w.Code, w.Body.String())
 	}
@@ -203,13 +203,13 @@ func TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths(t *testing.T) {
 	if w.Code != 403 {
 		t.Fatal("cross-site diagnostics read", w.Code)
 	}
-	dismiss := httptest.NewRequest("POST", "http://"+addr+"/api/diagnostics/dismiss-crash", nil)
+	dismiss := withSession(httptest.NewRequest("POST", "http://"+addr+"/api/diagnostics/dismiss-crash", nil))
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, dismiss)
 	if w.Code != 403 {
 		t.Fatal("dismiss without the write header", w.Code)
 	}
-	dismiss = httptest.NewRequest("POST", "http://"+addr+"/api/diagnostics/dismiss-crash", nil)
+	dismiss = withSession(httptest.NewRequest("POST", "http://"+addr+"/api/diagnostics/dismiss-crash", nil))
 	dismiss.Header.Set("X-Agent-Ops", "1")
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, dismiss)
