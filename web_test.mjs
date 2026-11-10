@@ -1067,7 +1067,7 @@ test('Stars, recent plans and collapsed groups saved before projects move to pro
  assert.deepEqual(JSON.parse(h.storage["wb-navigation"]).starred,[...h.api.navigation.starred],'migrated preferences are saved once');
  assert.equal(JSON.parse(h.storage['wb-ui']).collapsedPlans['p1/workboard/Alpha'],true);
  h.api.navigation.section='starred';
- assert.deepEqual([...h.api.sidebarPlans().map(p=>p.name)],['Alpha','Beta'],'the Starred collection shows the old stars');
+ assert.deepEqual([...h.api.sidebarPlans().map(p=>p.name)].sort(),['Alpha','Beta'],'the Starred collection preserves both migrated plans regardless of edit-time order');
  const writes=h.writes.length;await h.api.get();assert.equal(h.writes.length,writes,'a second state load does not rewrite preferences');
  h.api.togglePlanStar('p1/workboard/Alpha');
  assert.equal(h.api.navigation.starred.includes('p1/workboard/Alpha'),false,'clicking the star removes the migrated key instead of adding a second one');
