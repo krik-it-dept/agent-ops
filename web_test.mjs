@@ -965,3 +965,33 @@ test('Plans with the same repository folder in two projects keep separate keys a
  assert.equal(h.api.repoLabel(a),'workboard · Work');
  h.api.setData(data([a]));assert.equal(h.api.planByKey('workboard/'+a.name),a,'unique legacy link still opens');assert.equal(h.api.repoLabel(a),'workboard');
 });
+
+test('Stars, recent plans and collapsed groups saved before projects move to project-qualified keys',async()=>{
+ const alpha={...plan('Implementing','Alpha'),project:'p1',projectName:'Work'},beta={...plan('Implementing','Beta'),project:'p1',projectName:'Work'};
+ const dupA={...plan('Implementing','Dup'),project:'p1',projectName:'Work'},dupB={...plan('Implementing','Dup'),project:'p2',projectName:'OSS'};
+ const now=new Date().toISOString();
+ const h=harness(
+  {collapsedPlans:{'workboard/Alpha':true,'workboard/Dup':true,'p1/workboard/Beta':false,'workboard/Gone':true},view:'plan:workboard/Alpha'},
+  {starred:['workboard/Alpha','p1/workboard/Beta','workboard/Dup','workboard/Gone'],recent:[{key:'workboard/Beta',openedAt:now},{key:'p1/workboard/Beta',openedAt:now},{key:'workboard/Alpha',openedAt:now}]});
+ h.context.fetch=async()=>({ok:true,json:async()=>data([alpha,beta,dupA,dupB])});
+ await h.api.get();
+ assert.deepEqual([...h.api.navigation.starred],['p1/workboard/Alpha','p1/workboard/Beta','workboard/Dup','workboard/Gone'],'unique legacy keys move; ambiguous and unknown keys stay');
+ assert.deepEqual([...h.api.navigation.recent.map(r=>r.key)],['p1/workboard/Alpha','p1/workboard/Beta'],'recent entries that collapse onto one key are deduplicated, and the open plan is the latest visit');
+ assert.deepEqual({...h.api.ui.collapsedPlans},{'p1/workboard/Alpha':true,'p1/workboard/Beta':false,'workboard/Dup':true,'workboard/Gone':true});
+ assert.equal(h.api.ui.view,'plan:p1/workboard/Alpha');
+ assert.deepEqual(JSON.parse(h.storage["wb-navigation"]).starred,[...h.api.navigation.starred],'migrated preferences are saved once');
+ assert.equal(JSON.parse(h.storage['wb-ui']).collapsedPlans['p1/workboard/Alpha'],true);
+ h.api.navigation.section='starred';
+ assert.deepEqual([...h.api.sidebarPlans().map(p=>p.name)],['Alpha','Beta'],'the Starred collection shows the old stars');
+ const writes=h.writes.length;await h.api.get();assert.equal(h.writes.length,writes,'a second state load does not rewrite preferences');
+ h.api.togglePlanStar('p1/workboard/Alpha');
+ assert.equal(h.api.navigation.starred.includes('p1/workboard/Alpha'),false,'clicking the star removes the migrated key instead of adding a second one');
+ assert.equal(h.api.navigation.starred.includes('workboard/Alpha'),false);
+});
+test('Stored keys are left alone until the first state with plans arrives',async()=>{
+ const h=harness({collapsedPlans:{'workboard/Alpha':true}},{starred:['workboard/Alpha'],recent:[]});
+ h.context.fetch=async()=>({ok:true,json:async()=>data([])});await h.api.get();
+ assert.deepEqual([...h.api.navigation.starred],['workboard/Alpha']);
+ h.context.fetch=async()=>({ok:true,json:async()=>data([{...plan('Implementing','Alpha'),project:'p1'}])});await h.api.get();
+ assert.deepEqual([...h.api.navigation.starred],['p1/workboard/Alpha']);assert.deepEqual({...h.api.ui.collapsedPlans},{'p1/workboard/Alpha':true});
+});

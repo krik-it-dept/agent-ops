@@ -712,10 +712,30 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function starButton(p,id){var on=navigation.starred.includes(key(p)),label=(on?'Unstar ':'Star ')+p.name;return '<button'+(id?' id="'+id+'"':'')+' class="icon-btn star-toggle" data-star-plan="'+esc(key(p))+'" aria-pressed="'+on+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+icon('star')+'</button>';}
   function recordPlanVisit(k){
-    if(!planByKey(k))return;
+    var found=planByKey(k);if(!found)return;k=key(found);
     navigation.recent=[{key:k,openedAt:new Date().toISOString()}].concat(navigation.recent.filter(function(r){return r.key!==k;})).slice(0,12);
     save('wb-navigation',navigation);
   }
+  // Preferences saved before projects hold repo/plan keys. Once plans are known, rewrite each one to the
+  // project-qualified key when planByKey finds exactly one plan, the same rule the server applies to its
+  // snapshot and activity. Keys that match nothing, or more than one plan, are left untouched.
+  function migrateStoredPlanKeys(){
+    if(!D.state.plans.length)return false;
+    var changed=false;
+    function canonical(k){var p=typeof k==='string'?planByKey(k):null;return p?key(p):k;}
+    var starred=Array.from(new Set(navigation.starred.map(canonical))).slice(0,200);
+    if(starred.length!==navigation.starred.length || starred.some(function(k,i){return k!==navigation.starred[i];})){navigation.starred=starred;changed=true;}
+    var seen={},recent=[];navigation.recent.forEach(function(r){var k=canonical(r.key);if(seen[k])return;seen[k]=true;recent.push(k===r.key?r:{key:k,openedAt:r.openedAt});});
+    if(recent.length!==navigation.recent.length || recent.some(function(r,i){return r!==navigation.recent[i];})){navigation.recent=recent;changed=true;}
+    if(changed)save('wb-navigation',navigation);
+    var groups=ui.collapsedPlans,moved={},uiChanged=false;
+    Object.keys(groups).forEach(function(k){var next=canonical(k);if(next!==k){if(groups[next]===undefined)moved[next]=groups[k];delete groups[k];uiChanged=true;}});
+    Object.keys(moved).forEach(function(k){groups[k]=moved[k];});
+    if(typeof ui.view==='string' && ui.view.indexOf('plan:')===0){var view='plan:'+canonical(ui.view.slice(5));if(view!==ui.view){ui.view=view;uiChanged=true;}}
+    if(uiChanged)save('wb-ui',ui);
+    return changed || uiChanged;
+  }
+  var storedKeysMigrated=false;
   function sidebarPlans(){
     if(navigation.section==='recent')return navigation.recent.map(function(r){return planByKey(r.key);}).filter(Boolean);
     var list=plans();if(navigation.section==='starred')list=list.filter(function(p){return navigation.starred.includes(key(p));});
@@ -2154,7 +2174,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if (!j.state || !Array.isArray(j.state.plans) || !Array.isArray(j.activity)) throw Error(j.error || 'Invalid state response');
     if(D.appVersion && j.appVersion && D.appVersion!==j.appVersion){save('wb-update-view',{version:j.appVersion,ui:ui,scroll:$('view').scrollTop,horizontal:$('view').scrollLeft,quick:{key:quick.key,tab:quick.tab,sequence:quick.sequence,scroll:$('quick-plan-scroll') && $('quick-plan-scroll').scrollTop}});location.reload();return j;}
     var restored=restoreUpdateView(j);
-    D = j; showError(D.error); render(); showWarnings(D.warnings); syncSetup(); renderUpdate();
+    D = j; if(!storedKeysMigrated && D.state.plans.length){storedKeysMigrated=true;migrateStoredPlanKeys();}
+    showError(D.error); render(); showWarnings(D.warnings); syncSetup(); renderUpdate();
     if(restored){$('view').scrollTop=restored.scroll || 0;$('view').scrollLeft=restored.horizontal || 0;if(restored.quick && restored.quick.key && planByKey(restored.quick.key)){openQuickPlan(restored.quick.key,restored.quick.sequence);quick.tab=restored.quick.tab;renderQuickPlan(true);if($('quick-plan-scroll'))$('quick-plan-scroll').scrollTop=restored.quick.scroll || 0;}}
     return j;
   }).catch(function (e) { if(!updateInstalling())showError(e.message);return null; }); }
