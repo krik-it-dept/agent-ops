@@ -55,7 +55,7 @@ type migrationFixture struct {
 func newMigrationFixture(t *testing.T) migrationFixture {
 	t.Helper()
 	root := isolated(t)
-	f := migrationFixture{profile: filepath.Join(root, "profile"), runtime: filepath.Join(root, "runtime"), states: filepath.Join(root, "states")}
+	f := migrationFixture{profile: filepath.Join(root, "profile"), runtime: filepath.Join(root, "runtime"), states: filepath.Join(root, "profile", "states")}
 	f.data = filepath.Join(f.profile, "AppData", "Local", "AgentOps")
 	f.legacyData = filepath.Join(f.profile, "AppData", "Local", legacyDataDirName)
 	runtimeSlash := filepath.ToSlash(f.runtime)
@@ -249,6 +249,35 @@ func TestMigrationStripsRunHistoryFromASharedDataFolder(t *testing.T) {
 	}
 	if !strings.Contains(snapshot, `"name":"p"`) {
 		t.Fatal(snapshot)
+	}
+}
+
+// A copied config.json can name a real state folder; an isolated profile's
+// migration must never delete anything outside its own folders.
+func TestIsolatedMigrationDeletesNothingOutsideItsFolders(t *testing.T) {
+	root := isolated(t)
+	outside := filepath.Join(root, "real-states")
+	mput(t, filepath.Join(outside, legacyExecutionsDir, "run.json"), "{}")
+	profile := filepath.Join(root, "profile")
+	data := filepath.Join(profile, "AppData", "Local", "AgentOps")
+	cfg := defaultAppConfig()
+	cfg.StateFile = filepath.Join(outside, "tong-hop-chung.json")
+	if err := writeAppConfig(configFilePath(data), cfg); err != nil {
+		t.Fatal(err)
+	}
+	mput(t, filepath.Join(data, "state", legacyExecutionsDir, "run.json"), "{}")
+	r, err := runMigration(migrationOptions{Profile: profile, DataDir: data, Now: time.Now()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exists(filepath.Join(outside, legacyExecutionsDir, "run.json")) {
+		t.Fatal("deleted run history outside the isolated profile")
+	}
+	if exists(filepath.Join(data, "state", legacyExecutionsDir)) {
+		t.Fatal("run history inside the data folder was kept")
+	}
+	if !strings.Contains(strings.Join(r.Kept, ";"), "outside the isolated profile") {
+		t.Fatal(r.Kept)
 	}
 }
 

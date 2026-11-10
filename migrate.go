@@ -439,9 +439,29 @@ func retireLegacyData(opts migrationOptions, r *migrationResult) {
 		_, r.Backup = newMigration(opts)
 	}
 	data := filepath.Join(r.Backup, "data")
+	// For a profile other than this user's own (an isolated install or a test),
+	// nothing outside the profile and the folders named for this run is deleted,
+	// even when a copied config.json points at a real state folder.
+	roots := []string{opts.Profile, opts.DataDir, opts.LegacyDataDir, opts.RuntimeDir}
+	inScope := func(path string) bool {
+		if isRealProfile(opts.Profile) {
+			return true
+		}
+		key := strings.ToLower(filepath.Clean(path))
+		for _, root := range roots {
+			if root != "" && pathWithin(key, strings.ToLower(filepath.Clean(root))) {
+				return true
+			}
+		}
+		return false
+	}
 	remove := func(path string) {
 		info, err := os.Lstat(path)
 		if err != nil {
+			return
+		}
+		if !inScope(path) {
+			r.Kept = append(r.Kept, path+" (outside the isolated profile, left alone)")
 			return
 		}
 		if info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
