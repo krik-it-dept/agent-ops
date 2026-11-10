@@ -61,7 +61,9 @@ func plainUpdatePath(path string) error {
 	}
 	for current := abs; ; current = filepath.Dir(current) {
 		info, err := os.Lstat(current)
-		if err == nil && info.Mode()&os.ModeSymlink != 0 {
+		// Go reports NTFS junctions and other name-surrogate reparse points as
+		// ModeIrregular, not ModeSymlink; both would redirect writes elsewhere.
+		if err == nil && info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
 			return errors.New("Update paths cannot contain symbolic links or junctions")
 		}
 		if err != nil && !os.IsNotExist(err) {

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -814,5 +815,33 @@ func TestSourceVersionMatchesVersionFile(t *testing.T) {
 	}
 	if want := strings.TrimSpace(string(raw)); appVersion != want {
 		t.Fatalf("appVersion default %q does not match VERSION %q", appVersion, want)
+	}
+}
+
+func TestUpdatePathsRejectJunctions(t *testing.T) {
+	base := t.TempDir()
+	target := filepath.Join(base, "elsewhere")
+	if err := os.Mkdir(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(base, "skills")
+	if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+		t.Skip("cannot create a junction here:", err, string(out))
+	}
+	plain := filepath.Join(base, "plain")
+	if err := os.Mkdir(plain, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := plainUpdatePath(filepath.Join(plain, "file.txt")); err != nil {
+		t.Fatal("a plain folder was rejected:", err)
+	}
+	for _, path := range []string{link, filepath.Join(link, "task-plan", "SKILL.md")} {
+		if err := plainUpdatePath(path); err == nil || !strings.Contains(err.Error(), "junctions") {
+			t.Fatal("a junction was accepted:", path, err)
+		}
+	}
+	updatePut(t, filepath.Join(target, "SKILL.md"), []byte("x"))
+	if err := regularUpdateFile(filepath.Join(link, "SKILL.md")); err == nil {
+		t.Fatal("a file behind a junction was accepted")
 	}
 }
