@@ -729,6 +729,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .command-search { display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border); }
 .command-search input { border:0;outline:0;box-shadow:none;background:transparent;color:var(--fg);font:inherit;font-size:14px;min-width:0;flex:1;height:34px; }
 .command-search input:focus-visible { box-shadow:none; }
+#command-input::-webkit-search-cancel-button { appearance:none; }
+.settings-nav .search-field>.input { padding-right:62px; }
 .command-search .icon-btn { font-size:20px; }
 .command-results { padding:8px;max-height:460px;overflow:auto; }
 .command-option { display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;border-radius:7px;background:transparent;color:var(--fg);text-align:left; }
@@ -1432,7 +1434,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     return '<div class="summary"><div class="summary-stats">'+stats.map(function(s){return '<div class="summary-stat"><span>'+s[0]+'</span><strong>'+s[1]+'</strong><small>'+s[2]+'</small></div>';}).join('')+'</div><div class="summary-grid">'+
       '<section class="summary-panel summary-focus"><div class="panel-heading"><h2>Current work</h2><button class="btn btn-ghost" data-layout="list">View tasks &rarr;</button></div><p class="work-meta">'+(ui.view==='waiting'?'Plans needing your attention':'Active plans, with items needing attention first')+'</p>'+
       (active.length?active.slice(0,6).map(summaryPlan).join(''):'<div class="empty">'+(ps.length?'All plans are complete':'No active plans')+'</div>')+
-      (active.length>6?'<button class="btn btn-ghost" data-layout="board">View all '+active.length+' active plans &rarr;</button>':'')+'</section>'+
+      (active.length>6?'<button class="btn btn-ghost" data-layout="board">View all plans &rarr;</button>':'')+'</section>'+
       '<section class="summary-panel"><h2>Status overview</h2><p class="work-meta">Current state of your plans</p>'+statusSummary(ps)+'<div class="summary-progress"><h2>Step progress</h2><strong>'+completed+' <span>/ '+total+'</span></strong><div class="bar"><i style="width:'+(total?completed/total*100:0)+'%"></i></div></div>'+
       (needs?'<h3>Needs attention</h3>'+ps.filter(needsAttention).slice(0,3).map(function(p){return '<div class="attention-row">'+workCell(p)+'</div>';}).join(''):'')+'</section>'+
       '<section class="summary-panel"><h2>Agent workload</h2><p class="work-meta">Reported participation &middot; select an agent to view work</p><div class="agent-workload">'+AGENTS.map(function(a){
@@ -2262,7 +2264,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var projectNav=projects.length?projects.map(function(p){return navItem('project:'+p.id,p.name,projectGlyph(p),!matches && settingsUI.section==='project:'+p.id,' title="'+esc(p.path)+'"').replace('</span></button>','</span>'+(p.exists?'':'<span class="dot" aria-label="Folder not found"></span>')+'</button>');}).join('')
       :'<p class="settings-nav-empty">'+(matches?'No matching projects.':'No projects added yet.')+'</p>';
     paint(host,'<div class="settings-shell"><aside class="settings-nav" aria-label="Settings sections"><button class="btn btn-ghost settings-back" id="settings-close" data-settings-close>'+icon('chevronLeft')+'Back to ledger</button>'+
-      '<div class="search-field">'+icon('search')+'<input type="search" class="input settings-search" id="settings-search" placeholder="Search settings" aria-label="Search settings" value="'+esc(settingsUI.query)+'" autocomplete="off">'+(shortcutsOn()?'<kbd class="kbd">/</kbd>':'')+'</div>'+
+      '<div class="search-field">'+icon('search')+'<input type="search" class="input settings-search" id="settings-search" placeholder="Search settings" aria-label="Search settings" value="'+esc(settingsUI.query)+'" autocomplete="off"><kbd class="kbd">Ctrl F</kbd></div>'+
       (showApp?'<div class="settings-nav-heading">App</div><nav class="settings-nav-group" aria-label="App settings">'+navItem('general','General',icon('sliders'),!matches && settingsUI.section==='general')+'</nav>':'')+
       '<div class="settings-nav-heading">Projects</div><div class="settings-nav-projects">'+navItem('projects','All projects',icon('folder'),!matches && settingsUI.section==='projects')+projectNav+(settingsLocked() || matches?'':'<button class="settings-nav-item" id="settings-nav-add" data-settings-add-nav>'+icon('plus')+'<span>Add project</span></button>')+'</div>'+
       (showAbout?'<div class="settings-nav-heading">About</div><nav class="settings-nav-group" aria-label="About">'+navItem('about','About',icon('info'),!matches && settingsUI.section==='about')+'</nav>':'')+'</aside>'+
