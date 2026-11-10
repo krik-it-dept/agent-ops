@@ -1,0 +1,71 @@
+name: Release draft
+# Pushing a vX.Y.Z tag on main runs every check, builds the package and its manifest,
+# runs the N-1 to N update test and creates a DRAFT GitHub release. The owner reviews
+# the draft and publishes it; installed apps only see published releases.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Tag matches VERSION, is on main and has release notes
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $version = (Get-Content -LiteralPath VERSION -Raw).Trim()
+          if ($env:TAG -notmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw "Tag $env:TAG is not a stable vMAJOR.MINOR.PATCH version." }
+          if ($env:TAG -ne $version) { throw "Tag $env:TAG does not match VERSION $version." }
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) { throw "Tag $env:TAG is not on main." }
+          $lines = Get-Content -LiteralPath CHANGELOG.md
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match ('^## ' + [regex]::Escape($env:TAG) + '(\s|$)')) { $start = $i; break } }
+          if ($start -lt 0) { throw "CHANGELOG.md has no '## $env:TAG' section." }
+          $end = $lines.Count
+          for ($i = $start + 1; $i -lt $lines.Count; $i++) { if ($lines[$i] -match '^## ') { $end = $i; break } }
+          $notes = ($lines[($start + 1)..($end - 1)] -join "`n").Trim()
+          if (!$notes) { throw "The $env:TAG section of CHANGELOG.md is empty." }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          [IO.File]::WriteAllText((Join-Path $PWD 'dist/release-notes.md'), $notes + "`n")
+      - name: Tests, vet and vulnerability scan
+        shell: pwsh
+        run: ./scripts/test.ps1 -VulnerabilityScan
+      - name: Build package and manifest
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          ./scripts/build.ps1
+          $manifest = Get-Content -LiteralPath dist/agent-ops-windows-amd64.manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.version -ne $env:TAG) { throw "The package reports $($manifest.version), not $env:TAG." }
+      - name: Isolated release install and HTTP smoke
+        run: node scripts/smoke.mjs
+      - name: N-1 to N in-app update test
+        run: node scripts/update-e2e.mjs
+      - name: Create the draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create $env:TAG --draft --verify-tag --title "Agent Ops $env:TAG" --notes-file dist/release-notes.md `
+            dist/agent-ops-windows-amd64.zip dist/agent-ops-windows-amd64.zip.sha256 dist/agent-ops-windows-amd64.manifest.json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release.' }
