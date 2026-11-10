@@ -644,6 +644,9 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 	delete(m.Hashes, "task-sync.mjs")
 	updatePut(t, filepath.Join(m.Package, "CHANGELOG.md"), []byte("new:CHANGELOG.md"))
 	m.Hashes["CHANGELOG.md"] = digestOf([]byte("new:CHANGELOG.md"))
+	// A file in folders that do not exist yet; rollback must remove the folders.
+	updatePut(t, filepath.Join(m.Package, "docs", "guides", "new.md"), []byte("new:docs/guides/new.md"))
+	m.Hashes["docs/guides/new.md"] = digestOf([]byte("new:docs/guides/new.md"))
 	updatePut(t, filepath.Join(m.Root, "legacy", "old.mjs"), []byte("old:legacy"))
 	m.Remove = []string{"task-sync.mjs", "legacy/old.mjs", "never-installed.mjs"}
 	private := filepath.Join(m.Root, "historical-executions.json")
@@ -685,6 +688,12 @@ func TestInstallRemovesListedFilesAndRollbackRestoresEverything(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(m.Root, "CHANGELOG.md")); !os.IsNotExist(err) {
 		t.Fatal("added file not rolled back")
+	}
+	if _, err := os.Stat(filepath.Join(m.Root, "docs")); !os.IsNotExist(err) {
+		t.Fatal("rollback left a folder the update created")
+	}
+	if _, err := os.Stat(filepath.Join(m.Root, "legacy")); err != nil {
+		t.Fatal("rollback removed a folder that existed before", err)
 	}
 	if _, err := os.Stat(filepath.Join(m.Root, "never-installed.mjs")); !os.IsNotExist(err) {
 		t.Fatal("rollback created a file that never existed")

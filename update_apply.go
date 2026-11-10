@@ -235,6 +235,9 @@ func installUpdateFiles(m updateManifest) (func() error, error) {
 		targets = append(targets, alias)
 	}
 	targets = append(targets, profileUpdateFiles(m.Profile)...)
+	// Folders that do not exist yet; rollback removes them again if empty.
+	var createdDirs []string
+	seenDirs := map[string]bool{}
 	for i, target := range targets {
 		if err := plainUpdatePath(target); err != nil {
 			return nil, err
@@ -251,7 +254,18 @@ func installUpdateFiles(m updateManifest) (func() error, error) {
 			}
 		}
 		backups = append(backups, updateBackup{target, backup, exists})
+		if !exists {
+			for dir := filepath.Dir(target); !seenDirs[dir] && dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
+				if _, err := os.Lstat(dir); err == nil || !os.IsNotExist(err) {
+					break
+				}
+				seenDirs[dir] = true
+				createdDirs = append(createdDirs, dir)
+			}
+		}
 	}
+	// Deepest first, so a parent is empty by the time it is tried.
+	sort.Slice(createdDirs, func(i, j int) bool { return len(createdDirs[i]) > len(createdDirs[j]) })
 	// This manifest makes backups useful for a later manual restore too.
 	if err := writeUpdateJSON(filepath.Join(backupDir, "files.json"), targets); err != nil {
 		return nil, err
@@ -270,6 +284,10 @@ func installUpdateFiles(m updateManifest) (func() error, error) {
 			} else if err := os.Remove(b.target); err != nil && !os.IsNotExist(err) {
 				failures = append(failures, err)
 			}
+		}
+		for _, dir := range createdDirs {
+			// A folder that is not empty now holds something else; leave it.
+			_ = os.Remove(dir)
 		}
 		return errors.Join(failures...)
 	}
