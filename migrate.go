@@ -520,57 +520,64 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		r.BlocksRemoved = append(r.BlocksRemoved, bf.file)
 	}
 
-	// SKILL.md copies.
+	// SKILL.md copies, in every client folder detection finds. The list of
+	// integration folders is seeded from what is found here (a folder that holds
+	// a task-plan skill), never from fixed client names.
 	cfg, cfgErr := readAppConfig(configFilePath(opts.DataDir))
 	if errors.Is(cfgErr, fs.ErrNotExist) {
 		cfg, cfgErr = defaultAppConfig(), nil
 	}
-	if cfg.Integrations == nil {
-		cfg.Integrations = map[string]IntegrationRecord{}
-	}
 	cfgChanged := false
-	for _, file := range []string{filepath.Join(profile, ".agents", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".claude", "skills", "task-plan", "SKILL.md")} {
+	stamp := opts.Now.UTC().Format(time.RFC3339)
+	if opts.Now.IsZero() {
+		stamp = time.Now().UTC().Format(time.RFC3339)
+	}
+	for _, found := range detectIntegrationTargets(profile, nil) {
+		file := skillFileOf(found.SkillDir)
 		original, err := readClientFile(file)
 		if err != nil {
 			problem(file, err)
 			continue
 		}
-		if original == nil || lfText(original) == lfText(embeddedSkill) {
+		if original == nil {
 			continue
 		}
-		if !unmodifiedLegacySkill(original, parts[partID(profile, file, "file")]) {
-			r.Kept = append(r.Kept, file+" (modified locally)")
-			continue
-		}
-		if err := write(file, original, embeddedSkill); err != nil {
-			problem(file, err)
-			continue
-		}
-		r.SkillsReplaced = append(r.SkillsReplaced, file)
-		for _, c := range integrationClients(profile) {
-			if samePath(c.Skill, file) {
-				rec := cfg.Integrations[c.ID]
-				rec.Path, rec.Version, rec.SHA256, rec.InstalledAt, rec.Kept = file, embeddedSkillVersion, sha256Hex([]byte(lfText(embeddedSkill))), opts.Now.UTC().Format(time.RFC3339), ""
-				cfg.Integrations[c.ID] = rec
-				cfgChanged = true
+		legacySum := parts[partID(profile, file, "file")]
+		current := lfText(original) == lfText(embeddedSkill)
+		if !current {
+			if !unmodifiedLegacySkill(original, legacySum) {
+				r.Kept = append(r.Kept, file+" (modified locally)")
+			} else if err := write(file, original, embeddedSkill); err != nil {
+				problem(file, err)
+			} else {
+				r.SkillsReplaced = append(r.SkillsReplaced, file)
+				current = true
 			}
+		}
+		i := -1
+		for j, t := range cfg.Integrations {
+			if samePlace(t.SkillDir, found.SkillDir) {
+				i = j
+			}
+		}
+		if i < 0 {
+			cfg.Integrations = append(cfg.Integrations, IntegrationTarget{ID: projectIDFor(found.SkillDir), Label: found.Label, SkillDir: found.SkillDir, InstructionFile: found.InstructionFile, Enabled: true, Source: "detected", AddedAt: stamp})
+			i = len(cfg.Integrations) - 1
+			cfgChanged = true
+		}
+		t := &cfg.Integrations[i]
+		if legacySum != "" && t.LegacySHA256 != legacySum {
+			t.LegacySHA256, cfgChanged = legacySum, true
+		}
+		if current && t.SHA256 != sha256Hex([]byte(lfText(embeddedSkill))) {
+			t.Version, t.SHA256, t.InstalledAt, t.Kept = embeddedSkillVersion, sha256Hex([]byte(lfText(embeddedSkill))), stamp, ""
+			cfgChanged = true
 		}
 	}
 
-	// Carry the old integration record into config.json, then delete it.
+	// The old integration record was carried into the folders above; delete it.
 	ledgerFile := filepath.Join(profile, ".agents", legacyIntegrationsFile)
 	if ledger, err := readClientFile(ledgerFile); err == nil && ledger != nil {
-		for id, sum := range parts {
-			for _, client := range legacyPartClients(id) {
-				rec := cfg.Integrations[client]
-				if rec.Legacy == nil {
-					rec.Legacy = map[string]string{}
-				}
-				rec.Legacy[id] = sum
-				cfg.Integrations[client] = rec
-				cfgChanged = true
-			}
-		}
 		saved := true
 		if cfgChanged {
 			saved = cfgErr == nil && writeAppConfig(configFilePath(opts.DataDir), cfg) == nil
@@ -601,19 +608,87 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	return r, nil
 }
 
-// legacyPartClients maps a reporting installer part to the clients it served.
-func legacyPartClients(id string) []string {
-	switch {
-	case strings.HasPrefix(id, ".claude/"):
-		return []string{"claude"}
-	case strings.HasPrefix(id, ".codex/"):
-		return []string{"codex"}
-	case strings.HasPrefix(id, ".gemini/"):
-		return []string{"gemini"}
-	case strings.HasPrefix(id, ".agents/"):
-		return []string{"codex", "gemini"}
+// legacyIntegrationRecord is the per-client record of v0.3.0 development
+// builds (config.json "integrations" as an object keyed by client).
+type legacyIntegrationRecord struct {
+	Path         string `json:"path,omitempty"`
+	Version      int    `json:"version,omitempty"`
+	SHA256       string `json:"sha256,omitempty"`
+	InstalledAt  string `json:"installedAt,omitempty"`
+	Kept         string `json:"kept,omitempty"`
+	Instructions *struct {
+		Path   string `json:"path"`
+		SHA256 string `json:"sha256"`
+	} `json:"instructions,omitempty"`
+	Legacy map[string]string `json:"legacy,omitempty"`
+}
+
+// legacyIntegrationTargets converts the per-client records into the folder list,
+// keeping the recorded hashes so "Modified locally" and "Update available" stay
+// right. Codex and Gemini shared one skills folder there; a second instruction
+// file for the same folder becomes its own entry in the client's folder.
+func legacyIntegrationTargets(old map[string]legacyIntegrationRecord, profile string) []IntegrationTarget {
+	type client struct{ id, label, home, instructions string }
+	clients := []client{
+		{"claude", "Claude Code", filepath.Join(profile, ".claude", "skills"), filepath.Join(profile, ".claude", "CLAUDE.md")},
+		{"codex", "Codex / shared skills", filepath.Join(profile, ".agents", "skills"), filepath.Join(profile, ".codex", "AGENTS.md")},
+		{"gemini", "Antigravity / Gemini", filepath.Join(profile, ".agents", "skills"), filepath.Join(profile, ".gemini", "GEMINI.md")},
 	}
-	return nil
+	out := []IntegrationTarget{}
+	find := func(dir string) int {
+		for i, t := range out {
+			if samePath(t.SkillDir, dir) {
+				return i
+			}
+		}
+		return -1
+	}
+	for _, c := range clients {
+		rec, ok := old[c.id]
+		if !ok {
+			continue
+		}
+		dir := c.home
+		if rec.Path != "" && filepath.IsAbs(rec.Path) {
+			dir = filepath.Dir(filepath.Dir(rec.Path))
+		}
+		instructions := c.instructions
+		if rec.Instructions != nil && filepath.IsAbs(rec.Instructions.Path) {
+			instructions = rec.Instructions.Path
+		}
+		legacy := rec.Legacy[partID(profile, skillFileOf(dir), "file")]
+		if rec.Path == "" && rec.Kept == "" && rec.Instructions == nil && legacy == "" {
+			continue
+		}
+		i := find(dir)
+		if i >= 0 && rec.Instructions != nil && out[i].InstructionBlock && !samePath(out[i].InstructionFile, instructions) {
+			dir, i = filepath.Join(profile, "."+c.id, "skills"), -1
+			if j := find(dir); j >= 0 {
+				continue
+			}
+		}
+		if i < 0 {
+			out = append(out, IntegrationTarget{ID: projectIDFor(dir), Label: c.label, SkillDir: dir, InstructionFile: instructions, Enabled: true, Source: "detected"})
+			i = len(out) - 1
+		}
+		t := &out[i]
+		if rec.SHA256 != "" && t.SHA256 == "" {
+			t.Version, t.SHA256, t.InstalledAt = rec.Version, rec.SHA256, rec.InstalledAt
+		}
+		if rec.Kept != "" && t.Kept == "" {
+			t.Kept = rec.Kept
+		}
+		if legacy != "" {
+			t.LegacySHA256 = legacy
+		}
+		if rec.Instructions != nil {
+			t.InstructionFile, t.InstructionBlock, t.InstructionSHA256 = instructions, true, rec.Instructions.SHA256
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func lineOf(text string, offset int) int {

@@ -43,7 +43,7 @@ const indexLines = (file) =>
     .map((l) => l.trim().replace(/^-\s+/, ''))
     .filter((l) => l && !l.startsWith('#') && !/^\(.*\)$/.test(l));
 
-// Plan format (see ~/.claude/CLAUDE.md): "Next:", "Status:", then "- [todo|doing|done|partial|blocked] step ~2h".
+// Plan format (see the task-plan skill): "Next:", "Status:", then "- [todo|doing|done|partial|blocked] step ~2h".
 // The older emoji format ("Tiếp theo:", "Trạng thái:", status emoji at line start) is still read for older plans.
 
 const STAMP_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?\s*:\s*/;

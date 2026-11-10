@@ -169,11 +169,24 @@ func TestMigrationRemovesReportingAndKeepsOwnerText(t *testing.T) {
 	if raw := mread(t, configFilePath(f.data)); strings.Contains(raw, "slotsFile") {
 		t.Fatal("slots carried over", raw)
 	}
-	if cfg.Integrations["codex"].Legacy[".codex/AGENTS.md#block"] != "bb" || cfg.Integrations["claude"].Legacy[".claude/settings.json#hooks"] != "aa" || cfg.Integrations["gemini"].Legacy[".agents/skills/task-plan/SKILL.md#file"] != "cc" {
+	// The folder list is seeded from the skill folders found, not from fixed
+	// clients: Orca profiles and ~/.gemini have no skill, so they stay suggestions.
+	if len(cfg.Integrations) != 2 {
 		t.Fatalf("%+v", cfg.Integrations)
 	}
-	if rec := cfg.Integrations["codex"]; rec.Version != embeddedSkillVersion || rec.SHA256 != sha256Hex([]byte(lfText(embeddedSkill))) || !samePath(rec.Path, f.skillShared) {
-		t.Fatalf("%+v", rec)
+	byDir := map[string]IntegrationTarget{}
+	for _, it := range cfg.Integrations {
+		byDir[strings.ToLower(it.SkillDir)] = it
+		if it.Source != "detected" || !it.Enabled || it.InstructionBlock {
+			t.Fatalf("%+v", it)
+		}
+	}
+	shared, claude := byDir[strings.ToLower(filepath.Dir(filepath.Dir(f.skillShared)))], byDir[strings.ToLower(filepath.Dir(filepath.Dir(f.skillClaude)))]
+	if shared.Version != embeddedSkillVersion || shared.SHA256 != sha256Hex([]byte(lfText(embeddedSkill))) || shared.LegacySHA256 != "cc" || shared.InstructionFile != filepath.Join(f.profile, ".codex", "AGENTS.md") {
+		t.Fatalf("%+v", shared)
+	}
+	if claude.SHA256 != "" || claude.Label != "Claude Code" || skillState(claude).State != "modified" || skillState(shared).State != "installed" {
+		t.Fatalf("%+v %+v", claude, skillState(claude))
 	}
 	if exists(filepath.Join(f.profile, ".agents", legacyIntegrationsFile)) {
 		t.Fatal("old integration record not deleted")

@@ -7,8 +7,8 @@ package main
 //   - backs the previous file up first;
 //   - replaces the file atomically (temp file in the same folder, then rename);
 //   - never edits a file that is itself a symbolic link or junction. Folders
-//     above it may be links (a junctioned ~/.claude, Orca's skills junction);
-//     the edit and its rollback then go through the same path.
+//     above it may be links (a junctioned client folder, a linked skills
+//     folder); the edit and its rollback then go through the same path.
 // Only text inside Agent Ops' own markers, or a whole file Agent Ops wrote, is
 // ever changed, apart from the blank lines that separated a block appended at
 // the end of a file (see removeBlock).
@@ -56,29 +56,6 @@ func profileRoamingAppData(profile string) string {
 		return v
 	}
 	return filepath.Join(profile, "AppData", "Roaming")
-}
-
-// claudeHomes are the Claude Code configuration folders of a profile: ~/.claude,
-// CLAUDE_CONFIG_DIR, and every Orca Claude profile (Orca runs Claude with
-// CLAUDE_CONFIG_DIR=%APPDATA%\orca\claude-profiles\<id>\home).
-func claudeHomes(profile string) []string {
-	homes := []string{filepath.Join(profile, ".claude")}
-	if v := os.Getenv("CLAUDE_CONFIG_DIR"); v != "" && isRealProfile(profile) && filepath.IsAbs(v) {
-		homes = append(homes, filepath.Clean(v))
-	}
-	orca, _ := filepath.Glob(filepath.Join(profileRoamingAppData(profile), "orca", "claude-profiles", "*", "home"))
-	homes = append(homes, orca...)
-	out := []string{}
-	for _, h := range homes {
-		dup := false
-		for _, o := range out {
-			dup = dup || samePath(o, h)
-		}
-		if !dup {
-			out = append(out, h)
-		}
-	}
-	return out
 }
 
 func sha256Hex(b []byte) string {

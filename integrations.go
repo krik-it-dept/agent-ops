@@ -1,14 +1,17 @@
 package main
 
-// Settings > Integrations: the task-plan skill and an optional one-line
-// instruction block for Claude Code, Codex and Antigravity / Gemini. Nothing is
-// installed without the owner's action; the in-app updater never writes client
+// Settings > Integrations: a list of folders, chosen by the owner, that receive
+// the task-plan skill (<folder>\task-plan\SKILL.md), each with an optional
+// instruction file for a one-line reminder. The list lives in config.json;
+// detection (integration_detect.go) only suggests entries. Nothing is added or
+// installed without the owner's action; the in-app updater never writes these
 // files, it only makes a newer embedded skill show as "Update available".
 
 import (
 	"bytes"
 	_ "embed"
 	"errors"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 //go:embed skills/task-plan/SKILL.md
@@ -54,133 +58,146 @@ func instructionBlock() string {
 	return instructionStart + "\n" + instructionLine + "\n" + instructionEnd
 }
 
-type integrationClient struct {
-	ID, Name     string
-	Home         string // detected when this folder exists
-	Skill        string
-	Instructions string
-}
+// skillFileOf is the skill file Agent Ops manages inside a target folder.
+func skillFileOf(dir string) string { return filepath.Join(dir, "task-plan", "SKILL.md") }
 
-// integrationClients lists the supported clients for a profile. Codex and
-// Antigravity share ~/.agents/skills.
-func integrationClients(profile string) []integrationClient {
-	shared := filepath.Join(profile, ".agents", "skills", "task-plan", "SKILL.md")
-	return []integrationClient{
-		{"claude", "Claude Code", filepath.Join(profile, ".claude"), filepath.Join(profile, ".claude", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".claude", "CLAUDE.md")},
-		{"codex", "Codex", filepath.Join(profile, ".codex"), shared, filepath.Join(profile, ".codex", "AGENTS.md")},
-		{"gemini", "Antigravity / Gemini", filepath.Join(profile, ".gemini"), shared, filepath.Join(profile, ".gemini", "GEMINI.md")},
+// ---------- path identity ----------
+
+// existingAncestor returns the deepest existing part of path and the rest of
+// path below it.
+func existingAncestor(path string) (string, string) {
+	path = filepath.Clean(path)
+	rest := ""
+	for {
+		if _, err := os.Stat(path); err == nil {
+			return path, rest
+		}
+		parent := filepath.Dir(path)
+		if parent == path {
+			return "", ""
+		}
+		if rest == "" {
+			rest = filepath.Base(path)
+		} else {
+			rest = filepath.Join(filepath.Base(path), rest)
+		}
+		path = parent
 	}
 }
 
-func (c integrationClient) detected() bool {
-	if st, err := os.Stat(c.Home); err == nil && st.IsDir() {
+// samePlace reports whether two paths name the same folder or file, also through
+// symbolic links and junctions (compared by file identity, not by text).
+func samePlace(a, b string) bool {
+	if a == "" || b == "" {
+		return false
+	}
+	if samePath(a, b) {
 		return true
 	}
-	if c.ID == "claude" {
-		if v := os.Getenv("CLAUDE_CONFIG_DIR"); v != "" && isRealProfile(profileDir) {
-			if st, err := os.Stat(v); err == nil && st.IsDir() {
-				return true
+	pa, ra := existingAncestor(a)
+	pb, rb := existingAncestor(b)
+	if pa == "" || pb == "" || !strings.EqualFold(ra, rb) {
+		return false
+	}
+	ia, errA := os.Stat(pa)
+	ib, errB := os.Stat(pb)
+	return errA == nil && errB == nil && os.SameFile(ia, ib)
+}
+
+// insideProject returns the project that contains path (or is path), also
+// through links.
+func insideProject(path string, projects []Project) (Project, bool) {
+	for _, p := range projects {
+		key, proj := resolvedProjectPath(path), resolvedProjectPath(p.Path)
+		if key == proj || pathWithin(key, proj) {
+			return p, true
+		}
+		for dir := filepath.Clean(path); ; dir = filepath.Dir(dir) {
+			if samePlace(dir, p.Path) {
+				return p, true
+			}
+			if filepath.Dir(dir) == dir {
+				break
 			}
 		}
 	}
-	return false
+	return Project{}, false
 }
 
-type skillStatus struct {
-	Path             string   `json:"path"`
-	State            string   `json:"state"` // not-detected, not-installed, installed, update-available, modified
-	InstalledVersion int      `json:"installedVersion"`
-	Kept             bool     `json:"kept"`
-	SharedWith       []string `json:"sharedWith"`
-}
+// ---------- state ----------
 
 type instructionStatus struct {
 	Path  string `json:"path"`
-	State string `json:"state"` // not-detected, off, on, outdated, modified
+	State string `json:"state"` // none, missing-folder, off, on, outdated, modified
 	Line  string `json:"line"`
 }
 
-type clientStatus struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Detected     bool              `json:"detected"`
-	ConfigDir    string            `json:"configDir"`
-	Skill        skillStatus       `json:"skill"`
-	Instructions instructionStatus `json:"instructions"`
+type targetStatus struct {
+	ID               string            `json:"id"`
+	Label            string            `json:"label"`
+	SkillDir         string            `json:"skillDir"`
+	SkillFile        string            `json:"skillFile"`
+	Enabled          bool              `json:"enabled"`
+	Source           string            `json:"source"`
+	State            string            `json:"state"` // missing-folder, not-installed, installed, update-available, modified
+	InstalledVersion int               `json:"installedVersion"`
+	Kept             bool              `json:"kept"`
+	Instructions     instructionStatus `json:"instructions"`
 }
 
 type integrationsPayload struct {
-	SkillVersion int              `json:"skillVersion"`
-	Clients      []clientStatus   `json:"clients"`
-	Migration    *migrationResult `json:"migration"`
-	ReadOnly     string           `json:"readOnly"`
+	SkillVersion int                     `json:"skillVersion"`
+	Targets      []targetStatus          `json:"targets"`
+	Suggestions  []integrationSuggestion `json:"suggestions"`
+	Migration    *migrationResult        `json:"migration"`
+	ReadOnly     string                  `json:"readOnly"`
+	Added        string                  `json:"added,omitempty"`
 }
 
-func skillState(c integrationClient, records map[string]IntegrationRecord, profile string) skillStatus {
-	st := skillStatus{Path: c.Skill, SharedWith: []string{}}
-	for _, other := range integrationClients(profile) {
-		if other.ID != c.ID && samePath(other.Skill, c.Skill) {
-			st.SharedWith = append(st.SharedWith, other.ID)
-		}
-	}
-	rec := records[c.ID]
-	st.InstalledVersion = rec.Version
-	content, err := readClientFile(c.Skill)
+// folderMissing: neither the folder nor its parent exists, so there is nowhere
+// to install. A missing folder whose parent exists is created by Install.
+func folderMissing(dir string) bool { return !isDir(dir) && !isDir(filepath.Dir(dir)) }
+
+func skillState(t IntegrationTarget) targetStatus {
+	st := targetStatus{ID: t.ID, Label: t.Label, SkillDir: t.SkillDir, SkillFile: skillFileOf(t.SkillDir), Enabled: t.Enabled, Source: t.Source, InstalledVersion: t.Version}
+	content, err := readClientFile(st.SkillFile)
 	switch {
 	case err != nil:
 		st.State = "modified"
-	case content == nil && !c.detected():
-		st.State = "not-detected"
+	case content == nil && folderMissing(t.SkillDir):
+		st.State, st.InstalledVersion = "missing-folder", 0
 	case content == nil:
-		st.State = "not-installed"
+		st.State, st.InstalledVersion = "not-installed", 0
 	case lfText(content) == lfText(embeddedSkill):
 		st.State, st.InstalledVersion = "installed", embeddedSkillVersion
 	default:
 		sum := sha256Hex([]byte(lfText(content)))
-		ours := false
-		for id, r := range records {
-			if r.SHA256 == sum && (id == c.ID || contains(st.SharedWith, id)) {
-				ours = true
-			}
+		if v := skillVersionOf(content); v > 0 {
+			st.InstalledVersion = v
 		}
-		parts := map[string]string{}
-		for _, r := range records {
-			for k, v := range r.Legacy {
-				parts[k] = v
-			}
-		}
-		if ours || unmodifiedLegacySkill(content, parts[partID(profile, c.Skill, "file")]) {
+		if sum == t.SHA256 || unmodifiedLegacySkill(content, t.LegacySHA256) {
 			st.State = "update-available"
 		} else {
-			st.State = "modified"
-			for id, r := range records {
-				if r.Kept == sum && (id == c.ID || contains(st.SharedWith, id)) {
-					st.Kept = true
-				}
-			}
+			st.State, st.Kept = "modified", t.Kept != "" && t.Kept == sum
 		}
 	}
+	st.Instructions = instructionState(t)
 	return st
 }
 
-func contains(list []string, v string) bool {
-	for _, x := range list {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}
-
-func instructionState(c integrationClient, rec IntegrationRecord) instructionStatus {
-	st := instructionStatus{Path: c.Instructions, Line: instructionLine}
-	if !c.detected() {
-		st.State = "not-detected"
+func instructionState(t IntegrationTarget) instructionStatus {
+	st := instructionStatus{Path: t.InstructionFile, Line: instructionLine}
+	if t.InstructionFile == "" {
+		st.State = "none"
 		return st
 	}
-	content, err := readClientFile(c.Instructions)
+	content, err := readClientFile(t.InstructionFile)
 	if err != nil {
 		st.State = "modified"
+		return st
+	}
+	if content == nil && !isDir(filepath.Dir(t.InstructionFile)) {
+		st.State = "missing-folder"
 		return st
 	}
 	text := string(content)
@@ -192,7 +209,7 @@ func instructionState(c integrationClient, rec IntegrationRecord) instructionSta
 		st.State = "off"
 	case lfText([]byte(text[a:b])) == instructionBlock():
 		st.State = "on"
-	case rec.Instructions != nil && sha256Hex([]byte(lfText([]byte(text[a:b])))) == rec.Instructions.SHA256:
+	case t.InstructionSHA256 != "" && sha256Hex([]byte(lfText([]byte(text[a:b])))) == t.InstructionSHA256:
 		st.State = "outdated"
 	default:
 		st.State = "modified"
@@ -202,18 +219,19 @@ func instructionState(c integrationClient, rec IntegrationRecord) instructionSta
 
 var integrationsMu sync.Mutex
 
-func currentIntegrations() integrationsPayload {
+func integrationTargets() ([]IntegrationTarget, string) {
 	cfgMu.Lock()
-	records := map[string]IntegrationRecord{}
-	for k, v := range appCfg.Integrations {
-		records[k] = v
+	defer cfgMu.Unlock()
+	return append([]IntegrationTarget{}, appCfg.Integrations...), configReadOnly
+}
+
+func currentIntegrations() integrationsPayload {
+	targets, readOnly := integrationTargets()
+	out := integrationsPayload{SkillVersion: embeddedSkillVersion, Targets: []targetStatus{}, Migration: readMigrationResult(dataDir), ReadOnly: readOnly}
+	for _, t := range targets {
+		out.Targets = append(out.Targets, skillState(t))
 	}
-	readOnly := configReadOnly
-	cfgMu.Unlock()
-	out := integrationsPayload{SkillVersion: embeddedSkillVersion, Clients: []clientStatus{}, Migration: readMigrationResult(dataDir), ReadOnly: readOnly}
-	for _, c := range integrationClients(profileDir) {
-		out.Clients = append(out.Clients, clientStatus{ID: c.ID, Name: c.Name, Detected: c.detected(), ConfigDir: c.Home, Skill: skillState(c, records, profileDir), Instructions: instructionState(c, records[c.ID])})
-	}
+	out.Suggestions = detectIntegrationTargets(profileDir, targets)
 	return out
 }
 
@@ -225,64 +243,77 @@ type integrationError struct {
 func (e *integrationError) Error() string { return e.text }
 
 func conflict(text string) error { return &integrationError{http.StatusConflict, text} }
+func badInput(text string) error { return &integrationError{http.StatusBadRequest, text} }
 
 const modifiedText = "This file was changed outside Agent Ops. Use View diff, then Keep mine or Replace."
+const notListedText = "This folder is no longer in the list. Reload Settings."
 
-// applyIntegration performs one action for one client and records it.
-func applyIntegration(clientID, action string, now time.Time) error {
-	var client *integrationClient
-	for _, c := range integrationClients(profileDir) {
-		if c.ID == clientID {
-			c := c
-			client = &c
+func findTarget(list []IntegrationTarget, id string) int {
+	for i, t := range list {
+		if t.ID == id {
+			return i
 		}
 	}
-	if client == nil {
-		return &integrationError{http.StatusNotFound, "Unknown AI client."}
+	return -1
+}
+
+// beginIntegrationChange returns a copy of the list, or an error when settings
+// cannot be saved now. The caller holds integrationsMu.
+func beginIntegrationChange() ([]IntegrationTarget, error) {
+	list, readOnly := integrationTargets()
+	if readOnly != "" {
+		return nil, conflict(readOnly)
+	}
+	if updateRestarting.Load() {
+		return nil, &integrationError{http.StatusServiceUnavailable, "Agent Ops is restarting for an update. Try again after it reconnects."}
+	}
+	return list, nil
+}
+
+var integrationActions = map[string]bool{"install": true, "update": true, "replace": true, "keep": true, "remove": true, "instructions-on": true, "instructions-off": true}
+
+// applyIntegration performs one file action for one target and records it.
+func applyIntegration(id, action string, now time.Time) error {
+	if !integrationActions[action] {
+		return &integrationError{http.StatusNotFound, "Unknown action."}
 	}
 	integrationsMu.Lock()
 	defer integrationsMu.Unlock()
-	cfgMu.Lock()
-	readOnly := configReadOnly
-	records := map[string]IntegrationRecord{}
-	for k, v := range appCfg.Integrations {
-		records[k] = v
+	list, err := beginIntegrationChange()
+	if err != nil {
+		return err
 	}
-	cfgMu.Unlock()
-	if readOnly != "" {
-		return conflict(readOnly)
+	i := findTarget(list, id)
+	if i < 0 {
+		return &integrationError{http.StatusNotFound, notListedText}
 	}
-	if updateRestarting.Load() {
-		return &integrationError{http.StatusServiceUnavailable, "Agent Ops is restarting for an update. Try again after it reconnects."}
+	t := list[i]
+	if !t.Enabled {
+		return conflict("This folder is turned off. Turn it on first.")
 	}
 	backup := filepath.Join(dataDir, "backups", "integrations", now.Format("20060102-150405.000000000"))
 	stamp := now.UTC().Format(time.RFC3339)
-	skill := skillState(*client, records, profileDir)
-	sharing := append([]string{client.ID}, skill.SharedWith...)
+	skill := skillState(t)
+	file := skill.SkillFile
 	writeSkill := func(force bool) error {
-		if !client.detected() && skill.State == "not-detected" {
-			return conflict(client.Name + " was not found on this computer.")
+		if skill.State == "missing-folder" {
+			return conflict("The folder " + t.SkillDir + " does not exist. Edit the path or remove it from the list.")
 		}
 		if skill.State == "modified" && !force {
 			return conflict(modifiedText)
 		}
-		current, err := readClientFile(client.Skill)
+		current, err := readClientFile(file)
 		if err != nil {
 			return conflict(err.Error())
 		}
 		if current == nil || !bytes.Equal(current, embeddedSkill) {
-			if err := writeClientFile(client.Skill, current, embeddedSkill, profileDir, backup); err != nil {
-				return conflict("Could not write " + client.Skill + ": " + err.Error())
+			if err := writeClientFile(file, current, embeddedSkill, profileDir, backup); err != nil {
+				return conflict("Could not write " + file + ": " + err.Error())
 			}
 		}
-		for _, id := range sharing {
-			rec := records[id]
-			rec.Path, rec.Version, rec.SHA256, rec.InstalledAt, rec.Kept = client.Skill, embeddedSkillVersion, sha256Hex([]byte(lfText(embeddedSkill))), stamp, ""
-			records[id] = rec
-		}
+		t.Version, t.SHA256, t.InstalledAt, t.Kept = embeddedSkillVersion, sha256Hex([]byte(lfText(embeddedSkill))), stamp, ""
 		return nil
 	}
-	var err error
 	switch action {
 	case "install", "update":
 		err = writeSkill(false)
@@ -292,119 +323,350 @@ func applyIntegration(clientID, action string, now time.Time) error {
 		if skill.State != "modified" {
 			return conflict("Only a file changed outside Agent Ops can be kept.")
 		}
-		current, readErr := readClientFile(client.Skill)
+		current, readErr := readClientFile(file)
 		if readErr != nil || current == nil {
 			return conflict("The file could not be read.")
 		}
-		rec := records[client.ID]
-		rec.Kept = sha256Hex([]byte(lfText(current)))
-		records[client.ID] = rec
+		t.Kept = sha256Hex([]byte(lfText(current)))
 	case "remove":
 		if skill.State == "modified" {
 			return conflict(modifiedText)
 		}
 		if skill.State == "installed" || skill.State == "update-available" {
-			current, readErr := readClientFile(client.Skill)
+			current, readErr := readClientFile(file)
 			if readErr != nil {
 				return conflict(readErr.Error())
 			}
-			if err := writeClientFile(client.Skill, current, nil, profileDir, backup); err != nil {
-				return conflict("Could not remove " + client.Skill + ": " + err.Error())
+			if err := writeClientFile(file, current, nil, profileDir, backup); err != nil {
+				return conflict("Could not remove " + file + ": " + err.Error())
 			}
-			_ = os.Remove(filepath.Dir(client.Skill)) // only when empty
+			_ = os.Remove(filepath.Dir(file)) // only when empty
 		}
-		for _, id := range sharing {
-			rec := records[id]
-			rec.Path, rec.Version, rec.SHA256, rec.InstalledAt, rec.Kept = "", 0, "", "", ""
-			records[id] = rec
-		}
+		t.Version, t.SHA256, t.InstalledAt, t.Kept, t.LegacySHA256 = 0, "", "", "", ""
 	case "instructions-on", "instructions-off":
-		err = toggleInstructions(*client, records, action == "instructions-on", backup, stamp)
-	default:
-		return &integrationError{http.StatusNotFound, "Unknown action."}
+		err = toggleInstructions(&t, action == "instructions-on", backup)
 	}
 	if err != nil {
 		return err
 	}
-	return saveIntegrationRecords(records)
+	list[i] = t
+	return saveIntegrations(list)
 }
 
-func toggleInstructions(c integrationClient, records map[string]IntegrationRecord, on bool, backup, stamp string) error {
-	rec := records[c.ID]
-	state := instructionState(c, rec)
-	if state.State == "not-detected" {
-		return conflict(c.Name + " was not found on this computer.")
+// toggleInstructions adds or removes the marked one-line block. Only text
+// between the markers is changed (see removeBlock for the separator lines).
+func toggleInstructions(t *IntegrationTarget, on bool, backup string) error {
+	state := instructionState(*t)
+	switch state.State {
+	case "none":
+		return conflict("Choose an instruction file for this folder first.")
+	case "missing-folder":
+		return conflict("The folder of " + t.InstructionFile + " does not exist. Edit the path first.")
+	case "modified":
+		return conflict("The Agent Ops lines in " + t.InstructionFile + " were changed by hand. Edit them there.")
 	}
-	if state.State == "modified" {
-		return conflict("The Agent Ops lines in " + c.Instructions + " were changed by hand. Edit them there.")
-	}
-	current, err := readClientFile(c.Instructions)
+	current, err := readClientFile(t.InstructionFile)
 	if err != nil {
 		return conflict(err.Error())
 	}
 	text := string(current)
 	a, b, found, _ := findBlock(text, instructionStart, instructionEnd)
-	var next []byte
 	if on {
-		if state.State == "on" {
-			return nil
-		}
-		newline := "\n"
-		if strings.Contains(text, "\r\n") {
-			newline = "\r\n"
-		}
-		block := strings.ReplaceAll(instructionBlock(), "\n", newline)
-		if found {
-			next = []byte(text[:a] + block + text[b:])
-		} else {
-			sep := ""
-			if text != "" {
-				if !strings.HasSuffix(text, "\n") {
-					sep = newline
+		if state.State != "on" {
+			newline := "\n"
+			if strings.Contains(text, "\r\n") {
+				newline = "\r\n"
+			}
+			block := strings.ReplaceAll(instructionBlock(), "\n", newline)
+			var next []byte
+			if found {
+				next = []byte(text[:a] + block + text[b:])
+			} else {
+				sep := ""
+				if text != "" {
+					if !strings.HasSuffix(text, "\n") {
+						sep = newline
+					}
+					sep += newline
 				}
-				sep += newline
+				next = []byte(text + sep + block + newline)
 			}
-			next = []byte(text + sep + block + newline)
-		}
-		if err := writeClientFile(c.Instructions, current, next, profileDir, backup); err != nil {
-			return conflict("Could not write " + c.Instructions + ": " + err.Error())
-		}
-		rec.Instructions = &InstructionRecord{Path: c.Instructions, SHA256: sha256Hex([]byte(instructionBlock())), InstalledAt: stamp}
-	} else {
-		if found {
-			updated := []byte(removeBlock(text, a, b))
-			if len(bytes.TrimSpace(updated)) == 0 && rec.Instructions != nil {
-				updated = nil
-			}
-			if err := writeClientFile(c.Instructions, current, updated, profileDir, backup); err != nil {
-				return conflict("Could not write " + c.Instructions + ": " + err.Error())
+			if err := writeClientFile(t.InstructionFile, current, next, profileDir, backup); err != nil {
+				return conflict("Could not write " + t.InstructionFile + ": " + err.Error())
 			}
 		}
-		rec.Instructions = nil
+		t.InstructionBlock, t.InstructionSHA256 = true, sha256Hex([]byte(instructionBlock()))
+		return nil
 	}
-	records[c.ID] = rec
+	if found {
+		updated := []byte(removeBlock(text, a, b))
+		if len(bytes.TrimSpace(updated)) == 0 && t.InstructionBlock {
+			updated = nil // the file held only the block Agent Ops wrote
+		}
+		if err := writeClientFile(t.InstructionFile, current, updated, profileDir, backup); err != nil {
+			return conflict("Could not write " + t.InstructionFile + ": " + err.Error())
+		}
+	}
+	t.InstructionBlock, t.InstructionSHA256 = false, ""
 	return nil
 }
 
-func saveIntegrationRecords(records map[string]IntegrationRecord) error {
+func saveIntegrations(list []IntegrationTarget) error {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
 	next := appCfg
 	next.Projects = append([]Project{}, appCfg.Projects...)
-	next.Integrations = map[string]IntegrationRecord{}
-	for k, v := range records {
-		if v.Path != "" || v.Kept != "" || v.Instructions != nil || len(v.Legacy) > 0 {
-			next.Integrations[k] = v
-		}
-	}
+	next.Integrations = append([]IntegrationTarget{}, list...)
 	if len(next.Integrations) == 0 {
 		next.Integrations = nil
 	}
 	if err := writeAppConfig(configFilePath(dataDir), next); err != nil {
-		return &integrationError{http.StatusInternalServerError, "The change was made, but settings could not be saved: " + err.Error()}
+		return &integrationError{http.StatusInternalServerError, "Settings could not be saved: " + err.Error()}
 	}
 	appCfg = next
 	return nil
+}
+
+// ---------- adding and editing targets ----------
+
+// cleanInputPath accepts a pasted or picked path: trimmed, without surrounding
+// quotes, absolute.
+func cleanInputPath(raw string) (string, bool) {
+	path := strings.TrimSpace(raw)
+	if len(path) >= 2 && path[0] == '"' && path[len(path)-1] == '"' {
+		path = strings.TrimSpace(path[1 : len(path)-1])
+	}
+	if path == "" || !filepath.IsAbs(path) || strings.ContainsRune(path, 0) {
+		return "", false
+	}
+	return filepath.Clean(path), true
+}
+
+func writableDir(dir string) error {
+	f, err := os.CreateTemp(dir, ".agent-ops-check-*.tmp")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	f.Close()
+	return os.Remove(name)
+}
+
+func validLabel(label string) bool {
+	if label == "" || len([]rune(label)) > maxIntegrationLabel {
+		return false
+	}
+	for _, r := range label {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// defaultLabel names a folder by itself, or by its parent for a "skills" folder.
+func defaultLabel(dir string) string {
+	name := filepath.Base(dir)
+	if strings.EqualFold(name, "skills") {
+		name = filepath.Base(filepath.Dir(dir))
+	}
+	name = strings.TrimPrefix(name, ".")
+	if name == "" || strings.ContainsAny(name, `\/:`) {
+		name = dir
+	}
+	if r := []rune(name); len(r) > maxIntegrationLabel {
+		name = string(r[:maxIntegrationLabel])
+	}
+	return name
+}
+
+func currentProjects() []Project {
+	cfgMu.Lock()
+	defer cfgMu.Unlock()
+	return append([]Project{}, appCfg.Projects...)
+}
+
+// checkSkillDir validates a skills folder: absolute, an existing writable folder
+// or a creatable one under an existing parent, outside every project, and not
+// already listed (also through links). self is the target being edited.
+func checkSkillDir(raw string, list []IntegrationTarget, self string) (string, error) {
+	dir, ok := cleanInputPath(raw)
+	if !ok {
+		return "", badInput(`Enter a full folder path, for example C:\Users\me\tools\skills.`)
+	}
+	if p, inside := insideProject(dir, currentProjects()); inside {
+		return "", badInput("This folder is inside the project “" + p.Name + "”. Choose the AI client's own skills folder, outside your repositories.")
+	}
+	info, err := os.Stat(dir)
+	switch {
+	case err == nil && !info.IsDir():
+		return "", badInput("This path is a file. Choose the folder that holds the skills.")
+	case err == nil:
+		if err := writableDir(dir); err != nil {
+			return "", badInput("Agent Ops cannot write to this folder: " + err.Error())
+		}
+	case errors.Is(err, fs.ErrNotExist):
+		parent := filepath.Dir(dir)
+		if !isDir(parent) {
+			return "", badInput("Neither this folder nor its parent folder exists.")
+		}
+		if err := writableDir(parent); err != nil {
+			return "", badInput("Agent Ops cannot create this folder: " + err.Error())
+		}
+	default:
+		return "", badInput("Agent Ops cannot open this folder: " + err.Error())
+	}
+	for _, t := range list {
+		if t.ID != self && samePlace(t.SkillDir, dir) {
+			return "", badInput("This folder is already in the list as “" + t.Label + "”.")
+		}
+	}
+	return dir, nil
+}
+
+// checkInstructionFile validates an instruction file: absolute, a writable plain
+// file (not a link) or a new file in an existing folder, outside every project.
+func checkInstructionFile(raw string) (string, error) {
+	file, ok := cleanInputPath(raw)
+	if !ok {
+		return "", badInput(`Enter a full file path, for example C:\Users\me\tools\AGENTS.md.`)
+	}
+	info, err := os.Lstat(file)
+	switch {
+	case err == nil && info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0:
+		return "", badInput("This file is a link. Agent Ops does not edit linked files; choose the file it points to.")
+	case err == nil && !info.Mode().IsRegular():
+		return "", badInput("This path is a folder. Choose the instruction file itself, for example AGENTS.md.")
+	case err == nil:
+		f, openErr := os.OpenFile(file, os.O_WRONLY|os.O_APPEND, 0)
+		if openErr != nil {
+			return "", badInput("Agent Ops cannot write to this file: " + openErr.Error())
+		}
+		f.Close()
+	case errors.Is(err, fs.ErrNotExist):
+		if !isDir(filepath.Dir(file)) {
+			return "", badInput("The folder of this file does not exist.")
+		}
+	default:
+		return "", badInput("Agent Ops cannot open this file: " + err.Error())
+	}
+	if p, inside := insideProject(file, currentProjects()); inside {
+		return "", badInput("This file is inside the project “" + p.Name + "”. Choose the AI client's own instruction file.")
+	}
+	return file, nil
+}
+
+type targetInput struct {
+	SkillDir        *string `json:"skillDir"`
+	InstructionFile *string `json:"instructionFile"`
+	Label           *string `json:"label"`
+	Enabled         *bool   `json:"enabled"`
+}
+
+// addIntegrationTarget adds a folder. It is "detected" when it is one of the
+// current suggestions, otherwise "custom". It returns the new id.
+func addIntegrationTarget(in targetInput, now time.Time) (string, error) {
+	integrationsMu.Lock()
+	defer integrationsMu.Unlock()
+	list, err := beginIntegrationChange()
+	if err != nil {
+		return "", err
+	}
+	if in.SkillDir == nil {
+		return "", badInput("Choose a skills folder.")
+	}
+	dir, err := checkSkillDir(*in.SkillDir, list, "")
+	if err != nil {
+		return "", err
+	}
+	t := IntegrationTarget{ID: projectIDFor(dir), SkillDir: dir, Enabled: true, Source: "custom", AddedAt: now.UTC().Format(time.RFC3339), Label: defaultLabel(dir)}
+	if in.Enabled != nil {
+		t.Enabled = *in.Enabled
+	}
+	for _, s := range detectIntegrationTargets(profileDir, list) {
+		if samePlace(s.SkillDir, dir) {
+			t.Source, t.Label = "detected", s.Label
+		}
+	}
+	if in.Label != nil && strings.TrimSpace(*in.Label) != "" {
+		t.Label = strings.TrimSpace(*in.Label)
+	}
+	if !validLabel(t.Label) {
+		return "", badInput("Enter a name of 1 to 80 characters.")
+	}
+	if in.InstructionFile != nil && strings.TrimSpace(*in.InstructionFile) != "" {
+		if t.InstructionFile, err = checkInstructionFile(*in.InstructionFile); err != nil {
+			return "", err
+		}
+	}
+	for findTarget(list, t.ID) >= 0 {
+		t.ID = projectIDFor(t.ID + dir)
+	}
+	return t.ID, saveIntegrations(append(list, t))
+}
+
+// editIntegrationTarget changes a folder's name, paths or Enabled. Recorded
+// hashes are content hashes and stay. The instruction file cannot change while
+// the reminder is in it (the block would be left behind unmanaged).
+func editIntegrationTarget(id string, in targetInput) error {
+	integrationsMu.Lock()
+	defer integrationsMu.Unlock()
+	list, err := beginIntegrationChange()
+	if err != nil {
+		return err
+	}
+	i := findTarget(list, id)
+	if i < 0 {
+		return &integrationError{http.StatusNotFound, notListedText}
+	}
+	t := list[i]
+	if in.SkillDir != nil {
+		if t.SkillDir, err = checkSkillDir(*in.SkillDir, list, id); err != nil {
+			return err
+		}
+	}
+	if in.InstructionFile != nil {
+		next := ""
+		if strings.TrimSpace(*in.InstructionFile) != "" {
+			if next, err = checkInstructionFile(*in.InstructionFile); err != nil {
+				return err
+			}
+		}
+		if !samePath(next, t.InstructionFile) {
+			if t.InstructionBlock {
+				return conflict("Turn the reminder off before changing the instruction file.")
+			}
+			t.InstructionFile, t.InstructionSHA256 = next, ""
+		}
+	}
+	if in.Label != nil {
+		label := strings.TrimSpace(*in.Label)
+		if !validLabel(label) {
+			return badInput("Enter a name of 1 to 80 characters.")
+		}
+		t.Label = label
+	}
+	if in.Enabled != nil {
+		t.Enabled = *in.Enabled
+	}
+	list[i] = t
+	return saveIntegrations(list)
+}
+
+// removeIntegrationTarget takes a folder off the list. Files are left as they
+// are; "Remove skill" is the action that deletes the skill file.
+func removeIntegrationTarget(id string) error {
+	integrationsMu.Lock()
+	defer integrationsMu.Unlock()
+	list, err := beginIntegrationChange()
+	if err != nil {
+		return err
+	}
+	i := findTarget(list, id)
+	if i < 0 {
+		return &integrationError{http.StatusNotFound, notListedText}
+	}
+	return saveIntegrations(append(list[:i], list[i+1:]...))
 }
 
 // ---------- diff ----------
@@ -475,40 +737,90 @@ func lineDiff(oldText, newText string) []diffLine {
 
 // ---------- HTTP ----------
 
-func handleIntegrations(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		settingsFail(w, http.StatusMethodNotAllowed, "Method not allowed.")
+func failIntegration(w http.ResponseWriter, err error) {
+	var problem *integrationError
+	if errors.As(err, &problem) {
+		settingsFail(w, problem.code, problem.text)
 		return
 	}
-	writeJSON(w, http.StatusOK, currentIntegrations())
+	settingsFail(w, http.StatusInternalServerError, err.Error())
 }
 
+// handleIntegrations: GET lists the folders and suggestions; POST adds a folder.
+func handleIntegrations(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		writeJSON(w, http.StatusOK, currentIntegrations())
+		return
+	}
+	if !guardWrite(w, r, http.MethodGet, http.MethodPost) {
+		return
+	}
+	var body targetInput
+	if !decodeOne(w, r, &body) {
+		return
+	}
+	id, err := addIntegrationTarget(body, time.Now())
+	if err != nil {
+		failIntegration(w, err)
+		return
+	}
+	logInfo("integration folder added", "id", id)
+	out := currentIntegrations()
+	out.Added = id
+	writeJSON(w, http.StatusOK, out)
+}
+
+// handleIntegrationAction serves /api/integrations/<id> (PATCH, DELETE) and
+// /api/integrations/<id>/<action> (GET diff, POST file actions).
 func handleIntegrationAction(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/integrations/"), "/")
-	if len(parts) != 2 {
+	if len(parts) > 2 || !integrationIDPattern.MatchString(parts[0]) {
 		settingsFail(w, http.StatusNotFound, "Not found.")
 		return
 	}
-	client, action := parts[0], parts[1]
+	id := parts[0]
+	if len(parts) == 1 {
+		if !guardWrite(w, r, http.MethodPatch, http.MethodDelete) {
+			return
+		}
+		var err error
+		if r.Method == http.MethodDelete {
+			err = removeIntegrationTarget(id)
+		} else {
+			var body targetInput
+			if !decodeOne(w, r, &body) {
+				return
+			}
+			err = editIntegrationTarget(id, body)
+		}
+		if err != nil {
+			failIntegration(w, err)
+			return
+		}
+		logInfo("integration folder changed", "id", id, "method", r.Method)
+		writeJSON(w, http.StatusOK, currentIntegrations())
+		return
+	}
+	action := parts[1]
 	if action == "diff" {
 		if r.Method != http.MethodGet {
 			w.Header().Set("Allow", http.MethodGet)
 			settingsFail(w, http.StatusMethodNotAllowed, "Method not allowed.")
 			return
 		}
-		for _, c := range integrationClients(profileDir) {
-			if c.ID == client {
-				current, err := readClientFile(c.Skill)
-				if err != nil {
-					settingsFail(w, http.StatusConflict, err.Error())
-					return
-				}
-				writeJSON(w, http.StatusOK, map[string]any{"path": c.Skill, "identical": current != nil && lfText(current) == lfText(embeddedSkill), "lines": lineDiff(string(current), string(embeddedSkill))})
-				return
-			}
+		list, _ := integrationTargets()
+		i := findTarget(list, id)
+		if i < 0 {
+			settingsFail(w, http.StatusNotFound, notListedText)
+			return
 		}
-		settingsFail(w, http.StatusNotFound, "Unknown AI client.")
+		file := skillFileOf(list[i].SkillDir)
+		current, err := readClientFile(file)
+		if err != nil {
+			settingsFail(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"path": file, "identical": current != nil && lfText(current) == lfText(embeddedSkill), "lines": lineDiff(string(current), string(embeddedSkill))})
 		return
 	}
 	if !guardWrite(w, r, http.MethodPost) {
@@ -520,15 +832,10 @@ func handleIntegrationAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if err := applyIntegration(client, action, time.Now()); err != nil {
-		var problem *integrationError
-		if errors.As(err, &problem) {
-			settingsFail(w, problem.code, problem.text)
-		} else {
-			settingsFail(w, http.StatusInternalServerError, err.Error())
-		}
+	if err := applyIntegration(id, action, time.Now()); err != nil {
+		failIntegration(w, err)
 		return
 	}
-	logInfo("integration changed", "client", client, "action", action)
+	logInfo("integration changed", "id", id, "action", action)
 	writeJSON(w, http.StatusOK, currentIntegrations())
 }

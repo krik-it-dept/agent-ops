@@ -5,6 +5,7 @@ package main
 // Precedence for each value is flag > environment > config file > built-in default.
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -48,29 +49,66 @@ type AppConfig struct {
 	// Shortcuts turns the single-key shortcuts (/, comma, R, ?) on or off.
 	Shortcuts       bool `json:"shortcuts"`
 	AutoArchiveDone bool `json:"autoArchiveDone"`
-	// Integrations records what Agent Ops wrote into each AI client, by client id.
-	Integrations map[string]IntegrationRecord `json:"integrations,omitempty"`
+	// Integrations are the folders the owner chose to receive the task-plan skill.
+	Integrations []IntegrationTarget `json:"integrations,omitempty"`
 }
 
-// IntegrationRecord is what Agent Ops last wrote for one AI client. A file is
-// updated or removed only while it still hashes to SHA256 (or the instruction
-// block to Instructions.SHA256); otherwise it is "modified locally".
-type IntegrationRecord struct {
-	Path        string `json:"path,omitempty"`
-	Version     int    `json:"version,omitempty"`
-	SHA256      string `json:"sha256,omitempty"`
-	InstalledAt string `json:"installedAt,omitempty"`
+// IntegrationTarget is one folder that receives task-plan/SKILL.md, with an
+// optional instruction file for the one-line reminder. A skill file is updated or
+// removed only while it still hashes to SHA256 (or the reminder block to
+// InstructionSHA256); otherwise it is "modified locally". The hashes are content
+// hashes, so they stay valid when the folder path is edited.
+type IntegrationTarget struct {
+	ID              string `json:"id"`
+	Label           string `json:"label"`
+	SkillDir        string `json:"skillDir"`
+	InstructionFile string `json:"instructionFile,omitempty"`
+	// InstructionBlock is true while Agent Ops' reminder block is in InstructionFile.
+	InstructionBlock bool   `json:"instructionBlock"`
+	Enabled          bool   `json:"enabled"`
+	Source           string `json:"source"` // "detected" or "custom"
+	AddedAt          string `json:"addedAt,omitempty"`
+	Version          int    `json:"version,omitempty"`
+	SHA256           string `json:"sha256,omitempty"`
+	InstalledAt      string `json:"installedAt,omitempty"`
 	// Kept is the hash of a locally modified skill the owner chose to keep.
-	Kept         string             `json:"kept,omitempty"`
-	Instructions *InstructionRecord `json:"instructions,omitempty"`
-	// Legacy holds the parts the previous reporting installer recorded.
-	Legacy map[string]string `json:"legacy,omitempty"`
+	Kept              string `json:"kept,omitempty"`
+	InstructionSHA256 string `json:"instructionSha256,omitempty"`
+	// LegacySHA256 is the hash the previous reporting installer recorded for this
+	// folder's SKILL.md, so an unedited old copy still shows "Update available".
+	LegacySHA256 string `json:"legacySha256,omitempty"`
 }
 
-type InstructionRecord struct {
-	Path        string `json:"path"`
-	SHA256      string `json:"sha256"`
-	InstalledAt string `json:"installedAt,omitempty"`
+var integrationIDPattern = projectIDPattern
+
+const maxIntegrationLabel = 80
+
+func validateIntegrations(list []IntegrationTarget) error {
+	ids, dirs := map[string]bool{}, map[string]bool{}
+	for i, t := range list {
+		if !integrationIDPattern.MatchString(t.ID) {
+			return fmt.Errorf("integration %d has an invalid id", i+1)
+		}
+		if ids[t.ID] {
+			return fmt.Errorf("duplicate integration id %q", t.ID)
+		}
+		ids[t.ID] = true
+		if !filepath.IsAbs(t.SkillDir) || t.InstructionFile != "" && !filepath.IsAbs(t.InstructionFile) {
+			return fmt.Errorf("integration %q paths must be absolute", t.ID)
+		}
+		key := projectPathKey(t.SkillDir)
+		if dirs[key] {
+			return fmt.Errorf("integration folder %q is listed twice", t.SkillDir)
+		}
+		dirs[key] = true
+		if strings.TrimSpace(t.Label) == "" || len([]rune(t.Label)) > maxIntegrationLabel {
+			return fmt.Errorf("integration %q needs a label of at most %d characters", t.ID, maxIntegrationLabel)
+		}
+		if t.Source != "detected" && t.Source != "custom" {
+			return fmt.Errorf("integration %q source must be detected or custom", t.ID)
+		}
+	}
+	return nil
 }
 
 type RepoInfo struct {
@@ -178,7 +216,7 @@ func validateAppConfig(c *AppConfig) error {
 	if c.StateFile != "" && !filepath.IsAbs(c.StateFile) {
 		return fmt.Errorf("settings file paths must be absolute")
 	}
-	return nil
+	return validateIntegrations(c.Integrations)
 }
 
 // readAppConfig returns an error wrapping fs.ErrNotExist when there is no file.
@@ -191,11 +229,27 @@ func readAppConfig(file string) (AppConfig, error) {
 		AppConfig
 		Notifications *bool `json:"notifications"`
 		Shortcuts     *bool `json:"shortcuts"`
+		// Integrations is a list, or the per-client map of v0.3.0 development
+		// builds, which is converted (see legacyIntegrationTargets).
+		Integrations json.RawMessage `json:"integrations"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return AppConfig{}, &configContentError{fmt.Errorf("invalid JSON: %w", err)}
 	}
 	c := raw.AppConfig
+	switch trimmed := bytes.TrimSpace(raw.Integrations); {
+	case len(trimmed) == 0 || string(trimmed) == "null":
+	case trimmed[0] == '{':
+		var old map[string]legacyIntegrationRecord
+		if err := json.Unmarshal(trimmed, &old); err != nil {
+			return AppConfig{}, &configContentError{fmt.Errorf("invalid integrations: %w", err)}
+		}
+		c.Integrations = legacyIntegrationTargets(old, profileDir)
+	default:
+		if err := json.Unmarshal(trimmed, &c.Integrations); err != nil {
+			return AppConfig{}, &configContentError{fmt.Errorf("invalid integrations: %w", err)}
+		}
+	}
 	c.Notifications = raw.Notifications == nil || *raw.Notifications
 	c.Shortcuts = raw.Shortcuts == nil || *raw.Shortcuts
 	if err := validateAppConfig(&c); err != nil {
