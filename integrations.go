@@ -21,6 +21,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"golang.org/x/sys/windows"
 )
 
 //go:embed skills/task-plan/SKILL.md
@@ -124,6 +126,62 @@ func insideProject(path string, projects []Project) (Project, bool) {
 	return Project{}, false
 }
 
+// finalPath resolves every link and junction in an existing path (Windows
+// GetFinalPathNameByHandle; filepath.EvalSymlinks does not follow junctions).
+func finalPath(path string) (string, error) {
+	p, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return "", err
+	}
+	h, err := windows.CreateFile(p, 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE|windows.FILE_SHARE_DELETE, nil, windows.OPEN_EXISTING, windows.FILE_FLAG_BACKUP_SEMANTICS, 0)
+	if err != nil {
+		return "", err
+	}
+	defer windows.CloseHandle(h)
+	buf := make([]uint16, windows.MAX_LONG_PATH)
+	n, err := windows.GetFinalPathNameByHandle(h, &buf[0], uint32(len(buf)), 0) // VOLUME_NAME_DOS
+	if err != nil {
+		return "", err
+	}
+	if int(n) > len(buf) {
+		return "", windows.ERROR_INSUFFICIENT_BUFFER
+	}
+	out := windows.UTF16ToString(buf[:n])
+	if strings.HasPrefix(out, `\\?\UNC\`) {
+		return `\\` + out[len(`\\?\UNC\`):], nil
+	}
+	return strings.TrimPrefix(out, `\\?\`), nil
+}
+
+// realPath is path with links and junctions in its existing part resolved; the
+// part that does not exist yet is kept as written.
+func realPath(path string) string {
+	base, rest := existingAncestor(path)
+	if base == "" {
+		return path
+	}
+	resolved, err := finalPath(base)
+	if err != nil {
+		return path
+	}
+	return filepath.Join(resolved, rest)
+}
+
+// skillFolderInProject reports a project that holds the skills folder or its
+// task-plan subfolder, where the skill is written, also when either is a link
+// or junction into a repository.
+func skillFolderInProject(dir string) (Project, bool) {
+	projects := currentProjects()
+	for _, path := range []string{dir, filepath.Join(dir, "task-plan")} {
+		for _, candidate := range []string{path, realPath(path)} {
+			if p, inside := insideProject(candidate, projects); inside {
+				return p, true
+			}
+		}
+	}
+	return Project{}, false
+}
+
 // ---------- state ----------
 
 type instructionStatus struct {
@@ -159,6 +217,13 @@ type integrationsPayload struct {
 func folderMissing(dir string) bool { return !isDir(dir) && !isDir(filepath.Dir(dir)) }
 
 func skillState(t IntegrationTarget) targetStatus {
+	st, _, _ := readSkillState(t)
+	return st
+}
+
+// readSkillState also returns the bytes the state was computed from, so a write
+// uses exactly them as its expected content (no second read in between).
+func readSkillState(t IntegrationTarget) (targetStatus, []byte, error) {
 	st := targetStatus{ID: t.ID, Label: t.Label, SkillDir: t.SkillDir, SkillFile: skillFileOf(t.SkillDir), Enabled: t.Enabled, Source: t.Source, InstalledVersion: t.Version}
 	content, err := readClientFile(st.SkillFile)
 	switch {
@@ -182,23 +247,29 @@ func skillState(t IntegrationTarget) targetStatus {
 		}
 	}
 	st.Instructions = instructionState(t)
-	return st
+	return st, content, err
 }
 
 func instructionState(t IntegrationTarget) instructionStatus {
+	st, _, _ := readInstructionState(t)
+	return st
+}
+
+// readInstructionState is instructionState with the bytes it read.
+func readInstructionState(t IntegrationTarget) (instructionStatus, []byte, error) {
 	st := instructionStatus{Path: t.InstructionFile, Line: instructionLine}
 	if t.InstructionFile == "" {
 		st.State = "none"
-		return st
+		return st, nil, nil
 	}
 	content, err := readClientFile(t.InstructionFile)
 	if err != nil {
 		st.State = "modified"
-		return st
+		return st, nil, err
 	}
 	if content == nil && !isDir(filepath.Dir(t.InstructionFile)) {
 		st.State = "missing-folder"
-		return st
+		return st, nil, nil
 	}
 	text := string(content)
 	a, b, found, ok := findBlock(text, instructionStart, instructionEnd)
@@ -214,8 +285,12 @@ func instructionState(t IntegrationTarget) instructionStatus {
 	default:
 		st.State = "modified"
 	}
-	return st
+	return st, content, nil
 }
+
+// afterIntegrationRead runs after an action read a file's state and before it
+// writes; tests use it to change the file in between.
+var afterIntegrationRead = func(file string) {}
 
 var integrationsMu sync.Mutex
 
@@ -288,13 +363,22 @@ func applyIntegration(id, action string, now time.Time) error {
 		return &integrationError{http.StatusNotFound, notListedText}
 	}
 	t := list[i]
-	if !t.Enabled {
+	// A turned-off folder can still be cleaned up: Remove skill and turning the
+	// reminder off only take Agent Ops' own text away.
+	if !t.Enabled && action != "remove" && action != "instructions-off" {
 		return conflict("This folder is turned off. Turn it on first.")
 	}
 	backup := filepath.Join(dataDir, "backups", "integrations", now.Format("20060102-150405.000000000"))
 	stamp := now.UTC().Format(time.RFC3339)
-	skill := skillState(t)
+	skill, current, readErr := readSkillState(t)
 	file := skill.SkillFile
+	afterIntegrationRead(file)
+	inProject := func() error {
+		if p, inside := skillFolderInProject(t.SkillDir); inside {
+			return conflict("The folder " + filepath.Dir(file) + " is inside the project “" + p.Name + "” (through a link). Agent Ops does not write into repositories; edit the skill at its source.")
+		}
+		return nil
+	}
 	writeSkill := func(force bool) error {
 		if skill.State == "missing-folder" {
 			return conflict("The folder " + t.SkillDir + " does not exist. Edit the path or remove it from the list.")
@@ -302,9 +386,11 @@ func applyIntegration(id, action string, now time.Time) error {
 		if skill.State == "modified" && !force {
 			return conflict(modifiedText)
 		}
-		current, err := readClientFile(file)
-		if err != nil {
-			return conflict(err.Error())
+		if readErr != nil {
+			return conflict(readErr.Error())
+		}
+		if err := inProject(); err != nil {
+			return err
 		}
 		if current == nil || !bytes.Equal(current, embeddedSkill) {
 			if err := writeClientFile(file, current, embeddedSkill, profileDir, backup); err != nil {
@@ -323,7 +409,6 @@ func applyIntegration(id, action string, now time.Time) error {
 		if skill.State != "modified" {
 			return conflict("Only a file changed outside Agent Ops can be kept.")
 		}
-		current, readErr := readClientFile(file)
 		if readErr != nil || current == nil {
 			return conflict("The file could not be read.")
 		}
@@ -333,9 +418,8 @@ func applyIntegration(id, action string, now time.Time) error {
 			return conflict(modifiedText)
 		}
 		if skill.State == "installed" || skill.State == "update-available" {
-			current, readErr := readClientFile(file)
-			if readErr != nil {
-				return conflict(readErr.Error())
+			if err := inProject(); err != nil {
+				return err
 			}
 			if err := writeClientFile(file, current, nil, profileDir, backup); err != nil {
 				return conflict("Could not remove " + file + ": " + err.Error())
@@ -356,7 +440,8 @@ func applyIntegration(id, action string, now time.Time) error {
 // toggleInstructions adds or removes the marked one-line block. Only text
 // between the markers is changed (see removeBlock for the separator lines).
 func toggleInstructions(t *IntegrationTarget, on bool, backup string) error {
-	state := instructionState(*t)
+	state, current, readErr := readInstructionState(*t)
+	afterIntegrationRead(t.InstructionFile)
 	switch state.State {
 	case "none":
 		return conflict("Choose an instruction file for this folder first.")
@@ -365,9 +450,8 @@ func toggleInstructions(t *IntegrationTarget, on bool, backup string) error {
 	case "modified":
 		return conflict("The Agent Ops lines in " + t.InstructionFile + " were changed by hand. Edit them there.")
 	}
-	current, err := readClientFile(t.InstructionFile)
-	if err != nil {
-		return conflict(err.Error())
+	if readErr != nil {
+		return conflict(readErr.Error())
 	}
 	text := string(current)
 	a, b, found, _ := findBlock(text, instructionStart, instructionEnd)
@@ -437,7 +521,9 @@ func cleanInputPath(raw string) (string, bool) {
 	if len(path) >= 2 && path[0] == '"' && path[len(path)-1] == '"' {
 		path = strings.TrimSpace(path[1 : len(path)-1])
 	}
-	if path == "" || !filepath.IsAbs(path) || strings.ContainsRune(path, 0) {
+	// Network (\\server\share) and device (\\.\, \\?\) paths are refused: a
+	// device path is not a folder, and an offline share would stall every read.
+	if path == "" || !filepath.IsAbs(path) || strings.ContainsRune(path, 0) || strings.HasPrefix(path, `\\`) || strings.HasPrefix(path, "//") {
 		return "", false
 	}
 	return filepath.Clean(path), true
@@ -493,9 +579,9 @@ func currentProjects() []Project {
 func checkSkillDir(raw string, list []IntegrationTarget, self string) (string, error) {
 	dir, ok := cleanInputPath(raw)
 	if !ok {
-		return "", badInput(`Enter a full folder path, for example C:\Users\me\tools\skills.`)
+		return "", badInput(`Enter a full folder path on this computer, for example C:\Users\me\tools\skills.`)
 	}
-	if p, inside := insideProject(dir, currentProjects()); inside {
+	if p, inside := skillFolderInProject(dir); inside {
 		return "", badInput("This folder is inside the project “" + p.Name + "”. Choose the AI client's own skills folder, outside your repositories.")
 	}
 	info, err := os.Stat(dir)
@@ -525,12 +611,17 @@ func checkSkillDir(raw string, list []IntegrationTarget, self string) (string, e
 	return dir, nil
 }
 
-// checkInstructionFile validates an instruction file: absolute, a writable plain
-// file (not a link) or a new file in an existing folder, outside every project.
-func checkInstructionFile(raw string) (string, error) {
+// checkInstructionFile validates an instruction file: absolute, Markdown (.md),
+// a writable plain file (not a link) or a new file in an existing folder,
+// outside every project, and not used by another folder of the list (both would
+// turn one reminder on and off). self is the target being edited.
+func checkInstructionFile(raw string, list []IntegrationTarget, self string) (string, error) {
 	file, ok := cleanInputPath(raw)
 	if !ok {
-		return "", badInput(`Enter a full file path, for example C:\Users\me\tools\AGENTS.md.`)
+		return "", badInput(`Enter a full file path on this computer, for example C:\Users\me\tools\AGENTS.md.`)
+	}
+	if !strings.EqualFold(filepath.Ext(file), ".md") {
+		return "", badInput("Choose a Markdown instruction file (.md), for example AGENTS.md or CLAUDE.md.")
 	}
 	info, err := os.Lstat(file)
 	switch {
@@ -553,6 +644,11 @@ func checkInstructionFile(raw string) (string, error) {
 	}
 	if p, inside := insideProject(file, currentProjects()); inside {
 		return "", badInput("This file is inside the project “" + p.Name + "”. Choose the AI client's own instruction file.")
+	}
+	for _, t := range list {
+		if t.ID != self && samePlace(t.InstructionFile, file) {
+			return "", badInput("This instruction file is already used by “" + t.Label + "”.")
+		}
 	}
 	return file, nil
 }
@@ -596,7 +692,7 @@ func addIntegrationTarget(in targetInput, now time.Time) (string, error) {
 		return "", badInput("Enter a name of 1 to 80 characters.")
 	}
 	if in.InstructionFile != nil && strings.TrimSpace(*in.InstructionFile) != "" {
-		if t.InstructionFile, err = checkInstructionFile(*in.InstructionFile); err != nil {
+		if t.InstructionFile, err = checkInstructionFile(*in.InstructionFile, list, ""); err != nil {
 			return "", err
 		}
 	}
@@ -629,7 +725,7 @@ func editIntegrationTarget(id string, in targetInput) error {
 	if in.InstructionFile != nil {
 		next := ""
 		if strings.TrimSpace(*in.InstructionFile) != "" {
-			if next, err = checkInstructionFile(*in.InstructionFile); err != nil {
+			if next, err = checkInstructionFile(*in.InstructionFile, list, id); err != nil {
 				return err
 			}
 		}
@@ -655,7 +751,8 @@ func editIntegrationTarget(id string, in targetInput) error {
 }
 
 // removeIntegrationTarget takes a folder off the list. Files are left as they
-// are; "Remove skill" is the action that deletes the skill file.
+// are; "Remove skill" is the action that deletes the skill file. It is refused
+// while the reminder is on: the block would be left behind unmanaged.
 func removeIntegrationTarget(id string) error {
 	integrationsMu.Lock()
 	defer integrationsMu.Unlock()
@@ -666,6 +763,9 @@ func removeIntegrationTarget(id string) error {
 	i := findTarget(list, id)
 	if i < 0 {
 		return &integrationError{http.StatusNotFound, notListedText}
+	}
+	if list[i].InstructionBlock {
+		return conflict("Turn the reminder off before removing this folder from the list.")
 	}
 	return saveIntegrations(append(list[:i], list[i+1:]...))
 }
