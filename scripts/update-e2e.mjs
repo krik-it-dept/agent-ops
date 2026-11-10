@@ -137,12 +137,15 @@ else process.exit(2);
       return after;
     }
 
-    // 1. Previous release (gh) -> N, the bridge.
-    start([]);
+    // Releases since v0.2.1 use the HTTP client, so their initial process needs the local feed too.
+    const oldUsesGh=older(from,'v0.2.1');
+    start(oldUsesGh?[]:['--update-feed',feedURL]);
     const initial=await until(status,s=>s.current===from,60000,'previous release');
+    const initialFeedCalls=seen.latest;
     await update(version);
+    assert.ok(seen.latest>initialFeedCalls,'the previous release checked the isolated feed');
     assert.ok(existsSync(join(dataDir,'logs','update.log')),'the N helper logs its steps');
-    console.log(`  ${from} -> ${version}: installed through the ${from} updater (gh fixture)`);
+    console.log(`  ${from} -> ${version}: installed through the ${from} updater (${oldUsesGh?'gh':'anonymous HTTP'} fixture)`);
 
     // Restart N against the HTTP feed (the restart keeps --update-feed for later relaunches).
     const n=await status();process.kill(n.processId);await until(async()=>{try{await status();return false;}catch{return true;}},Boolean,30000,'N to stop');
