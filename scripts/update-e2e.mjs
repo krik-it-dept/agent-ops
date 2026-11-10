@@ -5,7 +5,12 @@
 //      a fake gh on PATH answers from the local feed.
 //   2. N -> N+1 over the anonymous HTTP feed (--update-feed), with a manifest that adds
 //      a file and removes one.
-//   3. N+1 -> N+2 whose plan collector fails: the helper must roll back to N+1.
+//   3. N+1 -> N+2 whose plan collector fails and whose manifest removes a file: the
+//      helper must roll back to N+1, including the removed file.
+// The previous release is rebuilt from its tag with today's toolchain, not downloaded
+// from GitHub, so the test runs offline; the binary differs from the published asset
+// but its updater code is the tagged source. An owner-edited task-plan SKILL.md is
+// seeded after the old install and must survive every step unchanged.
 // Usage: node scripts/update-e2e.mjs [--from vX.Y.Z]
 import assert from 'node:assert/strict';
 import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,readdirSync,rmSync,existsSync,cpSync} from 'node:fs';
@@ -66,9 +71,10 @@ try{
   rmSync(join(custom,'INSTALL.md'));put(join(custom,'CHANGELOG.md'),'# Fixture changelog\n');
   const relNext=release(next,custom,join(fixture,'release-next'),['INSTALL.md']);
   const bad=join(fixture,'package-broken');cpSync(pkgBroken,bad,{recursive:true});
-  rmSync(join(bad,'INSTALL.md'));put(join(bad,'CHANGELOG.md'),'# Fixture changelog\n');
+  rmSync(join(bad,'INSTALL.md'));
   put(join(bad,'tasks-overview.mjs'),"process.stderr.write('broken collector fixture');process.exit(3);\n");
-  const relBroken=release(broken,bad,join(fixture,'release-broken'));
+  // N+2 also removes CHANGELOG.md, so the rollback must bring a removed file back.
+  const relBroken=release(broken,bad,join(fixture,'release-broken'),['CHANGELOG.md']);
 
   // Local release feed: the GitHub latest-release API and asset downloads.
   let current=relN;const seen={latest:0,downloads:[]};
@@ -101,6 +107,10 @@ else process.exit(2);
     put(join(profile,'.codex','AGENTS.md'),'# Owner instructions\nKeep the existing user rule.\n');
     run('powershell.exe',[...ps,'-File',join(oldPkg,'scripts','install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch']);
     const privateFile=join(runtime,'historical-executions.json');put(privateFile,'{"private":"keep"}');
+    // The owner edits the installed shared skill; no update may overwrite it.
+    const skill=join(profile,'.agents','skills','task-plan','SKILL.md');
+    assert.ok(existsSync(skill),'the previous installer wrote the shared skill');
+    const ownerSkill=readFileSync(skill,'utf8')+'\n## Owner rule\n- Keep this local rule.\n';put(skill,ownerSkill);
     const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','check.md'),source='Agent: Codex\nStatus: Testing\nGoal: Isolated update verification\nNext: Verify update\n\n## M1: Work\n- [doing] Verify the app\n';put(plan,source);
     const port=await freePort(),base='http://127.0.0.1:'+port;
     const env={...process.env,PATH:bin+';'+process.env.PATH,FAKE_GH_FEED:feedURL,KRIK_AGENT_MAP:join(fixture,'missing-agent.json'),KRIK_HISTORY_MAP:join(fixture,'missing-history.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')};
@@ -119,6 +129,8 @@ else process.exit(2);
       const snapshot=await (await fetch(base+'/api/state')).json();assert.equal(snapshot.appVersion,to);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
       assert.equal(readFileSync(plan,'utf8'),source,'task source unchanged');assert.equal(readFileSync(privateFile,'utf8'),'{"private":"keep"}','runtime data preserved');
       assert.ok(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8').startsWith('# Owner instructions\nKeep the existing user rule.\n'),'owner instructions preserved');
+      assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved');
+      assert.match(result().message,/Your changes were kept[^]*SKILL\.md \(modified locally\)/,'kept SKILL.md reported');
       return after;
     }
 
@@ -151,8 +163,10 @@ else process.exit(2);
     assert.equal(restored.phase,'error');assert.match(restored.error,/previous version/);
     assert.equal(readFileSync(join(runtime,'tasks-overview.mjs'),'utf8'),readFileSync(join(custom,'tasks-overview.mjs'),'utf8'),'collector restored');
     assert.ok(existsSync(join(runtime,'CHANGELOG.md'))&&!existsSync(join(runtime,'INSTALL.md')),'N+1 file set restored');
+    assert.equal(readFileSync(join(runtime,'CHANGELOG.md'),'utf8'),'# Fixture changelog\n','file removed by N+2 restored');
+    assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved through the rollback');
     const stages=readdirSync(join(dataDir,'updates')).filter(n=>/^update-\d+$/.test(n));assert.ok(stages.length<=3,'staging pruned: '+stages.length);
-    console.log(`  ${next} -> ${broken}: startup check failed, ${next} restored and restarted`);
+    console.log(`  ${next} -> ${broken}: startup check failed, ${next} restored (incl. removed CHANGELOG.md) and restarted; owner SKILL.md kept throughout`);
     console.log(JSON.stringify({updateE2E:'passed',from,to:version,then:[next,broken+' (rolled back)'],initialPid:initial.processId}));
   }finally{await new Promise(r=>feed.close(r));}
 }finally{
