@@ -3,25 +3,54 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
-## Unreleased - No Node.js, safer files
+## v0.4.0 - One file to install, no Node.js, a ledger by milestone
 
-- Node.js is no longer required: the plan collector is built into the app.
-  The update removes `tasks-overview.mjs`, `plan-reader.mjs` and the Node
-  migration shim; `task-sync.mjs` and `task-report.mjs` stay as stubs for older
-  sessions that still run them with Node.
-- One plan that cannot be read or parsed no longer breaks the board: it is
-  listed under `diagnostics` and every other plan still shows. Header lines and
+v0.3.0 updates to this release in the app. The update removes the Node
+collector files; Node.js is no longer needed to run Agent Ops.
+
+- **Install by opening one file.** Releases also publish `agent-ops.exe` with
+  its checksum. Opening it offers **Install Agent Ops?** (or run
+  `agent-ops.exe --install`): it installs for the current user into
+  `%LOCALAPPDATA%\Programs\AgentOps` without administrator access, adds an
+  **Agent Ops** Start menu shortcut and an Apps & features entry, optionally
+  starts with Windows, and keeps your settings and data. A failed install
+  restores the previous files, shortcut and registry values. The download is
+  unsigned: SmartScreen may need **More info > Run anyway**.
+- **Uninstall** from Apps & features or `agent-ops.exe --uninstall`: removes
+  the app, shortcut, startup entry, protocol and uninstall entry, keeps the
+  data folder unless you untick it, and removes AI client skills only when you
+  tick that box (through the same guarded removal as Settings > Integrations).
+- **The earlier install moves once.** The first plain start (sign-in or the
+  shortcut) of this release from `%USERPROFILE%\.claude\tools\workboard`
+  moves it to the new folder after the new copy is running and healthy. The old
+  folder is kept beside it with a `.backup-<time>` suffix, and `task-sync.mjs` and
+  `task-report.mjs` stay at the old path for older sessions that still call
+  them there.
+- **No Node.js.** The plan collector is built into the app. The update removes
+  `tasks-overview.mjs`, `plan-reader.mjs` and the Node migration shim;
+  `task-sync.mjs` and `task-report.mjs` stay as stubs for older sessions that
+  still run them with Node. Nothing is written into your repositories any more
+  (no `.tasks/tong-hop.md`).
+- **One bad plan no longer breaks the board.** A plan that cannot be read or
+  parsed shows a small warning on its row and page (left-out plans are listed
+  in the warning banner), and every other plan still shows. Header lines and
   steps inside code blocks are ignored.
-- The board data now lists each repository's Git worktrees and branches, and
-  each milestone's progress ([schema](docs/overview-schema.md)).
-- Nothing is written into your repositories any more (no `.tasks/tong-hop.md`).
-- State, settings and config files are replaced atomically and survive files
-  held by an editor or antivirus; the activity log is kept to a bounded size.
-- Other Windows users on the same PC can no longer read your board: every
-  request needs this session's secret. When port 7790 is taken by another user
-  or program, Agent Ops uses another port, and a second launch or a
-  notification click still opens the running app. After this update, close a
-  window that was already open and open Agent Ops again from the tray.
+- **Ledger by milestone.** A plan page shows its goal, status, Next and
+  progress, Blocked and Waiting callouts first, then collapsible milestones
+  with their summary and done/total. The sidebar and lists group plans by
+  project and repository, with each repository's Git worktrees and branches.
+  Every view and plan has its own address, so Back, Forward and copied links
+  work. A refresh redraws only plans that changed and keeps focus, the search
+  caret, scroll position and open sections.
+- **Safer files.** State, settings and config files are replaced atomically
+  and survive files held by an editor or antivirus; the activity log is kept to
+  a bounded size.
+- **Private to your Windows account.** Every request needs this session's
+  secret, so other Windows users on the same PC cannot read your board. When
+  port 7790 is taken by another user or program, Agent Ops uses another port,
+  and a second launch or a notification click still opens the running app.
+  After this update, close a window that was already open and open Agent Ops
+  again from the tray.
 
 ## v0.3.0 - A read-only work ledger
 
