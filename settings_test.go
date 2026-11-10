@@ -35,7 +35,7 @@ func settingsFixture(t *testing.T) string {
 		reader                     func() bool
 		writer                     func(bool)
 		managed                    func() bool
-		picker                     func(context.Context) (string, error)
+		picker                     func(context.Context, string) (string, error)
 		opener                     func(string) error
 		legacy                     legacyPaths
 		allowLegacy                func() bool
@@ -62,7 +62,7 @@ func settingsFixture(t *testing.T) string {
 	startupReader = func() bool { return startupState }
 	startupWriter = func(on bool) { startupState = on }
 	startupManaged = func() bool { return true }
-	pickFolder = func(context.Context) (string, error) { return "", nil }
+	pickFolder = func(context.Context, string) (string, error) { return "", nil }
 	openFolder = func(string) error { return nil }
 	initSettings()
 	return dir
@@ -343,9 +343,19 @@ func TestPickFolderReturnsPathOrCancelledAndOpensOnlyKnownFolders(t *testing.T) 
 	if w, out := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", nil); w.Code != 200 || out["cancelled"] != true {
 		t.Fatal(w.Code, out)
 	}
-	pickFolder = func(context.Context) (string, error) { return `C:\Projects\web`, nil }
+	pickFolder = func(context.Context, string) (string, error) { return `C:\Projects\web`, nil }
 	if w, out := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", nil); w.Code != 200 || out["path"] != `C:\Projects\web` {
 		t.Fatal(w.Code, out)
+	}
+	asked := []string{}
+	pickFolder = func(_ context.Context, purpose string) (string, error) { asked = append(asked, purpose); return `C:\Tools\skills`, nil }
+	for _, purpose := range []string{"skills", "instruction-file"} {
+		if w, out := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", map[string]string{"purpose": purpose}); w.Code != 200 || out["path"] != `C:\Tools\skills` {
+			t.Fatal(purpose, w.Code, out)
+		}
+	}
+	if w, _ := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", map[string]string{"purpose": "anything"}); w.Code != 400 || strings.Join(asked, ",") != "skills,instruction-file" {
+		t.Fatal("unknown dialog purpose", w.Code, asked)
 	}
 	if w, _ := call(t, handlePickFolder, "GET", "/api/settings/pick-folder", nil); w.Code != 405 {
 		t.Fatal("GET opened a dialog")

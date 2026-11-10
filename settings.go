@@ -641,7 +641,15 @@ func handleProject(w http.ResponseWriter, r *http.Request) {
 
 // pickFolderDialog opens the Windows folder dialog on the desktop. The console
 // stays hidden; the dialog is owned by a topmost form so it appears above Edge.
-func pickFolderDialog(ctx context.Context) (string, error) {
+// purpose is "" (a project folder), "skills" (a folder that receives the skill;
+// new folders allowed) or "instruction-file" (a file, which may not exist yet).
+func pickFolderDialog(ctx context.Context, purpose string) (string, error) {
+	switch purpose {
+	case "skills":
+		return runFolderPicker(ctx, skillsDialogScript)
+	case "instruction-file":
+		return runFolderPicker(ctx, instructionFileDialogScript)
+	}
 	return runFolderPicker(ctx, folderDialogScript)
 }
 
@@ -651,6 +659,21 @@ const folderDialogScript = `$owner=New-Object System.Windows.Forms.Form -Propert
 	`$dialog.Description='Choose a project folder: a Git repository, or a folder that contains repositories.';` +
 	`$dialog.ShowNewFolderButton=$false;` +
 	`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){$selected=$dialog.SelectedPath};` +
+	`$owner.Dispose();`
+
+const skillsDialogScript = `$owner=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};` +
+	`$dialog=New-Object System.Windows.Forms.FolderBrowserDialog;` +
+	`$dialog.Description='Choose the skills folder of an AI client. Agent Ops installs task-plan\SKILL.md inside it.';` +
+	`$dialog.ShowNewFolderButton=$true;` +
+	`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){$selected=$dialog.SelectedPath};` +
+	`$owner.Dispose();`
+
+const instructionFileDialogScript = `$owner=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};` +
+	`$dialog=New-Object System.Windows.Forms.OpenFileDialog;` +
+	`$dialog.Title='Choose the instruction file of an AI client';` +
+	`$dialog.Filter='Markdown (*.md)|*.md|All files (*.*)|*.*';` +
+	`$dialog.CheckFileExists=$false;` +
+	`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){$selected=$dialog.FileName};` +
 	`$owner.Dispose();`
 
 // runFolderPicker runs a constant chooser script and decodes its UTF-8 output, so
@@ -670,6 +693,16 @@ func handlePickFolder(w http.ResponseWriter, r *http.Request) {
 	if !guardWrite(w, r, http.MethodPost) {
 		return
 	}
+	var body struct {
+		Purpose string `json:"purpose"`
+	}
+	if r.ContentLength != 0 && !decodeOne(w, r, &body) {
+		return
+	}
+	if body.Purpose != "" && body.Purpose != "skills" && body.Purpose != "instruction-file" {
+		settingsFail(w, http.StatusBadRequest, "Unknown dialog.")
+		return
+	}
 	if !pickerBusy.TryLock() {
 		settingsFail(w, http.StatusConflict, "A folder dialog is already open. Finish it first.")
 		return
@@ -677,7 +710,7 @@ func handlePickFolder(w http.ResponseWriter, r *http.Request) {
 	defer pickerBusy.Unlock()
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
 	defer cancel()
-	path, err := pickFolder(ctx)
+	path, err := pickFolder(ctx, body.Purpose)
 	if err != nil {
 		settingsFail(w, http.StatusInternalServerError, "Could not open the folder dialog. Paste the path instead.")
 		return
