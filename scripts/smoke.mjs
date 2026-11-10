@@ -9,7 +9,7 @@ import {createServer} from 'node:net';
 import {request} from 'node:http';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const fixture=mkdtempSync(join(root,'.test-release-'));
-let app;
+let app,firstRun;
 const put=(file,text)=>{mkdirSync(dirname(file),{recursive:true});writeFileSync(file,text);};
 const run=(file,args)=>{const p=spawnSync(file,args,{encoding:'utf8',windowsHide:true});assert.equal(p.status,0,p.stderr||p.stdout||p.error?.message);};
 try {
@@ -61,9 +61,37 @@ try {
   assert.equal(stream.headers.get('content-type'),'text/event-stream');
   const chunk=await stream.body.getReader().read();assert.ok(new TextDecoder().decode(chunk.value).includes('retry: 3000'));controller.abort();
   assert.equal(readFileSync(plan,'utf8'),source);
+  // First run without any path flags: setup mode, no collector error, then a project added through the API.
+  const freshServer=createServer();await new Promise((res,rej)=>{freshServer.once('error',rej);freshServer.listen(0,'127.0.0.1',res);});
+  const freshPort=freshServer.address().port;await new Promise(res=>freshServer.close(res));
+  const fresh='http://127.0.0.1:'+freshPort,freshData=join(fixture,'fresh-data');
+  const cleanEnv={...process.env,KRIK_REPOS_DIR:'',KRIK_STATE_FILE:'',KRIK_SLOTS_FILE:'',AGENT_OPS_CONFIG:'',KRIK_AGENT_MAP:join(fixture,'no-agent-map.json'),KRIK_HISTORY_MAP:join(fixture,'no-history-map.json'),KRIK_EXECUTION_DIR:join(fixture,'fresh-executions')};
+  firstRun=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+freshPort,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',freshData],{windowsHide:true,stdio:'ignore',env:cleanEnv});
+  let freshState;
+  for(let i=0;i<100;i++){
+    try{const r=await fetch(fresh+'/api/state',{signal:AbortSignal.timeout(1000)});if(r.ok){freshState=await r.json();break;}}catch{/* Retry only while the isolated process is starting. */}
+    if(firstRun.exitCode!==null)throw Error('First-run app exited before serving');
+    await new Promise(res=>setTimeout(res,100));
+  }
+  assert.ok(freshState,'First-run app did not start');
+  assert.equal(freshState.setupRequired,true);assert.equal(freshState.error,'');assert.deepEqual(freshState.state.plans,[]);assert.deepEqual(freshState.projects,[]);
+  const write=(path,method,body)=>fetch(fresh+path,{method,headers:{'X-Workboard':'1',Origin:fresh,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  assert.equal((await fetch(fresh+'/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:repos})})).status,403);
+  assert.equal((await write('/api/settings','PUT',{setupComplete:true})).status,400);
+  const added=await write('/api/projects','POST',{path:repos});assert.equal(added.status,200);
+  const addedBody=await added.json();assert.equal(addedBody.kind,'folder');assert.equal(addedBody.repos.length,1);assert.equal(addedBody.repos[0].planCount,1);
+  assert.equal((await write('/api/settings','PUT',{startWithWindows:true})).status,409);
+  assert.equal((await write('/api/settings','PUT',{setupComplete:true})).status,200);
+  const configured=await (await fetch(fresh+'/api/state')).json();
+  assert.equal(configured.setupRequired,false);assert.equal(configured.error,'');assert.equal(configured.state.plans.length,1);assert.equal(configured.state.plans[0].project,addedBody.project.id);
+  const savedConfig=JSON.parse(readFileSync(join(freshData,'config.json'),'utf8'));
+  assert.equal(savedConfig.setupComplete,true);assert.equal(savedConfig.projects[0].path,repos);
+  assert.ok(readFileSync(join(freshData,'state','tong-hop-chung.json'),'utf8').includes('"plans"'));
+  assert.equal(readFileSync(plan,'utf8'),source);
+  console.log('First-run smoke passed: setup mode without flags, protected settings writes, project added, config.json and default state under the data folder.');
   console.log('Release smoke passed: exact package allowlist, repeat install, preserved data/instructions, portable paths, real HTTP/SSE/F5, script CSP, request protection and unchanged task source.');
 } finally {
-  if(app && app.exitCode===null){const exited=new Promise(res=>app.once('exit',res));app.kill();await exited;}
+  for(const child of [app,firstRun])if(child && child.exitCode===null){const exited=new Promise(res=>child.once('exit',res));child.kill();await exited;}
   if(dirname(fixture)!==root || !fixture.startsWith(join(root,'.test-release-')))throw Error('Unsafe cleanup path');
   rmSync(fixture,{recursive:true,force:true});
 }
