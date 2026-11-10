@@ -35,9 +35,8 @@ const install=(pkg,root,...extra)=>powershell(['-File',join(pkg,'scripts','insta
 
 test('The installer clears the download mark on every installed file',()=>withFixture((root,pkg)=>{
   assert.equal(marked(pkg).length,runtimeFiles.length+1,'every packaged file starts marked');
-  const probe=join(root,'copied.txt');copyFileSync(join(pkg,'NOTICE.md'),probe);
-  assert.deepEqual(marked(root).filter(f=>f===probe),[probe],'Copy-Item keeps the mark, so the installer must clear it');
-  rmSync(probe);
+  // Whether a plain copy keeps the mark depends on the volume (CI temp drives drop it),
+  // so the test asserts only the installer's result.
   const out=install(pkg,root,'-NoLaunch');
   assert.equal(out.status,0,out.stdout+out.stderr);
   for(const name of runtimeFiles)assert.ok(existsSync(join(root,'runtime',name)),name+' installed');
