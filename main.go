@@ -561,6 +561,15 @@ func refresh(first bool) {
 	for id := range readable {
 		seenProjects[id] = true
 	}
+	// Plans that appear in this refresh (a project added or enabled, or a first run
+	// with no snapshot) are logged as stale once but never announced: the owner
+	// picked the folder, they did not just stop working on 15 plans.
+	quietStale := map[string]bool{}
+	for k, p := range cur {
+		if prev == nil || (p.Project != "" && lastProjects != nil && !lastProjects[p.Project]) {
+			quietStale[k] = true
+		}
+	}
 	lastProjects = readable
 	prev = cur
 	all := append(append([]Event{}, quiet...), fresh...)
@@ -569,8 +578,12 @@ func refresh(first bool) {
 		events = events[len(events)-maxEvents:]
 	}
 	persist(all)
+	staleNotices := recordStale(quietStale)
 	mu.Unlock()
-	checkStale()
+	if len(staleNotices) > 0 {
+		notify(staleNotices)
+		broadcast()
+	}
 	if !first {
 		notify(fresh)
 	}
@@ -913,7 +926,13 @@ func isStale(p Plan, now time.Time) bool {
 }
 
 func staleEvents(cur map[string]Plan, seen map[string]time.Time, now time.Time) []Event {
-	var fresh []Event
+	fresh, _ := staleEventsQuiet(cur, seen, now, nil)
+	return fresh
+}
+
+// staleEventsQuiet returns every new stale event and, of those, the ones to
+// announce: plans named in quiet are recorded as seen but not announced.
+func staleEventsQuiet(cur map[string]Plan, seen map[string]time.Time, now time.Time, quiet map[string]bool) (fresh, announce []Event) {
 	// Plans of a project that is not read now (disabled or disconnected) keep their
 	// entry, so a returning project does not announce the same stale work again.
 	read := map[string]bool{}
@@ -937,13 +956,19 @@ func staleEvents(cur map[string]Plan, seen map[string]time.Time, now time.Time) 
 			continue
 		}
 		seen[k] = p.Mtime
-		fresh = append(fresh, Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Workboard"})
+		e := Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Workboard"}
+		fresh = append(fresh, e)
+		if !quiet[k] {
+			announce = append(announce, e)
+		}
 	}
-	return fresh
+	return fresh, announce
 }
-func checkStale() {
-	mu.Lock()
-	fresh := staleEvents(prev, staleSeen, time.Now())
+
+// recordStale logs the plans that went stale since the last check, with mu held,
+// and returns the ones to announce. Plans in quiet are logged without a notice.
+func recordStale(quiet map[string]bool) []Event {
+	fresh, announce := staleEventsQuiet(prev, staleSeen, time.Now(), quiet)
 	events = append(events, fresh...)
 	if len(events) > maxEvents {
 		events = events[len(events)-maxEvents:]
@@ -951,9 +976,14 @@ func checkStale() {
 	if len(fresh) > 0 {
 		persist(fresh)
 	}
+	return announce
+}
+func checkStale() {
+	mu.Lock()
+	announce := recordStale(nil)
 	mu.Unlock()
-	if len(fresh) > 0 {
-		notify(fresh)
+	if len(announce) > 0 {
+		notify(announce)
 		broadcast()
 	}
 }
@@ -1222,7 +1252,7 @@ func notify(fresh []Event) {
 		if e.Kind == "waiting" {
 			body = e.Extra
 		}
-		toast(title+" · "+e.Plan, body, planURI(eventKey(e)))
+		showToast(title+" · "+e.Plan, body, planURI(eventKey(e)))
 	}
 }
 
@@ -1262,6 +1292,9 @@ func toastCommand(ctx context.Context, script, xml string) *exec.Cmd {
 	cmd.Env = append(cmd.Env, toastEnv+"="+xml)
 	return cmd
 }
+
+// showToast is the notification seam; tests replace it to count notices.
+var showToast = toast
 
 func toast(title, body, target string) {
 	xml := toastXML(title, body, target)

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -682,5 +683,93 @@ func TestConfigWithoutShortcutsKeyDefaultsToOn(t *testing.T) {
 	os.WriteFile(file, []byte(`{"version":1,"projects":[],"theme":"purple"}`), 0o600)
 	if _, err := readAppConfig(file); err == nil {
 		t.Fatal("an unknown theme must be rejected")
+	}
+}
+
+// recordToasts replaces the notification seam and returns the notices shown.
+func recordToasts(t *testing.T) func() []string {
+	t.Helper()
+	var mutex sync.Mutex
+	var shown []string
+	old := showToast
+	showToast = func(title, body, target string) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		shown = append(shown, title+" | "+body)
+	}
+	t.Cleanup(func() { showToast = old })
+	return func() []string {
+		mutex.Lock()
+		defer mutex.Unlock()
+		return append([]string{}, shown...)
+	}
+}
+
+// Adding or enabling a project that holds many plans left in Implementing for weeks
+// must not fire one "stale" toast per plan. The plans are still logged once, and a
+// plan that goes stale afterwards is announced as usual.
+func TestAddingOrEnablingAProjectDoesNotToastEveryStalePlan(t *testing.T) {
+	dir := settingsFixture(t)
+	toasts := recordToasts(t)
+	plan := "Agent: Codex\nStatus: Implementing\nGoal: Ship\n\n- [doing] Step\n"
+	repos := map[string]string{}
+	for _, name := range []string{"alpha", "beta"} {
+		repo := mkRepo(t, filepath.Join(dir, name))
+		os.MkdirAll(filepath.Join(repo, ".tasks"), 0o700)
+		for _, file := range []string{"one", "two", "three"} {
+			path := filepath.Join(repo, ".tasks", file+".md")
+			os.WriteFile(path, []byte(plan), 0o600)
+			old := time.Now().Add(-3 * staleAfter)
+			os.Chtimes(path, old, old)
+		}
+		repos[name] = repo
+	}
+	add := func(path string) string {
+		w, out := call(t, handleProjects, "POST", "/api/projects", map[string]any{"path": path})
+		if w.Code != 200 {
+			t.Fatal(w.Code, out)
+		}
+		return out["project"].(map[string]any)["id"].(string)
+	}
+	add(repos["alpha"])
+	if n := kinds(events)["stale"]; n != 3 {
+		t.Fatal("stale plans of a new project are still logged once", n, kinds(events))
+	}
+	if got := toasts(); len(got) != 0 {
+		t.Fatal("the first project announced its stale plans", got)
+	}
+	betaID := add(repos["beta"])
+	if kinds(events)["stale"] != 6 || len(staleSeen) != 6 {
+		t.Fatal("stale plans are recorded as seen", kinds(events), len(staleSeen))
+	}
+	if got := toasts(); len(got) != 0 {
+		t.Fatal("adding a project announced its stale plans", got)
+	}
+	// While a project is disabled its plans keep going stale; enabling it again stays quiet too.
+	betaSeen := func() []string {
+		var keys []string
+		for k := range staleSeen {
+			if strings.HasPrefix(k, betaID+"/") {
+				keys = append(keys, k)
+			}
+		}
+		return keys
+	}
+	call(t, handleProject, "PATCH", "/api/projects/"+betaID, map[string]any{"enabled": false})
+	for _, k := range betaSeen() {
+		delete(staleSeen, k)
+	}
+	call(t, handleProject, "PATCH", "/api/projects/"+betaID, map[string]any{"enabled": true})
+	if got := toasts(); len(got) != 0 {
+		t.Fatal("enabling a project announced its stale plans", got)
+	}
+	if len(betaSeen()) != 3 {
+		t.Fatal("the plans of the enabled project were not recorded as seen", betaSeen())
+	}
+	// A plan that goes stale while the project is already read still announces itself.
+	delete(staleSeen, betaSeen()[0])
+	checkStale()
+	if got := toasts(); len(got) != 1 || !strings.Contains(got[0], "Đứng im") {
+		t.Fatal("a plan that goes stale in a read project must still notify once", got)
 	}
 }
