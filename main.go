@@ -176,6 +176,7 @@ var (
 	disableUpdateChecks bool
 	printVersion        bool
 	applyUpdateFile     string
+	updateFeed          string
 )
 
 func defaultCollector() string {
@@ -222,6 +223,7 @@ func config() {
 	flag.BoolVar(&disableUpdateChecks, "no-update-check", false, "Disable automatic release checks (manual checks remain available)")
 	flag.BoolVar(&printVersion, "version", false, "Print the application version and exit")
 	flag.StringVar(&applyUpdateFile, "apply-update", "", "Internal verified update-helper manifest")
+	flag.StringVar(&updateFeed, "update-feed", "", "Loopback http://127.0.0.1:<port> release feed for isolated update tests")
 	flag.Parse()
 	// Precedence: flag > environment > config.json (applied by initSettings) > default.
 	given := map[string]bool{}
@@ -281,6 +283,9 @@ func launchArgs() []string {
 	if disableUpdateChecks {
 		args = append(args, "--no-update-check")
 	}
+	if updateFeed != "" && validUpdateFeed(updateFeed) {
+		args = append(args, "--update-feed", updateFeed)
+	}
 	return args
 }
 
@@ -310,6 +315,16 @@ func main() {
 		return
 	}
 	_ = os.MkdirAll(dataDir, 0o755)
+	if err := initLogging(dataDir, "agent-ops.log"); err == nil {
+		initCrashOutput()
+	}
+	defer func() {
+		if v := recover(); v != nil {
+			recordPanic("main", v)
+			os.Exit(2)
+		}
+	}()
+	logInfo("agent ops started", "version", appVersion, "commit", appCommit, "pid", os.Getpid(), "addr", addr, "dataDir", dataDir, "background", background, "updateChecks", !disableUpdateChecks)
 	if defaultInstance() {
 		registerProtocol()
 		migrateStartup()
@@ -319,11 +334,20 @@ func main() {
 	loadPersisted()
 	exe, _ := os.Executable()
 	updates = newAppUpdater(filepath.Dir(exe), dataDir, profileDir, launchArgs())
+	if updateFeed != "" {
+		if validUpdateFeed(updateFeed) {
+			updates.useFeed(updateFeed)
+			logInfo("using a loopback update feed", "feed", updateFeed)
+		} else {
+			logWarn("ignored an update feed that is not a loopback http origin")
+		}
+	}
+	safeGo("prune update staging", func() { pruneUpdateStages(filepath.Join(dataDir, "updates"), updateStagesKept) })
 	refresh(true)
-	go serve(ln)
-	go watch()
+	safeGo("http server", func() { serve(ln) })
+	superviseGo("watch", watch)
 	if !disableUpdateChecks {
-		go func() {
+		superviseGo("update schedule", func() {
 			time.Sleep(3 * time.Second)
 			updates.startInitialCheck()
 			ticker := time.NewTicker(6 * time.Hour)
@@ -331,7 +355,7 @@ func main() {
 			for range ticker.C {
 				updates.startCheck()
 			}
-		}()
+		})
 	}
 	systray.Run(onReady, func() {})
 }
@@ -633,6 +657,11 @@ func setRefreshError(reason string) {
 	refreshError = reason
 	mu.Unlock()
 	if changed {
+		if reason != "" {
+			logWarn("plan refresh failed", "reason", reason)
+		} else {
+			logInfo("plan refresh recovered")
+		}
 		broadcast()
 	}
 }
@@ -1055,6 +1084,7 @@ func serve(ln net.Listener) {
 	mux := http.NewServeMux()
 	updateRoutes(mux)
 	settingsRoutes(mux)
+	diagnosticsRoutes(mux)
 	mux.HandleFunc("/api/plans/status", handlePlanStatus)
 	mux.HandleFunc("/api/plans/agent", handleReadOnlyAgent)
 	mux.HandleFunc("/api/plans/executor", handleReadOnlyAgent)
@@ -1109,7 +1139,7 @@ func serve(ln net.Listener) {
 			}
 		}
 	})
-	server := &http.Server{Handler: localBoundary(mux), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	server := &http.Server{Handler: localBoundary(recoverHandler(mux)), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	_ = server.Serve(ln)
 }
 
@@ -1144,7 +1174,8 @@ func handleState(w http.ResponseWriter, r *http.Request) {
 	staleJSON, _ := json.Marshal(stale)
 	projectsJSON, _ := json.Marshal(summaries)
 	warningsJSON, _ := json.Marshal(warnings)
-	fmt.Fprintf(w, `{"appVersion":%q,"state":%s,"activity":%s,"now":%q,"error":%s,"stale":%s,"setupRequired":%t,"projects":%s,"warnings":%s}`, appVersion, st, evJSON, time.Now().Format(time.RFC3339), reasonJSON, staleJSON, setupRequired(), projectsJSON, warningsJSON)
+	crashJSON, _ := json.Marshal(crashNotice())
+	fmt.Fprintf(w, `{"appVersion":%q,"state":%s,"activity":%s,"now":%q,"error":%s,"stale":%s,"setupRequired":%t,"projects":%s,"warnings":%s,"crash":%s}`, appVersion, st, evJSON, time.Now().Format(time.RFC3339), reasonJSON, staleJSON, setupRequired(), projectsJSON, warningsJSON, crashJSON)
 }
 
 func broadcast() {
@@ -1298,11 +1329,13 @@ var showToast = toast
 
 func toast(title, body, target string) {
 	xml := toastXML(title, body, target)
-	go func() {
+	safeGo("toast", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		_ = toastCommand(ctx, toastLoadScript+toastShowScript(currentToastAppID()), xml).Run()
-	}()
+		if err := toastCommand(ctx, toastLoadScript+toastShowScript(currentToastAppID()), xml).Run(); err != nil {
+			logWarn("notification failed", "error", err.Error())
+		}
+	})
 }
 
 // xmlEsc escapes markup and every quote character, drops characters XML 1.0
@@ -1355,7 +1388,7 @@ func onReady() {
 	mQuit = systray.AddMenuItem("Quit", "")
 	trayReady.Store(true)
 	updateTray()
-	go func() {
+	superviseGo("tray menu", func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 		for {
@@ -1375,11 +1408,12 @@ func onReady() {
 				setStartup(!mStartup.Checked())
 				syncStartupMenu()
 			case <-mQuit.ClickedCh:
+				logInfo("quit from the tray")
 				systray.Quit()
 				os.Exit(0)
 			}
 		}
-	}()
+	})
 	if !background || activation != "" {
 		openWindow()
 	}
