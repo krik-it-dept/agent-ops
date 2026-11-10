@@ -851,7 +851,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
   function acceptState(j){
     var old=new Map(D.state.plans.map(function(p){return [key(p),p];}));
     j=Object.assign({},j,{activity:Array.isArray(j.activity)?j.activity:[],state:Object.assign({},j.state)});
-    j.state.plans=j.state.plans.filter(function(p){return p && typeof p==='object';}).map(function(p){var previous=old.get(key(p));return previous && planVersion(previous)===planVersion(p)?previous:normalizePlan(p);});
+    // The collector lists plan problems once, at the top level; each plan shows its own.
+    var problems=new Map();(Array.isArray(j.state.diagnostics)?j.state.diagnostics:[]).forEach(function(d){if(d && typeof d==='object' && d.plan){var k=key({project:d.project,repo:d.repo,name:d.plan});problems.set(k,(problems.get(k) || []).concat([d]));}});
+    j.state.plans=j.state.plans.filter(function(p){return p && typeof p==='object';}).map(function(p){if(problems.has(key(p)) && !(Array.isArray(p.diagnostics) && p.diagnostics.length))p=Object.assign({},p,{diagnostics:problems.get(key(p))});var previous=old.get(key(p));return previous && planVersion(previous)===planVersion(p)?previous:normalizePlan(p);});
     D=j;
     var live=new Set(D.state.plans.map(key));planCache.forEach(function(v,k){if(!live.has(k.slice(k.indexOf('|')+1)))planCache.delete(k);});
   }
@@ -896,7 +898,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
     var projects=new Map();list.forEach(function(p){var id=p.project || '',project=projects.get(id);if(!project){project={id:id,label:p.projectName || p.project || 'Projects',repos:new Map()};projects.set(id,project);}var repo=project.repos.get(p.repo);if(!repo){repo={id:id+'/'+p.repo,label:p.repo,plans:[]};project.repos.set(p.repo,repo);}repo.plans.push(p);});return Array.from(projects.values());
   }
   function repoWorktrees(p){
-    var repos=Array.isArray(D.state.repos)?D.state.repos:[],found=repos.find(function(r){return (r.name===p.repo || r.repo===p.repo) && (r.project || '')===(p.project || '');});
+    var repos=Array.isArray(D.state.repos)?D.state.repos:[],found=repos.find(function(r){return (r.project || '')===(p.project || '') && (p.root && r.root?r.root===p.root:r.name===p.repo || r.repo===p.repo);});
     if(!found && Array.isArray(D.projects)){var project=D.projects.find(function(r){return r.id===p.project;});found=project && (project.repos || []).find(function(r){return r.name===p.repo;});}
     return found && Array.isArray(found.worktrees)?found.worktrees:[];
   }

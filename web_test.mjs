@@ -1024,6 +1024,27 @@ test('Missing new fields, malformed entries and diagnostics cannot break neighbo
  assert.equal(h.ids.error.hidden,true);
 });
 
+// The Go collector's overview (docs/overview-schema.md): diagnostics are listed once at the
+// top level, worktrees per repository (matched by root), progress per milestone.
+test('Collector overview shape shows plan diagnostics, repository worktrees and milestone progress',()=>{
+ const h=harness(),p=plan('Implementing','Ledger');p.project='p1';p.projectName='Project One';p.root='D:/repos/ledger';
+ p.milestones=[{id:'M1',title:'Collector',state:'doing',summary:'Go reader',progress:{done:1,total:2},steps:[{status:'done',text:'Parse',line:7,milestone:'M1',index:0},{status:'todo',text:'Serve',line:8,milestone:'M1',index:1}]}];
+ p.steps=p.milestones[0].steps;
+ const other=plan('Testing','Clean');other.project='p1';other.root='D:/repos/other';other.repo='other';
+ const j=data([p,other]);
+ j.state.repos=[{project:'p1',name:'ledger',root:'D:/repos/elsewhere',gh:'',plans:0,worktrees:[{path:'D:/wrong',branch:'wrong-repo'}]},{project:'p1',name:'ledger',root:'D:/repos/ledger',gh:'',plans:1,worktrees:[{path:'D:/repos/ledger',branch:'main'},{path:'D:/trees/ledger-ui',branch:'feat/<ui>'}]}];
+ j.state.diagnostics=[{project:'p1',repo:'ledger',plan:'Ledger',file:'D:/repos/ledger/.tasks/Ledger.md',kind:'unclosed-fence',message:'A code fence <never> closes.'},{project:'p1',repo:'other',plan:'',file:'D:/repos/other/.tasks',kind:'folder-unreadable',message:'Folder problem'}];
+ h.api.acceptState(j);h.api.render();
+ assert.match(h.ids.view.innerHTML,/Plan warning \(1\)/);assert.match(h.ids.view.innerHTML,/A code fence &lt;never&gt; closes\./);
+ assert.doesNotMatch(h.ids.view.innerHTML,/Folder problem/);assert.equal(h.api.planByKey('p1/other/Clean').diagnostics.length,0);
+ assert.match(h.ids['plan-sidebar'].innerHTML,/feat\/&lt;ui&gt;/);assert.doesNotMatch(h.ids['plan-sidebar'].innerHTML,/wrong-repo/);
+ h.api.openPlan('p1/ledger/Ledger');
+ assert.match(h.ids.top.innerHTML,/Plan warning \(1\)/);assert.match(h.ids.top.innerHTML,/D:\/trees\/ledger-ui/);
+ assert.match(h.ids.view.innerHTML,/aria-label="Milestone progress for M1"[^>]*aria-valuenow="50"/);
+ // An unchanged refresh keeps the accepted plan object.
+ const before=h.api.planByKey('p1/ledger/Ledger');h.api.acceptState(structuredClone(j));assert.equal(h.api.planByKey('p1/ledger/Ledger'),before);
+});
+
 test('Nested-only steps and duplicated flat/nested transport entries render once',()=>{
  const h=harness(),nested={repo:'ledger',name:'Nested',status:'Testing',milestones:[{id:'M1',title:'First',steps:[{text:'Nested task',status:'doing'}]}]};
  h.api.acceptState(data([nested]));h.api.openPlan('ledger/Nested');assert.equal(h.api.planByKey('ledger/Nested').steps.length,1);
