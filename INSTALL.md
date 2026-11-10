@@ -7,6 +7,8 @@ Requires Windows x64, Microsoft Edge and Node.js 24. No model/API account is nee
 3. In PowerShell, run `./scripts/install.ps1` from the extracted package. It installs to `~/.claude/tools/workboard` and updates only the managed reporting instructions for Codex, Anti and Claude. Existing instructions are preserved with backups.
 4. Launch `~/.claude/tools/workboard/agent-ops.exe`. Existing Workboard data and Edge profile are reused.
 
+From v0.1.2 onward, use **Updates** in the app for later releases. It checks on startup and every six hours, or on demand; **Update now** verifies, backs up, installs and restarts in place. GitHub CLI must already be signed in to an account with access to this private repository. No token is entered in the app. See [in-app updates](docs/in-app-updates.md) for recovery and validation details. An installation older than the updater needs this bootstrap procedure once.
+
 `-RuntimeDir <path>` and `-ProfileDir <path>` support alternate/isolated installations. `-SkipSkills` installs runtime files only. The installer validates all package entries first, backs up overwritten runtime files and does not delete task files, execution history or preferences. Quit the old process before replacing an existing executable. A failed step reports an error rather than claiming a successful installation.
 
 Configuration flags override environment variables. Defaults retain the owner's established paths:
@@ -19,6 +21,8 @@ Configuration flags override environment variables. Defaults retain the owner's 
 | `--script` | `KRIK_SCRIPT` | Collector beside the executable; legacy user-profile locations are fallback paths |
 | `--addr` | `KRIK_ADDR` | `127.0.0.1:7790` |
 | `--data-dir` | — | `%LOCALAPPDATA%/krik-workboard` |
+| `--profile-dir` | — | Current user profile; managed reporting-instruction target |
+| `--no-update-check` | — | Off; disable automatic checks, retain manual checks |
 
 Use `--background` to start only the tray. Start-with-Windows is an explicit tray preference; login starts the tray quietly. Persistence and the legacy protocol/run-key names remain compatible to avoid losing preferences or creating duplicate startup entries.
 

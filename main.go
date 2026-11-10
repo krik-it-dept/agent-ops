@@ -135,18 +135,22 @@ type Event struct {
 }
 
 var (
-	mu           sync.Mutex
-	rawState     []byte
-	prev         map[string]Plan
-	events       []Event
-	staleSeen    = map[string]time.Time{}
-	subs         = map[chan struct{}]bool{}
-	dataDir      string
-	refreshMu    sync.Mutex
-	refreshError string
-	background   bool
-	activation   string
-	trayReady    atomic.Bool
+	mu                  sync.Mutex
+	rawState            []byte
+	prev                map[string]Plan
+	events              []Event
+	staleSeen           = map[string]time.Time{}
+	subs                = map[chan struct{}]bool{}
+	dataDir             string
+	refreshMu           sync.Mutex
+	refreshError        string
+	background          bool
+	activation          string
+	trayReady           atomic.Bool
+	profileDir          string
+	disableUpdateChecks bool
+	printVersion        bool
+	applyUpdateFile     string
 )
 
 func defaultCollector() string {
@@ -188,11 +192,34 @@ func config() {
 	flag.StringVar(&dataDir, "data-dir", filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard"), "Persistence directory")
 	flag.BoolVar(&background, "background", false, "Start tray without opening a window")
 	flag.StringVar(&activation, "activate", "", "Toast activation URI")
+	home, _ := os.UserHomeDir()
+	flag.StringVar(&profileDir, "profile-dir", home, "Profile whose managed reporting instructions are updated")
+	flag.BoolVar(&disableUpdateChecks, "no-update-check", false, "Disable automatic release checks (manual checks remain available)")
+	flag.BoolVar(&printVersion, "version", false, "Print the application version and exit")
+	flag.StringVar(&applyUpdateFile, "apply-update", "", "Internal verified update-helper manifest")
 	flag.Parse()
+	// Restarting from a staging helper must preserve the resolved configuration,
+	// including when the original launch used relative paths.
+	for _, value := range []*string{&reposDir, &slotsFile, &stateFile, &scriptFile, &dataDir, &profileDir} {
+		if absolute, err := filepath.Abs(*value); err == nil {
+			*value = absolute
+		}
+	}
 }
 
 func main() {
 	config()
+	if printVersion {
+		fmt.Println(appVersion)
+		return
+	}
+	if applyUpdateFile != "" {
+		if err := applyUpdateManifest(applyUpdateFile); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil || (host != "127.0.0.1" && host != "localhost" && host != "::1") {
 		return
@@ -211,9 +238,26 @@ func main() {
 		migrateStartup()
 	}
 	loadPersisted()
+	exe, _ := os.Executable()
+	args := []string{"--background", "--addr", addr, "--repos-dir", reposDir, "--slots-file", slotsFile, "--state-file", stateFile, "--script", scriptFile, "--data-dir", dataDir, "--profile-dir", profileDir}
+	if disableUpdateChecks {
+		args = append(args, "--no-update-check")
+	}
+	updates = newAppUpdater(filepath.Dir(exe), dataDir, profileDir, args)
 	refresh(true)
 	go serve(ln)
 	go watch()
+	if !disableUpdateChecks {
+		go func() {
+			time.Sleep(3 * time.Second)
+			updates.startCheck()
+			ticker := time.NewTicker(6 * time.Hour)
+			defer ticker.Stop()
+			for range ticker.C {
+				updates.startCheck()
+			}
+		}()
+	}
 	systray.Run(onReady, func() {})
 }
 
@@ -288,6 +332,9 @@ func hidden(cmd *exec.Cmd) *exec.Cmd {
 func refresh(first bool) {
 	refreshMu.Lock()
 	defer refreshMu.Unlock()
+	if updateRestarting.Load() {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	cmd := hidden(exec.CommandContext(ctx, "node", scriptFile))
@@ -779,6 +826,7 @@ func persist(fresh []Event) {
 
 func serve(ln net.Listener) {
 	mux := http.NewServeMux()
+	updateRoutes(mux)
 	mux.HandleFunc("/api/plans/status", handlePlanStatus)
 	mux.HandleFunc("/api/plans/agent", handleReadOnlyAgent)
 	mux.HandleFunc("/api/plans/executor", handleReadOnlyAgent)
@@ -825,7 +873,7 @@ func serve(ln net.Listener) {
 		w.Header().Set("Cache-Control", "no-store")
 		reasonJSON, _ := json.Marshal(reason)
 		staleJSON, _ := json.Marshal(stale)
-		fmt.Fprintf(w, `{"state":%s,"activity":%s,"now":%q,"error":%s,"stale":%s}`, st, evJSON, time.Now().Format(time.RFC3339), reasonJSON, staleJSON)
+		fmt.Fprintf(w, `{"appVersion":%q,"state":%s,"activity":%s,"now":%q,"error":%s,"stale":%s}`, appVersion, st, evJSON, time.Now().Format(time.RFC3339), reasonJSON, staleJSON)
 	})
 	mux.HandleFunc("/api/refresh", handleRefresh)
 	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {

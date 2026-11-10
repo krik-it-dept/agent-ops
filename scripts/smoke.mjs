@@ -37,7 +37,7 @@ try {
   const server=createServer();await new Promise((res,rej)=>{server.once('error',rej);server.listen(0,'127.0.0.1',res);});
   const port=server.address().port;await new Promise(res=>server.close(res));
   const base='http://127.0.0.1:'+port;
-  app=spawn(join(runtime,'agent-ops.exe'),['--background','--addr','127.0.0.1:'+port,'--repos-dir',repos,'--slots-file',slots,'--state-file',state,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',join(fixture,'data')],{windowsHide:true,stdio:'ignore',env:{...process.env,KRIK_AGENT_MAP:join(fixture,'no-agent-map.json'),KRIK_HISTORY_MAP:join(fixture,'no-history-map.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')}});
+  app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--slots-file',slots,'--state-file',state,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',join(fixture,'data')],{windowsHide:true,stdio:'ignore',env:{...process.env,KRIK_AGENT_MAP:join(fixture,'no-agent-map.json'),KRIK_HISTORY_MAP:join(fixture,'no-history-map.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')}});
   let response;
   for(let i=0;i<100;i++){
     try{response=await fetch(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)break;}catch{/* Retry only while the isolated process is starting. */}

@@ -276,6 +276,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media(max-width:900px){.plan-heading h1{font-size:21px}.plan-roles{width:100%;padding-left:0}.plan-heading{gap:8px}.plan-toolbar{gap:8px}.plan-toolbar .search{flex:1;max-width:100%;min-width:120px}.plan-insight{padding:14px 16px}.plan-purpose{font-size:15px}.quick-header .quick-state{display:none}}
 .status-todo{--status-fg:var(--ds-text-subtle);--status-bg:var(--ds-background-neutral)}.status-doing{--status-fg:var(--ds-text-information);--status-bg:var(--ds-background-information)}.status-review{--status-fg:var(--ds-text-discovery);--status-bg:var(--ds-background-discovery)}.status-waiting{--status-fg:var(--ds-text-warning);--status-bg:var(--ds-background-warning)}.status-blocked{--status-fg:var(--ds-text-danger);--status-bg:var(--ds-background-danger)}.status-done{--status-fg:var(--ds-text-success);--status-bg:var(--ds-background-success)}.status-select[class*=status-],.pill[class*=status-]{color:var(--status-fg,var(--ds-text));background-color:var(--status-bg,var(--ds-background-neutral));border:1px solid color-mix(in srgb,var(--status-fg,var(--ds-border)) 24%,transparent);font-weight:600}.status-select[class*=status-]:hover{background-color:var(--status-bg)}.status-select option{background:var(--ds-surface);color:var(--ds-text);font-weight:400}.status-select option[class*=status-]{color:var(--status-fg)}.plan-state-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--status-fg,var(--ds-text-subtlest));vertical-align:middle}.sidebar-plan.is-done:not(.current) .sidebar-plan-link>span{color:var(--ds-text-subtlest)}.quick-role-line{padding:0 24px 12px}.quick-role-line:empty{display:none}.quick-group-row td{font-size:12px;font-weight:600;color:var(--ds-text-subtle);background:var(--ds-surface-sunken)}.focus-work-list .s-doing,.quick-table .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.focus-work-list .s-blocked,.quick-table .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.focus-work-list .s-partial,.quick-table .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}.quick-table .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}
 .task-card .task-progress .bar i{background:var(--status-fg,var(--ds-link))}.nav .item[data-go=waiting] .badge{background:var(--ds-background-warning);color:var(--ds-text-warning)}.plan-insight p+p{margin-top:8px}
+.update-launcher{min-height:28px;padding:3px 9px;font-size:12px;margin-left:auto}.update-launcher.has-update{background:var(--ds-background-information);color:var(--ds-text-information)}.update-dialog{width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px);padding:0;border:1px solid var(--ds-border);border-radius:12px;background:var(--ds-surface);color:var(--ds-text);box-shadow:0 16px 64px #091e4240}.update-dialog::backdrop{background:#091e4266;backdrop-filter:blur(3px)}.update-shell{display:flex;flex-direction:column;max-height:calc(100dvh - 50px)}.update-header{display:flex;align-items:center;gap:12px;padding:22px 24px;border-bottom:1px solid var(--ds-border)}.update-header img{width:30px;height:30px}.update-header h2{font-size:20px;margin:0;flex:1}.update-body{padding:24px;overflow:auto;min-height:0}.update-version{font-size:15px;font-weight:600;color:var(--ds-link);margin:0 0 8px}.update-current{font-size:13px;color:var(--ds-text-subtle);margin:0 0 20px}.update-notes{font-size:13px;line-height:21px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:270px;overflow:auto;margin:12px 0 0}.update-whats-new{border-top:1px solid var(--ds-border);padding-top:16px;font-size:13px}.update-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:16px 24px;background:var(--ds-surface-sunken);border-top:1px solid var(--ds-border);flex-wrap:wrap}.update-footer .btn{font-size:13px}.update-primary{background:var(--ds-link);color:#fff}.update-primary:hover{background:var(--ds-text-information);color:#fff}.update-progress,.update-error{padding:12px;border-radius:4px;font-size:13px;line-height:21px}.update-progress{background:var(--ds-background-information);color:var(--ds-text-information)}.update-error{background:var(--ds-background-danger);color:var(--ds-text-danger)}.update-dialog button:disabled{opacity:.5;cursor:wait}.update-footer small{margin-right:auto;font-size:11px;color:var(--ds-text-subtlest)}
 </style>
 </head>
 <body>
@@ -284,6 +285,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     <button class="icon-btn sidebar-toggle" id="sidebar-toggle" data-sidebar-toggle aria-label="Toggle plans sidebar" aria-controls="plan-sidebar" aria-expanded="true" title="Plans"></button>
     <nav class="nav" id="nav" aria-label="Views"></nav>
     <span class="save-state" id="save-state" role="status" aria-live="polite"></span>
+    <button class="btn update-launcher" id="update-launcher" data-update-open title="Software updates">Updates</button>
     <span class="connection" id="connection" role="status">Connecting…</span>
     <span class="live" id="live" title="Connection"></span><small id="upd"></small>
   </header>
@@ -298,6 +300,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   </div>
 </div>
 <dialog class="quick-plan" id="quick-plan" aria-labelledby="quick-plan-title"><div class="quick-shell" id="quick-plan-content"></div></dialog>
+<dialog class="update-dialog" id="update-dialog" aria-labelledby="update-title"><div id="update-content"></div></dialog>
 <script>
 (function () {
   var D = { state: { plans: [], slots: {} }, activity: [], now: '' };
@@ -1205,6 +1208,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     if(trigger){trigger.setAttribute('aria-expanded','false');trigger.closest('th').classList.remove('column-open');}
   });
   document.addEventListener('click', function (ev) {
+    if(handleUpdateAction(ev))return;
     if(Date.now()<suppressClickUntil) return;
     if(handleViewAction(ev)) return;
     var go = ev.target.closest('[data-go]'), tab = ev.target.closest('[data-tab]');
@@ -1217,12 +1221,74 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     $('error').hidden = !reason; $('error').textContent = reason || ''; $('error').title = reason || '';
     if($('quick-error')){$('quick-error').hidden=!reason;$('quick-error').textContent=reason || '';}
   }
+
+  var updateUI={state:null,open:false,dismissed:'',returnTo:null,requesting:false,action:''};
+  function updateInstalling(){return updateUI.requesting && updateUI.action==='apply' || updateUI.state && ['downloading','verifying','installing'].includes(updateUI.state.phase);}
+  function renderUpdate(){
+    var s=updateUI.state || {},button=$('update-launcher'),host=$('update-content');
+    if(button){button.className='btn update-launcher'+(s.available && !s.skipped?' has-update':'');button.textContent=s.available && !s.skipped?'Update available':'Updates';button.title=s.current?'Installed '+s.current:'Software updates';}
+    if(!host || !updateUI.open)return;
+    var active=document.activeElement && document.activeElement.id,busy=updateInstalling(),checking=s.phase==='checking' || updateUI.requesting;
+    var title=s.available?'Update available':'Software update',message={checking:'Checking the private GitHub release...',downloading:'Downloading the update...',verifying:'Verifying the package and version...',installing:'Installing and restarting... This window will reload automatically.'}[s.phase];
+    host.innerHTML='<div class="update-shell"><header class="update-header"><img src="/icons/app.png" alt=""><h2 id="update-title">'+title+'</h2><button class="icon-btn" id="update-close" data-update-close aria-label="Close update dialog"'+(busy?' disabled':'')+'>'+icon('close')+'</button></header><div class="update-body"><p class="update-version">'+esc(s.available?s.latest:s.current || 'Agent Ops')+'</p><p class="update-current">'+esc(s.available?'Current version '+s.current+'. A new version is available.':s.current?'Current version '+s.current+'.':'Check for a newer version of Agent Ops.')+'</p>'+(s.error?'<p class="update-error" role="alert">'+esc(s.error)+'</p>':'')+(message?'<p class="update-progress" role="status">'+esc(message)+'</p>':'')+(!message && !s.error && !s.available && s.checkedAt?'<p>Agent Ops is up to date.</p>':'')+(s.available?'<div class="update-whats-new"><strong>What\'s new</strong><div class="update-notes">'+esc(s.notes || 'No release notes provided.')+'</div></div>':'')+'</div><footer class="update-footer"><small>Task data and preferences are preserved.</small><button class="btn" data-update-close'+(busy?' disabled':'')+'>'+(s.available?'Cancel':'Close')+'</button>'+(s.available?'<button class="btn" id="update-skip" data-update-action="skip"'+(busy || checking?' disabled':'')+'>Skip this version</button><button class="btn update-primary" id="update-apply" data-update-action="apply"'+(busy || checking || saving?' disabled':'')+'>Update now</button>':'<button class="btn update-primary" id="update-check" data-update-action="check"'+(busy || checking?' disabled':'')+'>Check for updates</button>')+'</footer></div>';
+    if(active && $(active) && !$(active).disabled)$(active).focus({preventScroll:true});
+  }
+  function openUpdateDialog(){
+    var dialog=$('update-dialog');if(!dialog)return;
+    if(!updateUI.open)updateUI.returnTo=document.activeElement;
+    updateUI.open=true;renderUpdate();if(!dialog.open)dialog.showModal();
+    if($('update-close'))$('update-close').focus();
+  }
+  function closeUpdateDialog(){
+    if(updateInstalling())return;
+    updateUI.open=false;updateUI.dismissed=updateUI.state && updateUI.state.latest || '';
+    if($('update-dialog') && $('update-dialog').open)$('update-dialog').close();
+    if(updateUI.returnTo && updateUI.returnTo.isConnected)updateUI.returnTo.focus({preventScroll:true});
+  }
+  function receiveUpdate(s){
+    updateUI.state=s;renderUpdate();
+    if(s.phase==='available' && s.available && !s.skipped && updateUI.dismissed!==s.latest && !quick.key && !updateUI.open)openUpdateDialog();
+  }
+  async function pollUpdates(){
+    try{var response=await fetch('/api/updates',{cache:'no-store'});if(!response.ok)throw Error('Could not read update status.');receiveUpdate(await response.json());}
+    catch(e){if(updateInstalling())return;if(updateUI.open){updateUI.state=Object.assign({},updateUI.state,{error:e.message});renderUpdate();}}
+  }
+  async function updateAction(action){
+    if(updateUI.requesting || updateInstalling() || (action==='apply' && saving))return;
+    updateUI.action=action;updateUI.requesting=true;renderUpdate();
+    try{
+      var response=await fetch('/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','Content-Type':'application/json'},body:JSON.stringify({version:updateUI.state && updateUI.state.latest || ''})});
+      var state=await response.json();if(!response.ok)throw Error(state.error || 'Update request failed.');
+      receiveUpdate(state);if(action==='skip')closeUpdateDialog();
+    }catch(e){updateUI.state=Object.assign({},updateUI.state,{error:e.message});}
+    finally{updateUI.requesting=false;updateUI.action='';renderUpdate();}
+  }
+  function handleUpdateAction(ev){
+    if(ev.target.closest('[data-update-open]')){openUpdateDialog();pollUpdates();return true;}
+    if(ev.target.closest('[data-update-close]')){closeUpdateDialog();return true;}
+    var action=ev.target.closest('[data-update-action]');if(action){updateAction(action.getAttribute('data-update-action'));return true;}return false;
+  }
+  function initUpdates(){
+    if($('update-dialog'))$('update-dialog').addEventListener('cancel',function(e){e.preventDefault();closeUpdateDialog();});
+    pollUpdates();setInterval(function(){if(updateUI.open || updateInstalling() || updateUI.state && updateUI.state.phase==='checking')pollUpdates();},1000);
+    setInterval(pollUpdates,30000);
+  }
+  function restoreUpdateView(j){
+    var saved=load('wb-update-view',{});
+    if(saved.version!==j.appVersion || !saved.ui)return null;
+    Object.assign(ui,saved.ui);save('wb-update-view',{});return saved;
+  }
+
   function connection(online) { $('live').className = online ? 'live' : 'live off'; $('connection').textContent = online ? '' : 'Reconnecting…'; }
   function get() { if(dragged || saving) return Promise.resolve(); return fetch('/api/state', { cache: 'no-store' }).then(function (r) { if(!r.ok) throw Error('State request failed: '+r.status); return r.json(); }).then(function (j) {
     if (dragged || saving) return;
     if (!j.state || !Array.isArray(j.state.plans) || !Array.isArray(j.activity)) throw Error(j.error || 'Invalid state response');
-    D = j; showError(D.error); render();return j;
-  }).catch(function (e) { showError(e.message);return null; }); }
+    if(D.appVersion && j.appVersion && D.appVersion!==j.appVersion){save('wb-update-view',{version:j.appVersion,ui:ui,scroll:$('view').scrollTop,horizontal:$('view').scrollLeft,quick:{key:quick.key,tab:quick.tab,sequence:quick.sequence,scroll:$('quick-plan-scroll') && $('quick-plan-scroll').scrollTop}});location.reload();return j;}
+    var restored=restoreUpdateView(j);
+    D = j; showError(D.error); render();
+    if(restored){$('view').scrollTop=restored.scroll || 0;$('view').scrollLeft=restored.horizontal || 0;if(restored.quick && restored.quick.key && planByKey(restored.quick.key)){openQuickPlan(restored.quick.key,restored.quick.sequence);quick.tab=restored.quick.tab;renderQuickPlan(true);if($('quick-plan-scroll'))$('quick-plan-scroll').scrollTop=restored.quick.scroll || 0;}}
+    return j;
+  }).catch(function (e) { if(!updateInstalling())showError(e.message);return null; }); }
   function connect() {
     var es = new EventSource('/events');
     es.onopen = function () { connection(true); get(); };
@@ -1237,6 +1303,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   window.addEventListener('hashchange',function(){jumpHash();render();});
   if($('quick-plan'))$('quick-plan').addEventListener('cancel',function(e){e.preventDefault();closeQuickPlan();});
   document.addEventListener('keydown',function(e){
+    if(updateUI.open){if(e.key==='Escape'){e.preventDefault();closeUpdateDialog();}return;}
     if(e.key==='F5'){e.preventDefault();if(!e.repeat)refresh();return;}
     if(quick.key){
       if(e.key==='Escape'){e.preventDefault();closeQuickPlan();return;}
@@ -1259,7 +1326,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       if(ps.length) {i=(i+(e.key==='ArrowDown'?1:-1)+ps.length)%ps.length;ui.view='plan:'+key(ps[i]);ui.q='';ui.tab='summary';save('wb-ui',ui);render();$('view').scrollTop=0;}
     } else if (!e.ctrlKey && !e.altKey && !e.metaKey && e.key.toLowerCase()==='r') { e.preventDefault();refresh(); }
   });
-  jumpHash(); get(); connect();
+  jumpHash(); get(); connect(); initUpdates();
   setInterval(get, 30000); // server owns the same stale rule used by toasts
 })();
 </script>

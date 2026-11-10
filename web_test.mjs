@@ -7,14 +7,57 @@ const source=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 function harness(saved={},nav={}){
  const ids={}, handlers={}, timers=[], requests=[], streams=[],storage={'wb-ui':JSON.stringify(saved),'wb-navigation':JSON.stringify(nav)},writes=[];let context;
  function element(id){return {id,innerHTML:'',textContent:'',className:'',hidden:false,isConnected:true,scrollTop:0,value:'',selectionStart:0,selectionEnd:0,attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v;},getAttribute(k){return this.attributes[k];},showModal(){this.open=true;},close(){this.open=false;},addEventListener(name,fn){this.listeners[name]=fn;},focus(){context.document.activeElement=this;},select(){this.selectionStart=0;this.selectionEnd=this.value.length;},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b;}};}
- ['view','top','tabs','nav','q','refresh','upd','error','live','connection','save-state','plan-sidebar','sidebar-toggle','quick-plan','quick-plan-content','quick-plan-scroll','quick-close','quick-tab-overview','quick-tab-checklist','quick-tab-activity','quick-star','quick-refresh','quick-full','quick-error'].forEach(id=>ids[id]=element(id));
+ ['view','top','tabs','nav','q','refresh','upd','error','live','connection','save-state','plan-sidebar','sidebar-toggle','quick-plan','quick-plan-content','quick-plan-scroll','quick-close','quick-tab-overview','quick-tab-checklist','quick-tab-activity','quick-star','quick-refresh','quick-full','quick-error','update-launcher','update-dialog','update-content','update-close','update-apply','update-skip','update-check'].forEach(id=>ids[id]=element(id));
  context=vm.createContext({console,Date,URL,encodeURI,encodeURIComponent,decodeURIComponent,setTimeout(fn){timers.push(fn);return timers.length;},clearTimeout(i){timers[i-1]=null;},setInterval(){},location:{hash:''},localStorage:{getItem(key){return storage[key] || null;},setItem(k,v){storage[k]=v;writes.push(k);}},window:{addEventListener(name,fn){handlers[name]=fn;}},document:{querySelectorAll(){return [];},activeElement:null,getElementById(id){return ids[id];},addEventListener(name,fn){handlers[name]=fn;}},fetch(path){requests.push(path);return Promise.resolve({ok:true,json:async()=>data([])});},EventSource:class{constructor(){streams.push(this);}}});
- const instrumented=source.replace('jumpHash(); get(); connect();',`globalThis.api={navigation,quick,renderSidebar,sidebarPlans,openQuickPlan,closeQuickPlan,stepQuickPlan,togglePlanStar,recordPlanVisit,quickChecklist,taskRows,filteredTaskRows,taskAgentMatches,focusedTask,refresh,stepExecution,executorBadges, agentChain, agentMatches, executorValue, agentName, agentBadge, viewList, viewTimeline, viewSummary, timelineEntries, dateKey, monthDays, handleViewAction, moveStatus, statusSelect, planByKey, render, columnOf, owner, needsAttention, feedFor, orderedMilestones, stepsHTML, taskCard, prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui};`);
+ const instrumented=source.replace('jumpHash(); get(); connect(); initUpdates();',`globalThis.api={updateUI,receiveUpdate,updateAction,openUpdateDialog,closeUpdateDialog,pollUpdates,initUpdates,navigation,quick,renderSidebar,sidebarPlans,openQuickPlan,closeQuickPlan,stepQuickPlan,togglePlanStar,recordPlanVisit,quickChecklist,taskRows,filteredTaskRows,taskAgentMatches,focusedTask,refresh,stepExecution,executorBadges, agentChain, agentMatches, executorValue, agentName, agentBadge, viewList, viewTimeline, viewSummary, timelineEntries, dateKey, monthDays, handleViewAction, moveStatus, statusSelect, planByKey, render, columnOf, owner, needsAttention, feedFor, orderedMilestones, stepsHTML, taskCard, prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui};`);
  vm.runInContext(instrumented,context);
  return {api:context.api,ids,context,handlers,requests,streams,storage,writes,flush(){timers.splice(0).forEach(fn=>fn&&fn());}};
 }
 function plan(status='Implementing',name='Cải thiện tìm kiếm'){return {repo:'workboard',name,owner:'Minh',revision:'a'.repeat(64),status,tone:'doing',step:1,mtime:new Date().toISOString(),gh:'https://github.com/krik/workboard',root:'C:/sample',goal:'Gọn hơn #12',spec:'plan.md',next:'Kiểm tra kết quả #12',slot:null,steps:[{status:'doing',text:'Kiểm tra tìm kiếm'},{status:'todo',text:'Xác minh #12'}],milestones:[],decisions:[{key:'202611090900',when:'09/11 09:00',text:'Giữ tiếng Việt'}],questions:[{key:'202611090930',when:'09/11 09:30',ask:'Chốt giao diện?',answer:'',open:true}]};}
 function data(plans){return {state:{plans,slots:{}},activity:[],stale:{},now:new Date().toISOString(),error:''};}
+test('Update prompt shows versions and escaped release notes without disturbing the current task view',()=>{
+ const h=harness(),p=plan();setList(h,[p]);h.api.ui.taskStatus='blocked';h.api.ui.taskGroup='plan';h.ids.view.scrollTop=123;h.ids['update-launcher'].focus();
+ const before=JSON.stringify(h.api.ui);
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available',notes:'Fixed grouping <script>unsafe</script>'});
+ assert.ok(h.ids['update-dialog'].open);assert.equal(h.api.updateUI.open,true);
+ assert.match(h.ids['update-content'].innerHTML,/v0.1.3/);assert.match(h.ids['update-content'].innerHTML,/Current version v0.1.2/);
+ assert.match(h.ids['update-content'].innerHTML,/&lt;script&gt;/);assert.doesNotMatch(h.ids['update-content'].innerHTML,/<script>/);
+ assert.match(h.ids['update-content'].innerHTML,/Update now/);assert.match(h.ids['update-content'].innerHTML,/Skip this version/);
+ assert.equal(JSON.stringify(h.api.ui),before);assert.equal(h.ids.view.scrollTop,123);
+ h.api.closeUpdateDialog();assert.equal(h.context.document.activeElement,h.ids['update-launcher']);
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});assert.equal(h.api.updateUI.open,false);
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.4',available:true,skipped:true,phase:'available'});assert.equal(h.api.updateUI.open,false);
+});
+
+test('Skip sends the selected release with CSRF protection and an apply cannot be closed or sent twice',async()=>{
+ const h=harness(),calls=[];h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'available'});
+ h.context.fetch=async(path,options)=>{calls.push([path,options]);return {ok:true,json:async()=>({current:'v0.1.2',latest:'v0.1.3',available:true,skipped:true,phase:'available'})};};
+ await h.api.updateAction('skip');assert.equal(calls[0][0],'/api/updates/skip');assert.equal(calls[0][1].headers['X-Workboard'],'1');assert.equal(JSON.parse(calls[0][1].body).version,'v0.1.3');assert.equal(h.api.updateUI.open,false);
+ h.api.openUpdateDialog();let finish;h.context.fetch=(path,options)=>{calls.push([path,options]);return new Promise(res=>finish=res);};
+ const pending=h.api.updateAction('apply');h.api.closeUpdateDialog();assert.equal(h.api.updateUI.open,true);
+ await h.api.updateAction('apply');assert.equal(calls.length,2);
+ finish({ok:true,json:async()=>({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'installing'})});await pending;
+ let prevented=false;h.handlers.keydown({key:'Escape',preventDefault(){prevented=true;}});assert.ok(prevented);assert.equal(h.api.updateUI.open,true);
+ h.api.receiveUpdate({current:'v0.1.2',phase:'error',error:'Previous version restored.'});h.api.closeUpdateDialog();assert.equal(h.api.updateUI.open,false);
+});
+
+test('App version change reloads once and the new page restores plan filters, grouping and scroll',async()=>{
+ const h=harness(),p=plan();let reloads=0;h.context.location.reload=()=>reloads++;
+ h.api.setData({...data([p]),appVersion:'v0.1.2'});h.api.ui.layout='list';h.api.ui.taskStatus='blocked';h.api.ui.taskGroup='plan';h.api.ui.collapsedPlans={['workboard/'+p.name]:true};
+ h.ids.view.scrollTop=223;h.ids.view.scrollLeft=40;
+ h.context.fetch=async()=>({ok:true,json:async()=>({...data([p]),appVersion:'v0.1.3'})});await h.api.get();assert.equal(reloads,1);
+ const saved=JSON.parse(h.storage['wb-update-view']);assert.equal(saved.version,'v0.1.3');assert.equal(saved.ui.taskStatus,'blocked');
+ const fresh=harness();fresh.storage['wb-update-view']=h.storage['wb-update-view'];fresh.context.fetch=h.context.fetch;await fresh.api.get();
+ assert.equal(fresh.api.ui.layout,'list');assert.equal(fresh.api.ui.taskStatus,'blocked');assert.equal(fresh.api.ui.taskGroup,'plan');assert.equal(fresh.api.ui.collapsedPlans['workboard/'+p.name],true);
+ assert.equal(fresh.ids.view.scrollTop,223);assert.equal(fresh.ids.view.scrollLeft,40);assert.deepEqual(JSON.parse(fresh.storage['wb-update-view']),{});
+});
+
+test('Check failures and rollback errors remain visible and network disconnect during installation is expected',async()=>{
+ const h=harness();h.api.openUpdateDialog();h.context.fetch=async()=>{throw Error('GitHub unreachable');};await h.api.pollUpdates();assert.match(h.ids['update-content'].innerHTML,/GitHub unreachable/);
+ h.api.receiveUpdate({current:'v0.1.2',latest:'v0.1.3',available:true,phase:'installing'});await h.api.pollUpdates();assert.equal(h.api.updateUI.state.error,undefined);
+ h.api.receiveUpdate({current:'v0.1.2',phase:'error',error:'Previous version restored.'});assert.match(h.ids['update-content'].innerHTML,/Previous version restored/);
+});
+
 test('Board has five status columns, assignees and progress without KPI or chat navigation',()=>{const h=harness();h.api.setData(data([plan()]));h.api.render();assert.match(h.ids.view.innerHTML,/In progress/);assert.match(h.ids.view.innerHTML,/Minh/);assert.match(h.ids.view.innerHTML,/1?0?\/2/);assert.equal((h.ids.view.innerHTML.match(/class="column"/g)||[]).length,5);assert.doesNotMatch(h.ids.nav.innerHTML,/Channels|Report|Activity/);assert.doesNotMatch(h.ids.view.innerHTML,/kpis|class="feed"/);});
 test('Columns preserve exact stages on cards',()=>{const h=harness();for(const [stage,col]of [['Planning',0],['Implementing',1],['Reviewing',2],['Fixing review',2],['Testing',2],['Waiting for CI',3],['Waiting for owner',3],['Blocked',3],['Shipping',1],['Done',4]])assert.equal(h.api.columnOf(plan(stage)),col,stage);});
 test('Status detail stays outside the stage badge',()=>{const h=harness();let card=h.api.taskCard(plan('Waiting for owner - duyệt #12'));assert.match(card,/Waiting for owner<\/span>/);assert.match(card,/class="stage-detail"/);assert.match(card,/pull\/12/);});

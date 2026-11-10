@@ -1,6 +1,8 @@
-param([string]$OutputDir)
+param([string]$OutputDir,[string]$Version)
 . (Join-Path $PSScriptRoot 'common.ps1')
 $repoRoot = Split-Path $PSScriptRoot -Parent
+if (!$Version) { $Version = (Get-Content -LiteralPath (Join-Path $repoRoot 'VERSION') -Raw).Trim() }
+if ($Version -notmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'VERSION must be a stable vMAJOR.MINOR.PATCH tag.' }
 if (!$OutputDir) { $OutputDir = Join-Path $repoRoot 'dist' }
 $OutputDir = [IO.Path]::GetFullPath($OutputDir)
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
@@ -11,7 +13,13 @@ try {
     Invoke-Checked -File $goExecutable -Arguments @('run','./cmd/icon')
     Invoke-Checked -File $goExecutable -Arguments @('run','github.com/akavel/rsrc@v0.10.2','-arch','amd64','-ico','web/icons/app.ico','-o','rsrc_windows_amd64.syso')
     $executable = Join-Path $OutputDir 'agent-ops.exe'
-    Invoke-Checked -File $goExecutable -Arguments @('build','-trimpath','-ldflags','-s -w -H windowsgui','-o',$executable,'.')
+    $commit = (& git rev-parse --short=12 HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Build from the source Git checkout.' }
+    Invoke-Checked -File $goExecutable -Arguments @('build','-trimpath','-ldflags',("-s -w -H windowsgui -X main.appVersion=$Version -X main.appCommit=$commit"),'-o',$executable,'.')
+    # PowerShell does not capture stdout from a GUI-subsystem executable directly.
+    $reported = (& node -e "process.stdout.write(require('node:child_process').execFileSync(process.argv[1],['--version'],{encoding:'utf8',windowsHide:true}))" $executable)
+    if ($null -ne $reported) { $reported = $reported.Trim() }
+    if ($LASTEXITCODE -ne 0 -or $reported -ne $Version) { throw 'Built executable version mismatch.' }
     Invoke-Checked -File $goExecutable -Arguments @('run','./cmd/icon','--verify-exe',$executable)
     # A fresh package directory prevents leftovers from entering a release.
     $packageRoot = Join-Path $OutputDir ('package-' + [Guid]::NewGuid().ToString('N'))

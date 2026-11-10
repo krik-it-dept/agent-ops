@@ -129,6 +129,9 @@ func writePlanHeader(change statusChange, field string) error {
 	}
 	refreshMu.Lock()
 	defer refreshMu.Unlock()
+	if updateRestarting.Load() {
+		return &statusError{http.StatusServiceUnavailable, "The app is restarting for an update. Retry after it reconnects."}
+	}
 	mu.Lock()
 	_, known := prev[change.Repo+"/"+change.Plan]
 	mu.Unlock()

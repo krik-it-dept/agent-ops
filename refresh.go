@@ -24,6 +24,11 @@ func handleRefresh(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Refresh must come from this Workboard."})
 		return
 	}
+	if updateRestarting.Load() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "The app is restarting for an update."})
+		return
+	}
 	refresh(false)
 	mu.Lock()
 	reason := refreshError

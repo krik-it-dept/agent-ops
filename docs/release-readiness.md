@@ -49,7 +49,7 @@ No scanner failure was converted into a claim that an unavailable manual visual 
 ## Release limits and follow-up
 
 - Native Edge/Explorer visual inspection was unavailable in this automation session. Check small icon rendering, light/dark surfaces and keyboard focus on the owner's desktop after reopening. Native PE resources have been verified; Explorer may cache an old icon.
-- The internal Windows binary is unsigned. There is no automatic update service; installing a version requires an explicit local installer run.
+- The internal Windows binary is unsigned. From v0.1.2, release checks and user-confirmed in-app updates are available; older installations require one bootstrap installation.
 - Font display uses the official Atlassian CDN and falls back to system fonts offline. Agent marks are bundled locally. No full upstream design-system files are redistributed.
 - Old running client sessions must read the updated reporting instructions before they start reporting; installation cannot prove those sessions have loaded them.
 - Business hierarchy migration and richer problem/impact/acceptance briefs remain unapproved drafts. No legacy task source or acceptance state was migrated for this release.
@@ -65,3 +65,9 @@ Follow INSTALL.md to quit the old process, install and roll back from runtime/in
 Full-plan headings, tabs and all content sections now share the workspace gutter instead of independently centered maximum widths. List group headers retain the explicit plan stage, whole-plan done/total and percentage in both expanded and collapsed states. Matching-task counts are separate and filters do not change the completion denominator. Header chevrons use centered SVGs.
 
 The JavaScript suite now has 123 tests, including filtered/collapsed progress, same-named plans, stage/completion independence and refresh updates. Native visual inspection was attempted but Computer Use stopped because it could not confidently determine the Edge URL. No visual sign-off is claimed for this patch; automated DOM and extracted-package checks remain the verification path.
+
+## 2026-11-10: in-app updater
+
+The updater is scoped to the fixed private release repository. The GitHub credential stays in the existing CLI; the browser only sees version, notes and operation status. All actions retain local request protection. Downloads are checked against their checksum and GitHub digest/size; ZIP contents and paths are allowlisted. A separate verified helper waits for the exact old process, backs up runtime/instructions, installs and checks the replacement process/version/state. Recovery restores the previous files. In-flight task writes finish before the old process exits.
+
+127 JavaScript tests and the expanded Go suite cover the update UI, reload restoration, request boundaries, version and ZIP validation, staging tamper detection, backup/rollback and exact-process health. Package smoke remains isolated and disables automatic GitHub checks. The optional real-release round trip and operational details are documented in docs/in-app-updates.md.
