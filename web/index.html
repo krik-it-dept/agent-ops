@@ -606,9 +606,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 }
 
 /* Workspace chrome stays quiet; the work itself carries the hierarchy. */
-.appbar { height:38px;min-height:38px;gap:10px;padding:0 12px 0 0;background:var(--bg); }
-.workspace-brand { display:flex;align-items:center;gap:8px;align-self:stretch;width:244px;padding:0 16px;flex-shrink:0;background:var(--panel);color:var(--fg);font-size:12px;font-weight:500;text-decoration:none;border:0;border-right:1px solid var(--border); }
-.brand-mark { display:inline-grid;width:21px;height:21px; }.brand-mark img { grid-area:1/1;width:100%;height:100%; }.brand-mark .app-logo-dark { display:none; }
+.appbar { height:38px;min-height:38px;gap:10px;padding:0 12px 0 8px;background:var(--bg); }
 .sidebar-toggle { order:0;width:26px;height:26px; }
 .command-open { display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:26px;width:min(360px,35vw);margin:0 auto;padding:2px 6px 2px 10px;border:1px solid var(--border);border-radius:5px;background:var(--card);color:var(--muted-fg);font-size:11px; }
 .command-open:hover { border-color:var(--ring); }.command-open .kbd { line-height:16px;font-size:10px; }
@@ -749,7 +747,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .command-footer { display:flex;gap:18px;padding:10px 16px;border-top:1px solid var(--border);color:var(--muted-fg);font-size:11px; }
 .command-footer>span { display:flex;align-items:center;gap:6px; }
 @media (hover:none) { .sidebar-plan .star-toggle[aria-pressed=false] { opacity:1; } }
-@media (max-width:760px) { .appbar { padding:0 8px;gap:8px;height:38px;min-height:38px;flex-wrap:nowrap; }.workspace-brand { width:auto;background:transparent;border:0;padding:0 4px; }.workspace-brand>span:last-child { display:none; }.command-open { width:min(360px,65vw); }.plan-sidebar { position:absolute;top:38px;bottom:24px;z-index:9;width:244px;box-shadow:var(--shadow-floating); }.workspace-strip { min-height:38px; }.nav { order:0;width:auto;min-height:0;gap:0; }.item { padding:0 12px;font-size:11px; }.top { padding:18px 16px 16px; }.view { padding:0 16px 24px; }.view.detail { padding-top:20px; }.top .search { width:auto;flex:1 1 140px; }.summary-panel { padding:18px; }.summary-plan-meta { flex-wrap:wrap;gap:8px; }.summary-plan-meta .bar { width:48px; }.quick-plan { width:calc(100vw - 24px);height:calc(100dvh - 32px); }.quick-header,.quick-scroll { padding:20px; }.quick-tabs { padding:0 20px; }.quick-footer { padding:12px 20px; }.tabs { padding:0 16px; }.top .btn .kbd { display:none; } }
+@media (max-width:760px) { .appbar { padding:0 8px;gap:8px;height:38px;min-height:38px;flex-wrap:nowrap; }.command-open { width:min(360px,65vw); }.plan-sidebar { position:absolute;top:38px;bottom:24px;z-index:9;width:244px;box-shadow:var(--shadow-floating); }.workspace-strip { min-height:38px; }.nav { order:0;width:auto;min-height:0;gap:0; }.item { padding:0 12px;font-size:11px; }.top { padding:18px 16px 16px; }.view { padding:0 16px 24px; }.view.detail { padding-top:20px; }.top .search { width:auto;flex:1 1 140px; }.summary-panel { padding:18px; }.summary-plan-meta { flex-wrap:wrap;gap:8px; }.summary-plan-meta .bar { width:48px; }.quick-plan { width:calc(100vw - 24px);height:calc(100dvh - 32px); }.quick-header,.quick-scroll { padding:20px; }.quick-tabs { padding:0 20px; }.quick-footer { padding:12px 20px; }.tabs { padding:0 16px; }.top .btn .kbd { display:none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .spin { border-right-color: currentColor; border-bottom-color: transparent; }
@@ -761,7 +759,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 <body>
 <div class="app">
   <header class="appbar">
-    <button class="workspace-brand" type="button" data-go="home" aria-label="Agent Ops home"><span class="brand-mark" aria-hidden="true"><img src="/icons/app-light.png" class="app-logo-light" alt=""><img src="/icons/app-dark.png" class="app-logo-dark" alt=""></span><span>Agent Ops</span></button>
     <button class="icon-btn sidebar-toggle" id="sidebar-toggle" data-sidebar-toggle aria-label="Toggle plans sidebar" aria-controls="plan-sidebar" aria-expanded="true" title="Plans"></button>
     <button class="command-open" data-command-open aria-label="Search plans and commands (Ctrl+K)"><span>Search or jump to...</span><kbd class="kbd">Ctrl K</kbd></button>
     <span class="save-state" id="save-state" role="status" aria-live="polite"></span>

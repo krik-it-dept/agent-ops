@@ -6,12 +6,12 @@ The release workflow takes the section whose heading starts with the pushed tag.
 ## v0.3.0 - A read-only work ledger
 
 Agent Ops now only reads plans. Orchestration (worktrees, workers, hand-offs)
-belongs to Orca. The previous release is v0.2.2; v0.2.1 and v0.2.2 update to this
+belongs to Orca. The previous release is v0.2.3; v0.2.1 to v0.2.3 update to this
 release in the app. An older installation cannot, and is reinstalled once from
 the package.
 
-- Keeps the v0.2.2 desktop workspace, command search, Geist font and the
-  optional Done archive. Archive is a read-only view filter: it never edits or
+- Keeps the v0.2.2 and v0.2.3 desktop workspace, command search, Geist font
+  and the optional Done archive. Archive is a read-only view filter: it never edits or
   moves a plan file.
 - Run reporting is retired: no run history, no executor or agent attribution,
   no worktree slots, and no status changes from the app. `task-sync.mjs` and
@@ -40,6 +40,13 @@ the package.
   fresh once; plans and settings are unaffected.
 - The plan list, board, history and summary no longer show agents, executors,
   run evidence or slots.
+
+## v0.2.3 - Sidebar header spacing
+
+- Move the sidebar toggle to the left edge of the header and remove the fixed
+  logo/title block that left a 244-pixel gap when the sidebar was hidden.
+- Keep the toggle in the same position with the sidebar open or closed, including
+  narrow windows. Existing navigation preferences and Ctrl+B remain available.
 
 ## v0.2.2 - Desktop workspace and Archive
 
