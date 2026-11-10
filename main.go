@@ -42,6 +42,8 @@ var (
 	scriptFile = defaultCollector()
 	// Values given by flag or environment; restarts preserve exactly these.
 	explicitRepos, explicitState, explicitSlots bool
+	// Legacy built-in paths received as launch values; used only for migration.
+	legacyLaunch legacyPaths
 )
 
 const (
@@ -231,7 +233,6 @@ func config() {
 			*item.value = os.Getenv(item.env)
 		}
 	}
-	explicitRepos, explicitState, explicitSlots = reposDir != "", stateFile != "", slotsFile != ""
 	// Restarting from a staging helper must preserve the resolved configuration,
 	// including when the original launch used relative paths.
 	for _, value := range []*string{&reposDir, &slotsFile, &stateFile, &scriptFile, &dataDir, &profileDir} {
@@ -242,6 +243,44 @@ func config() {
 			*value = absolute
 		}
 	}
+	// Releases before config.json always passed their built-in paths as flags, and an
+	// in-app update relaunches with the previous release's arguments. Those values are
+	// not user overrides: they only feed migration and are never passed on again.
+	legacyLaunch = legacyPaths{}
+	for _, item := range []struct {
+		value     *string
+		legacy    string
+		migration *string
+	}{{&reposDir, legacyDefaults.repos, &legacyLaunch.repos}, {&stateFile, legacyDefaults.state, &legacyLaunch.state}, {&slotsFile, legacyDefaults.slots, &legacyLaunch.slots}} {
+		if *item.value != "" && samePath(*item.value, item.legacy) {
+			*item.migration, *item.value = *item.value, ""
+		}
+	}
+	explicitRepos, explicitState, explicitSlots = reposDir != "", stateFile != "", slotsFile != ""
+}
+
+func samePath(a, b string) bool {
+	return a != "" && b != "" && strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
+}
+
+// launchArgs are the arguments a restart or in-app update relaunches with. Only
+// values given by flag or environment are passed on; everything else comes from
+// config.json, so a restart never pins the current config into flags.
+func launchArgs() []string {
+	args := []string{"--background", "--addr", addr, "--script", scriptFile, "--data-dir", dataDir, "--profile-dir", profileDir}
+	if explicitRepos {
+		args = append(args, "--repos-dir", reposDir)
+	}
+	if explicitState {
+		args = append(args, "--state-file", stateFile)
+	}
+	if explicitSlots {
+		args = append(args, "--slots-file", slotsFile)
+	}
+	if disableUpdateChecks {
+		args = append(args, "--no-update-check")
+	}
+	return args
 }
 
 func main() {
@@ -277,22 +316,7 @@ func main() {
 	initSettings()
 	loadPersisted()
 	exe, _ := os.Executable()
-	// Only values given by flag or environment are passed on; everything else
-	// comes from config.json, so a restart never pins the current config into flags.
-	args := []string{"--background", "--addr", addr, "--script", scriptFile, "--data-dir", dataDir, "--profile-dir", profileDir}
-	if explicitRepos {
-		args = append(args, "--repos-dir", reposDir)
-	}
-	if explicitState {
-		args = append(args, "--state-file", stateFile)
-	}
-	if explicitSlots {
-		args = append(args, "--slots-file", slotsFile)
-	}
-	if disableUpdateChecks {
-		args = append(args, "--no-update-check")
-	}
-	updates = newAppUpdater(filepath.Dir(exe), dataDir, profileDir, args)
+	updates = newAppUpdater(filepath.Dir(exe), dataDir, profileDir, launchArgs())
 	refresh(true)
 	go serve(ln)
 	go watch()

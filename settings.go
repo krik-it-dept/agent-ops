@@ -54,14 +54,20 @@ func initSettings() {
 	if legacyMigrationAllowed() {
 		legacy = legacyDefaults
 	}
-	if reposDir != "" {
-		legacy.repos = reposDir
-	}
-	if stateFile != "" {
-		legacy.state = stateFile
-	}
-	if slotsFile != "" {
-		legacy.slots = slotsFile
+	for _, item := range []struct {
+		target *string
+		values []string
+	}{
+		{&legacy.repos, []string{reposDir, legacyLaunch.repos}},
+		{&legacy.state, []string{stateFile, legacyLaunch.state}},
+		{&legacy.slots, []string{slotsFile, legacyLaunch.slots}},
+	} {
+		for _, v := range item.values {
+			if v != "" {
+				*item.target = v
+				break
+			}
+		}
 	}
 	file := configFilePath(dataDir)
 	cfg, warning, err := loadOrMigrateConfig(file, legacy, time.Now())

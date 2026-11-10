@@ -393,3 +393,50 @@ func TestLegacyFolderMigratesOnlyIntoTheInstalledDataFolder(t *testing.T) {
 		t.Fatal("the installed data folder must migrate the legacy folder and keep its state and slots files", stateFile, slotsFile)
 	}
 }
+
+// An in-app update from v0.1.4 relaunches the new version with v0.1.4's own
+// arguments, which always named the built-in legacy paths. They must migrate, not
+// lock the project list as a --repos-dir override, and must not be passed on again.
+func TestV014RelaunchArgumentsAreNotOverrides(t *testing.T) {
+	dir := settingsFixture(t)
+	oldArgs, oldFlags, oldAddr, oldProfile, oldBackground := os.Args, flag.CommandLine, addr, profileDir, background
+	t.Cleanup(func() {
+		os.Args, flag.CommandLine, addr, profileDir, background = oldArgs, oldFlags, oldAddr, oldProfile, oldBackground
+		legacyLaunch = legacyPaths{}
+		explicitRepos, explicitState, explicitSlots = false, false, false
+	})
+	t.Setenv("KRIK_STATE_FILE", "")
+	t.Setenv("KRIK_SLOTS_FILE", "")
+	t.Setenv("KRIK_REPOS_DIR", "")
+	legacy := filepath.Join(dir, "legacy repos")
+	mkRepo(t, filepath.Join(legacy, "sample"), "plan")
+	// Spelled with a different case and a trailing separator, as Windows allows.
+	legacyDefaults = legacyPaths{repos: legacy, state: filepath.Join(dir, "legacy-state.json"), slots: filepath.Join(dir, "legacy-slots.json")}
+	legacyMigrationAllowed = func() bool { return true }
+	os.Remove(configFilePath(dataDir))
+	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+	os.Args = []string{"agent-ops.exe", "--background", "--addr", addr, "--repos-dir", strings.ToUpper(legacy) + `\`,
+		"--slots-file", legacyDefaults.slots, "--state-file", legacyDefaults.state, "--script", scriptFile,
+		"--data-dir", dataDir, "--profile-dir", dir}
+	config()
+	initSettings()
+	if reposDir != "" || setupRequired() || currentSettings().ProjectsOverridden != "" {
+		t.Fatal("v0.1.4 launch arguments were treated as a --repos-dir override", reposDir)
+	}
+	if p := effectiveProjects(); len(p) != 1 || !strings.EqualFold(p[0].Path, legacy) {
+		t.Fatal("the legacy folder was not migrated", p)
+	}
+	if stateFile != legacyDefaults.state || slotsFile != legacyDefaults.slots {
+		t.Fatal("migration must keep the legacy state and slots files", stateFile, slotsFile)
+	}
+	other := mkRepo(t, filepath.Join(dir, "other"), "plan")
+	if w, out := call(t, handleProjects, http.MethodPost, "/api/projects", map[string]string{"path": other}); w.Code != http.StatusOK {
+		t.Fatal("projects must be editable after the update", w.Code, out)
+	}
+	args := strings.Join(launchArgs(), " ")
+	for _, flagName := range []string{"--repos-dir", "--state-file", "--slots-file"} {
+		if strings.Contains(args, flagName) {
+			t.Fatal("legacy values are passed on to the next update", args)
+		}
+	}
+}
