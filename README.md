@@ -59,3 +59,7 @@ native actions stay in main; the sandboxed interface uses typed IPC. No local HT
 See [development](docs/development-electron.md), [architecture](docs/electron/architecture.md),
 [IPC](docs/electron/ipc-contract.md), [integration](docs/electron/integration.md) and
 [install/update](docs/install-and-update.md).
+
+## License
+
+Agent Ops is released under the [MIT License](LICENSE).
