@@ -416,7 +416,7 @@ func TestClientRollbackRestoresOnlyUnchangedMigrationWrites(t *testing.T) {
 	mput(t, activity, `{"kind":"execution-report","plan":"p"}`+"\n"+`{"kind":"done","plan":"p"}`+"\n")
 	ledger := filepath.Join(f.profile, ".agents", legacyIntegrationsFile)
 	gemini := filepath.Join(f.profile, ".gemini", "GEMINI.md")
-	restored := append([]string{filepath.Join(f.profile, ".claude", "settings.json"), filepath.Join(f.profile, ".claude", "CLAUDE.md"), f.skillShared, ledger, activity, f.orca[1]})
+	restored := []string{filepath.Join(f.profile, ".claude", "settings.json"), filepath.Join(f.profile, ".claude", "CLAUDE.md"), f.skillShared, ledger, activity, f.orca[1]}
 	before := map[string]string{}
 	for _, file := range append(restored, f.orca[0], gemini) {
 		before[file] = mread(t, file)
@@ -555,4 +555,70 @@ func TestIsolatedInstanceWithTheRealProfileDeletesNothingOutsideItsFolders(t *te
 			t.Fatal("the installed instance left the hooks")
 		}
 	})
+}
+
+// A migration with errors is not done: it keeps its result in the new data
+// folder, is retried only after its backoff, and a later run keeps the earlier
+// results and the backup path of the last run that changed something.
+func TestMigrationWithErrorsIsRetriedWithBackoffAndKeepsEarlierResults(t *testing.T) {
+	f := newMigrationFixture(t)
+	t0 := f.opts.Now
+	mput(t, configFilePath(f.data), "{") // unreadable settings: the old record cannot be carried over yet
+	r, err := runMigration(f.opts)
+	if err != nil || len(r.Errors) == 0 {
+		t.Fatal("expected a recorded problem", err, r.Errors)
+	}
+	saved := readMigrationResult(f.data)
+	if saved == nil || saved.Done || migrationDone(f.data) || saved.Attempts != 1 || saved.NextRetryAt != t0.Add(15*time.Minute).UTC().Format(time.RFC3339) {
+		t.Fatal("a migration with errors was recorded as done", saved)
+	}
+	if !exists(filepath.Join(f.profile, ".agents", legacyIntegrationsFile)) {
+		t.Fatal("the old record was deleted although settings could not be saved")
+	}
+	early := f.opts
+	early.Now = t0.Add(5 * time.Minute)
+	if _, ran, _ := retryMigration(early); ran {
+		t.Fatal("retried before the backoff passed")
+	}
+	if err := writeAppConfig(configFilePath(f.data), defaultAppConfig()); err != nil {
+		t.Fatal(err)
+	}
+	later := f.opts
+	later.Now = t0.Add(16 * time.Minute)
+	r, ran, err := retryMigration(later)
+	if !ran || err != nil || !r.Done || r.Attempts != 2 || len(r.Errors) != 0 || !migrationDone(f.data) {
+		t.Fatal("the retry did not finish the migration", ran, err, r)
+	}
+	if exists(filepath.Join(f.profile, ".agents", legacyIntegrationsFile)) || len(r.Previous) != 1 || r.Previous[0].Backup != saved.Backup || r.Previous[0].Done {
+		t.Fatal("retry result or history wrong", r.Previous)
+	}
+	again := f.opts
+	again.Now = t0.Add(time.Hour)
+	if _, ran, _ := retryMigration(again); ran {
+		t.Fatal("a finished migration ran again on start")
+	}
+	// A re-run of the installer that changes nothing keeps the history and the backup path.
+	last, err := runMigration(again)
+	if err != nil || !last.Done || last.Backup != r.Backup || len(last.Previous) != 2 || last.Attempts != 3 {
+		t.Fatal("an empty re-run lost the earlier backup or history", err, last.Backup, r.Backup, len(last.Previous))
+	}
+	if migrationBackoff(1) != 15*time.Minute || migrationBackoff(2) != 30*time.Minute || migrationBackoff(20) != 24*time.Hour {
+		t.Fatal("backoff", migrationBackoff(1), migrationBackoff(2), migrationBackoff(20))
+	}
+}
+
+// Problems only the owner can solve are listed for review, not kept as errors
+// that would hold the migration open forever.
+func TestOwnerActionItemsDoNotKeepTheMigrationOpen(t *testing.T) {
+	f := newMigrationFixture(t)
+	mput(t, f.orca[0], "{ not json")
+	mput(t, f.orca[1], "{\"hooks\":{\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"node C:/x/task-sync.mjs --claude-hook \xff\"}]}]}}")
+	r, err := runMigration(f.opts)
+	if err != nil || len(r.Errors) != 0 || !r.Done {
+		t.Fatal(err, r.Errors)
+	}
+	kept := strings.Join(r.Kept, "\n")
+	if strings.Count(kept, "(not valid JSON)") != 2 || mread(t, f.orca[0]) != "{ not json" || !strings.Contains(mread(t, f.orca[1]), "\xff") {
+		t.Fatal("invalid settings were edited or not listed", kept)
+	}
 }

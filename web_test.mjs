@@ -1022,3 +1022,12 @@ test('Skipping the Connect AI clients step posts nothing and failed installs sta
  assert.equal(calls.filter(c=>c.method==='POST').length,1);assert.match(card(),/Connect AI clients/);assert.match(card(),/role="alert">.*Claude Code: The skill file changed on disk/);
  h.handlers.keydown({key:'Escape',preventDefault(){},target:{}});assert.match(card(),/Skip setup\?/,'Escape still asks before skipping setup');
 });
+
+test('Integrations shows unfinished migration errors, escaped, with the next retry time',async()=>{
+ const h=harness();const payload=integrationsPayload({migration:{at:'2026-11-10T03:00:00Z',done:false,attempts:1,nextRetryAt:'2026-11-10T03:15:00Z',backup:'D:/b',errors:['D:/home/.claude/settings.json: the file changed <while> editing'],checklist:[],kept:[]}});
+ settingsServer(h,{'GET /api/settings':()=>[200,settingsPayload([workProject],{setupRequired:false})],'GET /api/integrations':()=>[200,payload]});
+ h.api.openSettings('integrations');await drain();
+ const page=h.ids.settings.innerHTML;
+ assert.match(page,/Review by hand/);assert.match(page,/not finished/);assert.match(page,/datetime="2026-11-10T03:15:00Z"/);
+ assert.match(page,/role="alert"><li><span>D:\/home\/\.claude\/settings\.json: the file changed &lt;while&gt; editing/);assert.doesNotMatch(page,/<while>/);
+});

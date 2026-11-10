@@ -307,6 +307,18 @@ func main() {
 		}
 		_ = registerToastApp(dataDir)
 	}
+	// An unfinished migration from earlier releases runs again once its backoff has
+	// passed, before settings and data are loaded so it does not race the app.
+	if r, ran, err := retryMigration(appMigrationOptions()); ran {
+		if err != nil {
+			logWarn("migration retry failed", "error", err.Error())
+		} else {
+			logInfo("migration retried", "done", r.Done, "attempts", r.Attempts, "problems", len(r.Errors), "nextRetry", r.NextRetryAt)
+			for _, problem := range r.Errors {
+				logWarn("migration item needs attention", "detail", problem)
+			}
+		}
+	}
 	if samePath(dataDir, defaultDataDir()) {
 		if copied, err := adoptLegacyConfig(dataDir, legacyDefaultDataDir()); err != nil {
 			logWarn("previous settings were not copied", "error", err.Error())

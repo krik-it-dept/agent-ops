@@ -46,6 +46,13 @@ const migrationVersion = 1
 const migrationFile = "migration.json"
 const maxChecklist = 40
 
+// An unfinished migration (one with errors) is retried when the app starts, at
+// most once per backoff period: 15 minutes after the first attempt, doubling up
+// to a day. Earlier results are kept so their backup paths stay findable.
+const migrationRetryFirst = 15 * time.Minute
+const migrationRetryMax = 24 * time.Hour
+const migrationHistoryKept = 5
+
 type migrationOptions struct {
 	Profile string
 	// DataDir is the Agent Ops data folder that receives config.json and migration.json.
@@ -123,9 +130,14 @@ type checkItem struct {
 }
 
 type migrationResult struct {
-	Version        int         `json:"version"`
-	At             string      `json:"at"`
-	Backup         string      `json:"backup"`
+	Version int    `json:"version"`
+	At      string `json:"at"`
+	// Done is set only when a run finished without errors; until then the next
+	// start retries (see NextRetryAt).
+	Done        bool   `json:"done"`
+	Attempts    int    `json:"attempts,omitempty"`
+	NextRetryAt string `json:"nextRetryAt,omitempty"`
+	Backup      string `json:"backup"`
 	ConfigCopied   bool        `json:"configCopied,omitempty"`
 	HooksRemoved   []string    `json:"hooksRemoved,omitempty"`
 	BlocksRemoved  []string    `json:"blocksRemoved,omitempty"`
@@ -136,6 +148,8 @@ type migrationResult struct {
 	Errors         []string    `json:"errors,omitempty"`
 	// Writes are the files phase 1 changed, oldest first, for a rollback.
 	Writes []clientWrite `json:"writes,omitempty"`
+	// Previous are earlier runs, oldest first (without their own history).
+	Previous []migrationResult `json:"previous,omitempty"`
 }
 
 // clientWrite is one file phase 1 changed. Before and After are SHA-256 of the
@@ -210,10 +224,43 @@ func newMigration(opts migrationOptions) (*migrationResult, string) {
 	return &migrationResult{Version: migrationVersion, At: opts.Now.UTC().Format(time.RFC3339), Backup: backup}, backup
 }
 
-// migrationDone reports whether the data folder already has a finished migration.
+// migrationDone reports whether the data folder already has a migration that
+// finished without errors. One with errors is not done: the next update helper,
+// installer run or app start (after its backoff) runs it again.
 func migrationDone(dataDir string) bool {
-	_, err := os.Stat(filepath.Join(dataDir, migrationFile))
-	return err == nil
+	r := readMigrationResult(dataDir)
+	return r != nil && r.Done
+}
+
+func migrationBackoff(attempts int) time.Duration {
+	d := migrationRetryFirst
+	for i := 1; i < attempts && d < migrationRetryMax; i++ {
+		d *= 2
+	}
+	return min(d, migrationRetryMax)
+}
+
+// migrationRetryDue reports an unfinished migration whose backoff has passed.
+func migrationRetryDue(r *migrationResult, now time.Time) bool {
+	if r == nil || r.Done {
+		return false
+	}
+	next, err := time.Parse(time.RFC3339, r.NextRetryAt)
+	return err != nil || !now.Before(next)
+}
+
+// retryMigration re-runs an unfinished migration when its backoff has passed. The
+// app calls it on start, before it loads its settings and data, so the run does
+// not race the app's own writes. It reports whether a run happened.
+func retryMigration(opts migrationOptions) (*migrationResult, bool, error) {
+	if opts.Now.IsZero() {
+		opts.Now = time.Now()
+	}
+	if !migrationRetryDue(readMigrationResult(opts.DataDir), opts.Now) {
+		return nil, false, nil
+	}
+	r, err := runMigration(opts)
+	return r, true, err
 }
 
 func readMigrationResult(dataDir string) *migrationResult {
@@ -238,9 +285,34 @@ func runMigration(opts migrationOptions) (*migrationResult, error) {
 	return r, finishMigration(opts, r)
 }
 
+// finishMigration records r, keeping earlier runs. A run with errors is not
+// done and gets the next retry time; a run that changed nothing keeps pointing at
+// the backup of the last run that did.
 func finishMigration(opts migrationOptions, r *migrationResult) error {
 	if err := os.MkdirAll(opts.DataDir, 0o755); err != nil {
 		return err
+	}
+	now := opts.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if prev := readMigrationResult(opts.DataDir); prev != nil {
+		r.Attempts = prev.Attempts
+		earlier := *prev
+		earlier.Previous, earlier.Writes = nil, nil
+		r.Previous = append(append([]migrationResult{}, prev.Previous...), earlier)
+		if n := len(r.Previous); n > migrationHistoryKept {
+			r.Previous = r.Previous[n-migrationHistoryKept:]
+		}
+		if len(r.Writes) == 0 && len(r.Deleted) == 0 && !exists(r.Backup) {
+			r.Backup = prev.Backup
+		}
+	}
+	r.Attempts++
+	r.Done = len(r.Errors) == 0
+	r.NextRetryAt = ""
+	if !r.Done {
+		r.NextRetryAt = now.Add(migrationBackoff(r.Attempts)).UTC().Format(time.RFC3339)
 	}
 	return writeUpdateJSON(filepath.Join(opts.DataDir, migrationFile), r)
 }
@@ -359,6 +431,16 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	}
 	parts := legacyIntegrationParts(profile)
 	backupProfile := filepath.Join(backup, "profile")
+	// A linked file or invalid JSON needs the owner, not a retry: it is listed
+	// under "Review by hand" instead of being an error that keeps the migration open.
+	problem := func(file string, err error) {
+		if errors.Is(err, errClientFileLinked) {
+			r.Kept = append(r.Kept, file+" (a link; Agent Ops does not edit linked files)")
+			r.Checklist = append(r.Checklist, checkItem{File: file, Text: "This file is a link, so the migration left it alone. Remove the Agent Ops reporting parts from it by hand."})
+			return
+		}
+		r.fail("%s: %v", file, err)
+	}
 	write := func(file string, original, content []byte) error {
 		saved, err := writeClientFileAt(file, original, content, profile, backupProfile)
 		if err == nil {
@@ -372,7 +454,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		file := filepath.Join(home, "settings.json")
 		original, err := readClientFile(file)
 		if err != nil {
-			r.fail("%s: %v", file, err)
+			problem(file, err)
 			continue
 		}
 		if original == nil {
@@ -382,14 +464,15 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		// that calls task-sync.mjs another way stays.
 		updated, n, err := settingsWithoutHooks(original, legacyHookScript, legacyHookFlag)
 		if err != nil {
-			r.fail("%s is not valid JSON; remove its task-sync.mjs hooks by hand", file)
+			r.Kept = append(r.Kept, file+" (not valid JSON)")
+			r.Checklist = append(r.Checklist, checkItem{File: file, Text: "Not valid JSON (" + err.Error() + "), so its reporting hooks were left. Remove the hooks that run task-sync.mjs --claude-hook by hand."})
 			continue
 		}
 		if n == 0 {
 			continue
 		}
 		if err := write(file, original, updated); err != nil {
-			r.fail("%s: %v", file, err)
+			problem(file, err)
 			continue
 		}
 		r.HooksRemoved = append(r.HooksRemoved, file)
@@ -404,7 +487,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	for _, bf := range blocks {
 		original, err := readClientFile(bf.file)
 		if err != nil {
-			r.fail("%s: %v", bf.file, err)
+			problem(bf.file, err)
 			continue
 		}
 		if original == nil {
@@ -431,7 +514,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 			content = nil // the file held only the block
 		}
 		if err := write(bf.file, original, content); err != nil {
-			r.fail("%s: %v", bf.file, err)
+			problem(bf.file, err)
 			continue
 		}
 		r.BlocksRemoved = append(r.BlocksRemoved, bf.file)
@@ -449,7 +532,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	for _, file := range []string{filepath.Join(profile, ".agents", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".claude", "skills", "task-plan", "SKILL.md")} {
 		original, err := readClientFile(file)
 		if err != nil {
-			r.fail("%s: %v", file, err)
+			problem(file, err)
 			continue
 		}
 		if original == nil || lfText(original) == lfText(embeddedSkill) {
@@ -460,7 +543,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 			continue
 		}
 		if err := write(file, original, embeddedSkill); err != nil {
-			r.fail("%s: %v", file, err)
+			problem(file, err)
 			continue
 		}
 		r.SkillsReplaced = append(r.SkillsReplaced, file)
@@ -496,7 +579,7 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 		if !saved {
 			r.fail("%s was kept because settings could not be saved", ledgerFile)
 		} else if err := write(ledgerFile, ledger, nil); err != nil {
-			r.fail("%s: %v", ledgerFile, err)
+			problem(ledgerFile, err)
 		} else {
 			r.Deleted = append(r.Deleted, ledgerFile)
 		}
@@ -615,7 +698,7 @@ func retireLegacyData(opts migrationOptions, r *migrationResult) {
 			return
 		}
 		if info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
-			r.fail("%s is a link and was left alone", path)
+			r.Kept = append(r.Kept, path+" (a link, left alone)")
 			return
 		}
 		target := filepath.Join(data, strings.ReplaceAll(strings.TrimPrefix(filepath.Clean(path), `\\`), ":", ""))
@@ -842,9 +925,21 @@ func migrationSummary(r *migrationResult) string {
 		out += fmt.Sprintf(". %d line(s) you wrote still mention the old name; see Settings > Integrations", n)
 	}
 	if n := len(r.Errors); n > 0 {
-		out += fmt.Sprintf(". %d item(s) need attention; see the update log", n)
+		out += fmt.Sprintf(". %d item(s) could not be cleaned up yet; Agent Ops retries on a later start, see Settings > Integrations", n)
 	}
 	return out
+}
+
+// appMigrationOptions are the running app's own folders: its profile, data
+// folder (with the previous default data folder when it is the default one) and
+// the folder of its executable.
+func appMigrationOptions() migrationOptions {
+	exe, _ := os.Executable()
+	opts := migrationOptions{Profile: profileDir, DataDir: dataDir, RuntimeDir: filepath.Dir(exe)}
+	if samePath(dataDir, defaultDataDir()) {
+		opts.LegacyDataDir = legacyDefaultDataDir()
+	}
+	return opts
 }
 
 // runMigrateCommand is "agent-ops.exe --migrate --profile-dir <home>

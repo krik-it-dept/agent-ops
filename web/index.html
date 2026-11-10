@@ -2037,9 +2037,12 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function migrationReview(){
     var m=integrationsUI.data && integrationsUI.data.migration;if(!m)return '';
-    var list=Array.isArray(m.checklist)?m.checklist:[],kept=Array.isArray(m.kept)?m.kept:[];
-    if(!list.length && !kept.length)return '';
-    return '<section class="settings-group integration-review"><h3>Review by hand</h3><p class="settings-desc">These files still mention the old product name. Edit them yourself; Agent Ops does not change text you wrote.'+(m.backup?' Backups: <code>'+esc(m.backup)+'</code>':'')+'</p>'+
+    var list=Array.isArray(m.checklist)?m.checklist:[],kept=Array.isArray(m.kept)?m.kept:[],errors=Array.isArray(m.errors)?m.errors:[];
+    if(!list.length && !kept.length && !errors.length)return '';
+    var retry=m.done===false && m.nextRetryAt?'<p class="settings-desc">Cleanup from the earlier release is not finished. Agent Ops tries again when it starts after <time datetime="'+esc(m.nextRetryAt)+'">'+esc(new Date(m.nextRetryAt).toLocaleString())+'</time>. Details are in the logs folder (Settings &gt; General).</p>':'';
+    return '<section class="settings-group integration-review"><h3>Review by hand</h3>'+
+      (errors.length?retry+'<ul class="review-list" role="alert">'+errors.map(function(e){return '<li><span>'+esc(e)+'</span></li>';}).join('')+'</ul>':'')+
+      '<p class="settings-desc">These files still mention the old product name. Edit them yourself; Agent Ops does not change text you wrote.'+(m.backup?' Backups: <code>'+esc(m.backup)+'</code>':'')+'</p>'+
       (list.length?'<ul class="review-list">'+list.map(function(item){return '<li><code>'+esc(item.file)+(item.line?':'+esc(item.line):'')+'</code><span>'+esc(item.text)+'</span></li>';}).join('')+'</ul>':'')+
       (kept.length?'<p class="settings-desc">Kept unchanged:</p><ul class="review-list">'+kept.map(function(k){return '<li><span>'+esc(k)+'</span></li>';}).join('')+'</ul>':'')+'</section>';
   }
