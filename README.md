@@ -1,10 +1,12 @@
 # Agent Ops
 
-A local Windows dashboard for a tech lead to follow work reported by Codex, Anti and Claude. It reads shared Markdown plans, collects execution evidence and presents current work in a compact Jira-inspired interface.
+A local Windows dashboard for a tech lead to follow work reported by Codex, Anti and Claude. It reads shared Markdown plans, collects execution evidence and presents current work in a quiet desktop interface inspired by Orca.
 
 ## What it shows
 
-- Summary with current status, workload, recent changes and items needing attention.
+- Summary opens new workspaces with current work first, next actions, status, workload and recent changes. Existing view preferences are preserved.
+- Local Geist typography, layered neutral light/dark surfaces, a distinct plans sidebar and quieter task rows.
+- Search plans and commands with Ctrl+K; use Up/Down and Enter to open a result, Esc to close. Ctrl+1 through Ctrl+4 switch Summary/List/Board/Timeline; Ctrl+B toggles the sidebar. `/` filters the current view, F5 refreshes progress, Alt+Up/Down moves between plans, and Ctrl+, opens Settings. In Settings, Ctrl+F focuses search. Single-key shortcuts can be disabled in General.
 - A task-level List with column filters, sorting and expandable plan groups. Each group keeps its plan stage and whole-plan completion visible when collapsed or expanded; the matching-task count is separate from completion. The initial filter focuses on work in progress.
 - Board and day-by-day recorded progress history.
 - A plan Summary with the recorded goal, next action, blockers and open decisions first. Completed work and detailed execution evidence are collapsed. Full-plan headings, tabs and content share the workspace gutter.
@@ -69,7 +71,7 @@ The collector also maintains generated per-repository indexes and a combined sta
 
 The service binds only to loopback, checks Host/Origin/browser metadata, protects writes with a custom header, sends frame/security headers and uses a hash-based script CSP. Status writes require a matching revision, constrained path and exclusive Windows file handle. Same-user local programs and browser extensions remain inside the desktop trust boundary. Do not expose it as a public server.
 
-Atlassian fonts load from the official CDN with a system fallback. Artwork and third-party identity notices are in [NOTICE.md](NOTICE.md). See [release readiness](docs/release-readiness.md) for audit evidence and remaining manual checks.
+Geist is bundled with its OFL license and a system fallback. No interface assets require a remote CDN. Artwork and third-party identity notices are in [NOTICE.md](NOTICE.md). See [release readiness](docs/release-readiness.md) for audit evidence and remaining manual checks.
 
 ## Scope retained for review
 
