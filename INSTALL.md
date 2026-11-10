@@ -9,7 +9,7 @@ Requires Windows x64 and Microsoft Edge. Node.js is not required (releases up to
 
 The executable carries all runtime files listed by its generated package manifest, with sizes and SHA-256 hashes checked before copying. It installs no skill; choose skills in **Settings > Integrations**. If replacement or startup health fails, runtime files, shortcut and owned registry values are restored; recovery files are retained at the temporary transaction path printed in the error. A housekeeping failure after health succeeds keeps the healthy replacement and reports the error.
 
-A release first started from the earlier runtime `%USERPROFILE%\.claude\tools\workboard` moves once to the new location, including a default login start. You can also run the newly downloaded EXE with `--install` to migrate. Setup stops only processes whose exact executable path belongs to the old or new runtime, installs the manifest's files, repoints startup, protocol and AUMID, then verifies the replacement's PID, version and state. Only after health succeeds is the whole old directory renamed with a `.backup-<timestamp>` suffix beside its previous location. Unknown files stay in that recovery copy. App data remains in `%LOCALAPPDATA%\AgentOps`; the in-app updater follows the installed executable's new location. Development builds and launches with explicit test configuration do not automatically offer installation.
+A release first started from the earlier runtime `%USERPROFILE%\.claude\tools\workboard` moves once to the new location, including a default login start. You can also run the newly downloaded EXE with `--install` to migrate. Setup stops only processes whose exact executable path belongs to the old or new runtime, installs the manifest's files, repoints startup, protocol and AUMID, then verifies the replacement's PID, version and state. Only after health succeeds is the whole old directory renamed with a `.backup-<timestamp>` suffix beside its previous location. Unknown files stay in that recovery copy. The old directory is then recreated with only the `task-sync.mjs` and `task-report.mjs` stubs, because sessions and instruction files of earlier releases call them by that path; a later install leaves such a stub-only directory alone. App data remains in `%LOCALAPPDATA%\AgentOps`; the in-app updater follows the installed executable's new location. Development builds and launches with explicit test configuration do not automatically offer installation.
 
 The ZIP and its checksum remain available for isolated or scripted copies. Extract it, verify its SHA-256, and use `scripts/install.ps1 -RuntimeDir <absolute-isolated-path> -ProfileDir <temporary-profile> -NoLaunch`. Browser-downloaded scripts may need `Unblock-File` and a one-time `powershell -NoProfile -ExecutionPolicy Bypass -File ...` invocation. Use the executable installer for the normal per-user installation and Windows registrations.
 
@@ -34,21 +34,20 @@ Earlier releases recorded agent runs and installed reporting hooks and instructi
 
 On first launch Agent Ops opens a short setup: add one or more project folders, optionally connect AI clients (check the skills folders found on this computer to install the task-plan skill there; nothing is checked for you), then choose startup, notification and appearance preferences. **Set up later** skips it, even before a project is added; the board then shows **Add a project to start**. A project is either a Git repository or a folder whose direct subfolders are repositories. Agent Ops reads `.tasks/*.md` in each repository's main checkout. Change projects and integrations later in **Settings** (gear in the header, or **Settings…** in the tray menu).
 
-Settings are stored in `<data-dir>/config.json`, which the collector also reads (through `AGENT_OPS_CONFIG` or the default data folder). A corrupt `config.json` is renamed to `config.json.corrupt-<time>` and reported, never silently replaced.
+Settings are stored in `<data-dir>/config.json`; the plan collector runs inside the app and reads the same settings. A corrupt `config.json` is renamed to `config.json.corrupt-<time>` and reported, never silently replaced.
 
-Precedence for each value is flag, then environment variable, then `config.json`, then the default. The app and the collector use the same order:
+Precedence for each value is flag, then environment variable, then `config.json`, then the default:
 
 | Flag | Environment | Default |
 | --- | --- | --- |
 | `--repos-dir` | `AGENT_OPS_REPOS_DIR` | Projects from `config.json`. When set, this folder replaces them for the run and Settings shows projects read-only |
 | `--state-file` | `AGENT_OPS_STATE_FILE` | `stateFile` in `config.json`; otherwise `<data-dir>/state/tong-hop-chung.json` |
-| `--script` | `AGENT_OPS_SCRIPT` | Collector beside the executable |
 | `--addr` | `AGENT_OPS_ADDR` | `127.0.0.1:7790`, or 7791 to 7799 or any free loopback port when another user or program holds it. An address you set is used as it is, without a fallback. |
 | `--data-dir` | — | `%LOCALAPPDATA%/AgentOps` (the folder of earlier releases is mapped to it) |
 | `--profile-dir` | — | Current user profile; where Settings > Integrations looks for folders to suggest |
 | `--no-update-check` | — | Off; disable automatic checks, retain manual checks |
 
-`--slots-file` is still accepted from earlier releases' restart arguments and ignored.
+`--slots-file` and `--script` (with `AGENT_OPS_SCRIPT`, the Node collector of releases up to v0.3.x) are still accepted from earlier releases' restart arguments and ignored.
 
 Use `--background` to start only the tray. Start with Windows is a preference in Settings and the tray menu; it registers a plain `--background` launch under the Run value `Agent Ops`, and the rest of the configuration comes from `config.json`.
 
