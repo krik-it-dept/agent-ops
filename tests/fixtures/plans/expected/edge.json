@@ -1,0 +1,1083 @@
+{
+  "diagnostics": [
+    {
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/invalid-leading.md",
+      "kind": "invalid-utf8",
+      "message": "The plan is not valid UTF-8; unreadable characters are shown as �.",
+      "plan": "invalid-leading",
+      "project": "p",
+      "repo": "edge"
+    },
+    {
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/invalid-surrogate.md",
+      "kind": "invalid-utf8",
+      "message": "The plan is not valid UTF-8; unreadable characters are shown as �.",
+      "plan": "invalid-surrogate",
+      "project": "p",
+      "repo": "edge"
+    }
+  ],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/label-vietnamese.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "label-vietnamese",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "50b08755e35cd635c936d585dc80f4427d4a7393d0057925f04bc7331e0809dc",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "đang chờ ci build",
+      "step": -1,
+      "steps": [],
+      "tone": "pending",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/ls2028-heading.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 1,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 2,
+              "milestone": "M1",
+              "status": "done",
+              "text": "a\u2028b"
+            }
+          ],
+          "summary": "",
+          "title": "Title\u2028more"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "ls2028-heading",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "3e68e124c9dc26138b408c73055ac848d46203e100c91c7621cb3005c6d0f229",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "M1",
+          "status": "done",
+          "text": "a\u2028b"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/emoji.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "emoji",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "70770da1fcf36a408531ea37d7dd68538f9fe394a62cf066c14a006c5144bbf6",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Blocked",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "done",
+          "text": "done fe0f"
+        },
+        {
+          "index": 1,
+          "line": 2,
+          "milestone": "",
+          "status": "partial",
+          "text": "partial"
+        },
+        {
+          "index": 2,
+          "line": 3,
+          "milestone": "",
+          "status": "partial",
+          "text": "bare"
+        },
+        {
+          "index": 3,
+          "line": 4,
+          "milestone": "",
+          "status": "blocked",
+          "text": "x"
+        },
+        {
+          "index": 4,
+          "line": 5,
+          "milestone": "",
+          "status": "todo",
+          "text": ""
+        },
+        {
+          "index": 5,
+          "line": 6,
+          "milestone": "",
+          "status": "doing",
+          "text": "doing"
+        },
+        {
+          "index": 6,
+          "line": 7,
+          "milestone": "",
+          "status": "done",
+          "text": "a"
+        }
+      ],
+      "tone": "bad",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/empty-status.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "empty-status",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "ce84a4ef4e0dcb3636c8958e9bd98f99d397e5e1536e96bc56ae8ca30c2b85ff",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 3,
+          "milestone": "",
+          "status": "done",
+          "text": "d"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/nel.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "nel",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "677a7c149454021a1d1abc8a0544bba8a1a85b76fa42e8518f3c5c32ba3105cb",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "nel",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "x"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/fences.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "fences",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "1a0a0c5971727b9984ac86310935f7a683647bf4943753b3cf71d8ba5689cd9a",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 7,
+          "milestone": "",
+          "status": "todo",
+          "text": "out"
+        },
+        {
+          "index": 1,
+          "line": 13,
+          "milestone": "",
+          "status": "doing",
+          "text": "after"
+        }
+      ],
+      "tone": "test",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/unicode-ws-trim.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "unicode-ws-trim",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "5b67b15d052e12dd18890a40582f0b8fcbe789a763955c3cc900c254ca5600ae",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "ideographic",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "mmsp"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/label-stage.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "label-stage",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "0c0f9259e54f5a671e17441f2fa2dbf6a3617940efeb2da0e5974fbca433b70a",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Waiting for CI - x",
+      "step": 4,
+      "steps": [],
+      "tone": "test",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [
+        {
+          "key": "202611100905",
+          "text": "one continued",
+          "when": "10/11 09:05"
+        },
+        {
+          "key": "202611101840",
+          "text": "two",
+          "when": "10/11 18:40"
+        },
+        {
+          "key": "202613409999",
+          "text": "bad date plain line",
+          "when": "40/13"
+        }
+      ],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/decisions.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "decisions",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [
+        {
+          "answer": "",
+          "ask": "Q1?",
+          "key": "",
+          "open": true,
+          "when": ""
+        },
+        {
+          "answer": "yes no",
+          "ask": "Q2?",
+          "key": "",
+          "open": false,
+          "when": ""
+        },
+        {
+          "answer": "",
+          "ask": "Q3?",
+          "key": "",
+          "open": true,
+          "when": ""
+        },
+        {
+          "answer": "",
+          "ask": "Q4",
+          "key": "",
+          "open": true,
+          "when": ""
+        }
+      ],
+      "repo": "edge",
+      "revision": "7de09a3bccd588cd720b742d07c1d28535474a14b0dccd496d92982ffb3cde19",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [],
+      "tone": "idle",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/nbsp.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 0,
+            "total": 0
+          },
+          "state": "",
+          "steps": [],
+          "summary": "",
+          "title": "Nbsp"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "nbsp",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "f15929f492679c4cf33f35018cc497819fd904a307d2e95698582d464a82aa7e",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "nbsp step"
+        }
+      ],
+      "tone": "test",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/estimates.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "estimates",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "f9b1297b78c762d834a8cc551b594648ee68cdb2acd2aeb1c951b72b70699ea7",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "done",
+          "text": "A"
+        },
+        {
+          "index": 1,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "B"
+        },
+        {
+          "index": 2,
+          "line": 3,
+          "milestone": "",
+          "status": "done",
+          "text": "C"
+        },
+        {
+          "index": 3,
+          "line": 4,
+          "milestone": "",
+          "status": "done",
+          "text": "D ~2hx"
+        },
+        {
+          "index": 4,
+          "line": 5,
+          "milestone": "",
+          "status": "done",
+          "text": "E."
+        },
+        {
+          "index": 5,
+          "line": 6,
+          "milestone": "",
+          "status": "done",
+          "text": "F"
+        },
+        {
+          "index": 6,
+          "line": 7,
+          "milestone": "",
+          "status": "done",
+          "text": "G!"
+        },
+        {
+          "index": 7,
+          "line": 8,
+          "milestone": "",
+          "status": "done",
+          "text": "H ~2.h"
+        },
+        {
+          "index": 8,
+          "line": 9,
+          "milestone": "",
+          "status": "done",
+          "text": "I later"
+        },
+        {
+          "index": 9,
+          "line": 10,
+          "milestone": "",
+          "status": "done",
+          "text": "J"
+        },
+        {
+          "index": 10,
+          "line": 11,
+          "milestone": "",
+          "status": "done",
+          "text": "K ~2pháp"
+        },
+        {
+          "index": 11,
+          "line": 12,
+          "milestone": "",
+          "status": "done",
+          "text": "L"
+        },
+        {
+          "index": 12,
+          "line": 13,
+          "milestone": "",
+          "status": "done",
+          "text": "M"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/status-derived.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "status-derived",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "64cfc2fd745bf819a5174945d3b0f7727325aa99b5a47297d6d2aa7deafba4b2",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Partly done",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "partial",
+          "text": "p"
+        },
+        {
+          "index": 1,
+          "line": 2,
+          "milestone": "",
+          "status": "todo",
+          "text": "t"
+        }
+      ],
+      "tone": "pending",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/steps-variants.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "steps-variants",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "366cc90d1aa4abaf9db08eee724ed3aca083de5589163806f728d8a89d5ff241",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "In progress",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "done",
+          "text": "no space"
+        },
+        {
+          "index": 1,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "x"
+        },
+        {
+          "index": 2,
+          "line": 3,
+          "milestone": "",
+          "status": "doing",
+          "text": "spaced"
+        },
+        {
+          "index": 3,
+          "line": 4,
+          "milestone": "",
+          "status": "done",
+          "text": ""
+        },
+        {
+          "index": 4,
+          "line": 5,
+          "milestone": "",
+          "status": "todo",
+          "text": "two spaces"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/headings.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 0,
+            "total": 0
+          },
+          "state": "",
+          "steps": [],
+          "summary": "",
+          "title": "x"
+        },
+        {
+          "id": "M3",
+          "progress": {
+            "done": 0,
+            "total": 0
+          },
+          "state": "done",
+          "steps": [],
+          "summary": "",
+          "title": "en dash"
+        },
+        {
+          "id": "M4",
+          "progress": {
+            "done": 0,
+            "total": 0
+          },
+          "state": "done",
+          "steps": [],
+          "summary": "",
+          "title": "t [todo]"
+        },
+        {
+          "id": "M5B",
+          "progress": {
+            "done": 0,
+            "total": 0
+          },
+          "state": "",
+          "steps": [],
+          "summary": "",
+          "title": "lower"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "headings",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "e5612a4e323d7471f458bf50cdd73d44e4d748402b79ee0a413aab6861671d4c",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 9,
+          "milestone": "",
+          "status": "todo",
+          "text": "under m6"
+        }
+      ],
+      "tone": "idle",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/invalid-leading.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "invalid-leading",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "e7cabbbf26fd76690cbb87287810ac6beafd403e79e07673c8db6b9a7aea5426",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 3,
+          "milestone": "",
+          "status": "done",
+          "text": "z�"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/title-then-header.md",
+      "gh": "",
+      "goal": "g",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "title-then-header",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "efafc570ea85d3a8fec2397365103bee5cb0ec2d0bd2876f2be0b83a17c5e749",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [],
+      "tone": "ok",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/label-case.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "label-case",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "38d0d49d08c1df50892b345d9bc8f6f21c176190c8febcabd6da2c163698cfc1",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Fixing Review",
+      "step": 2,
+      "steps": [],
+      "tone": "review",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/cr-inside.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M2",
+          "progress": {
+            "done": 0,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 4,
+              "milestone": "M2",
+              "status": "todo",
+              "text": "c"
+            }
+          ],
+          "summary": "",
+          "title": "x\ry"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "cr-inside",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "ed068ce52222b1aa642284700499ac8a8cce033702dad1c45b77dd227d2685d5",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "a\rb"
+        },
+        {
+          "index": 0,
+          "line": 4,
+          "milestone": "M2",
+          "status": "todo",
+          "text": "c"
+        }
+      ],
+      "tone": "test",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [
+        {
+          "key": "",
+          "text": "one\u2029two",
+          "when": ""
+        }
+      ],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/ps2029-sections.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "ps2029-sections",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [
+        {
+          "answer": "yes",
+          "ask": "ask\rmore?",
+          "key": "",
+          "open": false,
+          "when": ""
+        }
+      ],
+      "repo": "edge",
+      "revision": "702c611c373ebb303aeba743688d61494443e6f4061fed8566a6a35ec6660636",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [],
+      "tone": "idle",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/header-case.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "header-case",
+      "next": "lower",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "d3d7102bc7ae6059e90bd531d6b662b55385f929f9f945633fe0f8262c4feb12",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Loud",
+      "step": -1,
+      "steps": [],
+      "tone": "doing",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/summary.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 1,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 5,
+              "milestone": "M1",
+              "status": "done",
+              "text": "s"
+            }
+          ],
+          "summary": "y",
+          "title": "a"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "summary",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "9c1c54795d5baba305be75d3ea7f06083e4f7b3853aa3ed3989a70a46967fa85",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 5,
+          "milestone": "M1",
+          "status": "done",
+          "text": "s"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/invalid-surrogate.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "invalid-surrogate",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "3cfbc9f8451217ff3b6ace91d2e1da3572744c5161da93be2a55321afc56fec3",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "x",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "a�b�c"
+        },
+        {
+          "index": 1,
+          "line": 3,
+          "milestone": "",
+          "status": "todo",
+          "text": "t�"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "edge"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/edge/.tasks/bom-mid.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "bom-mid",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "edge",
+      "revision": "17cbaddb2c8f5713cf9be2ecbd969741c4991ff36135902fa075ebdfb1af1b20",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "source": "legacy",
+      "spec": "",
+      "status": "one",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "bom step"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "edge"
+    }
+  ],
+  "projects": [
+    {
+      "id": "p",
+      "kind": "folder",
+      "message": "",
+      "name": "P",
+      "path": "\u003cROOT\u003e\\repos",
+      "plans": 23,
+      "repos": 1,
+      "status": "ok"
+    }
+  ],
+  "repos": [
+    {
+      "gh": "",
+      "name": "edge",
+      "plans": 23,
+      "project": "p",
+      "root": "\u003cROOT\u003e/repos/edge",
+      "worktrees": []
+    }
+  ]
+}

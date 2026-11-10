@@ -1,0 +1,18 @@
+{
+  "diagnostics": [],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [],
+  "projects": [
+    {
+      "id": "tasks",
+      "kind": "tasks",
+      "message": "Folder cannot be opened (ENOTDIR).",
+      "name": "Tasks",
+      "path": "\u003cROOT\u003e\\file",
+      "plans": 0,
+      "repos": 0,
+      "status": "missing"
+    }
+  ],
+  "repos": []
+}

@@ -1,0 +1,38 @@
+{
+  "diagnostics": [],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [],
+  "projects": [
+    {
+      "id": "tasks",
+      "kind": "tasks",
+      "message": "Folder not found.",
+      "name": "Tasks",
+      "path": "\u003cROOT\u003e\\missing-tasks",
+      "plans": 0,
+      "repos": 0,
+      "status": "missing"
+    },
+    {
+      "id": "gone",
+      "kind": "folder",
+      "message": "Folder not found.",
+      "name": "\u003cROOT\u003e\\none",
+      "path": "\u003cROOT\u003e\\none",
+      "plans": 0,
+      "repos": 0,
+      "status": "missing"
+    },
+    {
+      "id": "file",
+      "kind": "repo",
+      "message": "Folder cannot be opened (ENOTDIR).",
+      "name": "F",
+      "path": "\u003cROOT\u003e\\file.txt",
+      "plans": 0,
+      "repos": 0,
+      "status": "missing"
+    }
+  ],
+  "repos": []
+}

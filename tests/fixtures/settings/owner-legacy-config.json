@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "setupComplete": true,
+  "notifications": true,
+  "shortcuts": true,
+  "slotsFile": "C:\\slots.json",
+  "stateFile": "D:\\Projects\\tong-hop-chung.json",
+  "projects": [
+    {
+      "id": "1a2b3c4d",
+      "path": "D:\\Projects\\Repos",
+      "name": "Repos",
+      "kind": "folder",
+      "enabled": true,
+      "addedAt": "2026-01-01T00:00:00Z"
+    },
+    {
+      "id": "5e6f7a8b",
+      "path": "E:\\Công việc\\web-app",
+      "name": "web-app",
+      "kind": "repo",
+      "enabled": false,
+      "addedAt": "2026-03-15T08:30:00.123456789+07:00"
+    }
+  ],
+  "tasksDir": "C:\\Users\\owner\\agent-ops\\tasks",
+  "theme": "dark",
+  "autoArchiveDone": true,
+  "planArchive": {
+    "1a2b3c4d/web/release-go-live": true,
+    "tasks/api/notes": false
+  },
+  "integrations": {
+    "codex": { "dir": "C:\\Users\\owner\\.codex\\skills", "installed": true }
+  },
+  "integrationsSeeded": true,
+  "futureFeature": { "enabled": true, "list": [1, 2, 3] }
+}

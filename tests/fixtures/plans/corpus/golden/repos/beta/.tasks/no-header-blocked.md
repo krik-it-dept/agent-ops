@@ -1,0 +1,2 @@
+- [todo] Loose
+- [blocked] Stuck step

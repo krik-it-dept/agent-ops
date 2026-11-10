@@ -1,0 +1,1163 @@
+{
+  "diagnostics": [
+    {
+      "file": "\u003cROOT\u003e/repos/web/.tasks/invalid.md",
+      "kind": "invalid-utf8",
+      "message": "The plan is not valid UTF-8; unreadable characters are shown as �.",
+      "plan": "invalid",
+      "project": "p",
+      "repo": "web"
+    },
+    {
+      "file": "\u003cROOT\u003e/repos/web/.tasks/unclosed.md",
+      "kind": "unclosed-fence",
+      "message": "The code block opened on line 3 is never closed, so the lines after it are not read.",
+      "plan": "unclosed",
+      "project": "p",
+      "repo": "web"
+    }
+  ],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/00.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "00",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "e493103e1f6bd40d614203aac0b6ed0d0ff0d50e94f8853e5b9bb5d02b3cd12f",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Planning details",
+      "step": 0,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/01.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "01",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "f70cbd15dd17460bf95fa41dbd2b31869cc03880e181b0d8ad1ea1d1e6718fc6",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Implementing details",
+      "step": 1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/02.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "02",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "7b17b12ddfa01b3fd2649e5dcd93b3f2dfd9b477f5893dcd1e0e56c9644a3422",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Reviewing details",
+      "step": 2,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "review",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/03.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "03",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "e9beccdd720d709bab1d5295c9ca81703b2a44e85ac4d229c60bd51816480e2b",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Fixing review details",
+      "step": 2,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "review",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/04.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "04",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "531b045afa0e0f18462a5f53053d70bd7772b74a393b8832fcceb16085665e6e",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing details",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "test",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/05.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "05",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "2df172fa87b47129ab439aa55378866ef1a9dc2f917922a0074209b5f07706bf",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Waiting for CI details",
+      "step": 4,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "test",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/06.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "06",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "fede511a9282808cfaf0f9de0e097c0c5a0b764c3bfff00282b6ad3024770864",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Dry run details",
+      "step": 5,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "test",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/07.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "07",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "4c785f4432dbe5f65f59c5513105d24e5d1dd6092c2cbf629bae4c260b1e61c2",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Waiting for owner details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "pending",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/08.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "08",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "92f95cdb2b2cfe37f41549e78b933a9c0529fd57e7799f8f15d38ca411431f90",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Shipping details",
+      "step": 5,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/09.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "09",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "247be71b6c6bfb58b20cf1a05bff2ed08c80611beaf88cd85af7f5b0f2550b94",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Blocked details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "bad",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/10.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "10",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "0a5dea7e86bd46aa87fbe6cb8e5d74348f948641a2fa72cc219b5a527e8f601c",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done details",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/11.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "11",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "4145ae49a1721822b056b6d8db3b614a671a59f688fdd7c2f5dbdfefd31c3706",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "chặn details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "bad",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/12.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "12",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "8eb18057f30242cc373bfef36b06df4bbecf51e5ebdd299c14b0b3456baabdc1",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "lỗi details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "bad",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/13.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "13",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "e51c42e9a91bcc5527712d29658277f6230ffea5fa979d09cbf547d917452074",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "failed details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "bad",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/14.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "14",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "7a1b06b4ad06b766b5a47183cdcfdc3edc0aaa9c369cd06d490ad38d65e01255",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "xong details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/15.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "15",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "d1d01cc77329b8d01f5424a39f60d0a82ca9a4f2fbb2c53dc0dfe7f5b4f0a03d",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "merged and shipped details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/16.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "16",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "567b1915a14ff3bac7df8ab87ab1c4dcc12e67ada5cc89e6d4dc4c0d32870cc6",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "needs review details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "review",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/17.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "17",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "56b8ef89e66cf7242bfff7a92f15257b84ac0f51d4c395b3bc740e996aec1fe1",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "chờ owner duyệt details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "pending",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/18.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "18",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "9230dd69f689fce673fd72df08f0ac25038dd11577502ff2db9f4f6f2c5ecaec",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "partial details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "pending",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/19.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "19",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "742a5d54739272b854219c2fbe1ba5a91f040b0db27955f9452aa2e73aea226d",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "test build details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "test",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/20.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "20",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "2d9e366bb2604ddd76871b694df661d7801bc7b6f20bfaae485b753dbc70dc09",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "CI ready details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "test",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/21.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "21",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "795d03f0e5b1f0daa48c7f3e479e76d2b4c3b8f0f32ab91f789d6d2a7a65c41b",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "dry check details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "test",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/status/.tasks/22.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "22",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "status",
+      "revision": "70e769bb17c0f7f9e1ecf3aae4a98d5c5999f5b814d6e643716575a16a60b536",
+      "root": "\u003cROOT\u003e/repos/status",
+      "source": "legacy",
+      "spec": "",
+      "status": "custom details",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "status"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/duplicates.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 1,
+            "total": 2
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 4,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Same"
+            },
+            {
+              "index": 1,
+              "line": 5,
+              "milestone": "M1",
+              "status": "todo",
+              "text": "Same"
+            }
+          ],
+          "summary": "",
+          "title": "A"
+        },
+        {
+          "id": "M2",
+          "progress": {
+            "done": 0,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 7,
+              "milestone": "M2",
+              "status": "doing",
+              "text": "Same"
+            }
+          ],
+          "summary": "",
+          "title": "B"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "duplicates",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "d1069bc7dc11917da3894981427e8f72bfe35e6bc9fe1bdbf4378ae5d1c609e9",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 4,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Same"
+        },
+        {
+          "index": 1,
+          "line": 5,
+          "milestone": "M1",
+          "status": "todo",
+          "text": "Same"
+        },
+        {
+          "index": 0,
+          "line": 7,
+          "milestone": "M2",
+          "status": "doing",
+          "text": "Same"
+        }
+      ],
+      "tone": "test",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/estimates.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "estimates",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "8a17fe3b4f24592c1113684754b96e4c1cf242163cc6ee7ddf2974ae4771f520",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "todo",
+          "text": "Port"
+        },
+        {
+          "index": 1,
+          "line": 2,
+          "milestone": "",
+          "status": "todo",
+          "text": "Port now"
+        },
+        {
+          "index": 2,
+          "line": 3,
+          "milestone": "",
+          "status": "todo",
+          "text": "Two and"
+        },
+        {
+          "index": 3,
+          "line": 4,
+          "milestone": "",
+          "status": "todo",
+          "text": "Not ~5mét an estimate"
+        },
+        {
+          "index": 4,
+          "line": 5,
+          "milestone": "",
+          "status": "todo",
+          "text": "Half ~1.5"
+        },
+        {
+          "index": 5,
+          "line": 6,
+          "milestone": "",
+          "status": "todo",
+          "text": "Tight"
+        },
+        {
+          "index": 6,
+          "line": 7,
+          "milestone": "",
+          "status": "todo",
+          "text": "Mixed."
+        },
+        {
+          "index": 7,
+          "line": 8,
+          "milestone": "",
+          "status": "todo",
+          "text": "Vietnamese rồi"
+        },
+        {
+          "index": 8,
+          "line": 9,
+          "milestone": "",
+          "status": "todo",
+          "text": "Unit then letter ~2hours"
+        }
+      ],
+      "tone": "idle",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/fence-info.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "fence-info",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "bb25b22804b099e7d767778deb754dfe382e410b443f8b157d520810af7e8c2c",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "todo",
+          "text": "before"
+        },
+        {
+          "index": 1,
+          "line": 7,
+          "milestone": "",
+          "status": "todo",
+          "text": "after"
+        }
+      ],
+      "tone": "idle",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/header.md",
+      "gh": "",
+      "goal": "real goal",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 0,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 12,
+              "milestone": "M1",
+              "status": "doing",
+              "text": "step"
+            }
+          ],
+          "summary": "",
+          "title": "Work"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "header",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "eec8e6e31f17a4a61c067b0dcbd6de6a31134ad74833eb096c459fa6e889c4c5",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "In progress",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 12,
+          "milestone": "M1",
+          "status": "doing",
+          "text": "step"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/invalid.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "invalid",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "ebcf9eed604f351e94440aa81ee3e37d8e9b3b496a2b7e41da5b5776bdd750d9",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "todo",
+          "text": "bad � byte"
+        },
+        {
+          "index": 1,
+          "line": 3,
+          "milestone": "",
+          "status": "todo",
+          "text": "run �!"
+        }
+      ],
+      "tone": "test",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/retired.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "retired",
+      "next": "first",
+      "owner": "Owner",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "fb1bf1da90a9880edf151c0559ae1c8c4888e703b14f6e0366bcb1c3bafa19a8",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 7,
+          "milestone": "",
+          "status": "todo",
+          "text": "a"
+        }
+      ],
+      "tone": "idle",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/unclosed.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "unclosed",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "bacd49036e3fa835bdc9adf1bb96ba773814067d88db83240f3c877084a20395",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "todo",
+          "text": "before"
+        }
+      ],
+      "tone": "idle",
+      "workspace": "web"
+    }
+  ],
+  "projects": [
+    {
+      "id": "p",
+      "kind": "folder",
+      "message": "",
+      "name": "P",
+      "path": "\u003cROOT\u003e\\repos",
+      "plans": 30,
+      "repos": 2,
+      "status": "ok"
+    }
+  ],
+  "repos": [
+    {
+      "gh": "",
+      "name": "status",
+      "plans": 23,
+      "project": "p",
+      "root": "\u003cROOT\u003e/repos/status",
+      "worktrees": []
+    },
+    {
+      "gh": "",
+      "name": "web",
+      "plans": 7,
+      "project": "p",
+      "root": "\u003cROOT\u003e/repos/web",
+      "worktrees": []
+    }
+  ]
+}

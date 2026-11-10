@@ -1,0 +1,71 @@
+# Packaging for the Windows desktop app: an unsigned, per-user NSIS installer.
+# Build with `npm run package` (installer) or `npm run package:dir` (unpacked
+# app only). The version comes from scripts/release/package.mjs: the release tag
+# on a tagged build, a dev version otherwise. See docs/install-and-update.md.
+appId: KrikIT.AgentOps # also the AppUserModelID of the Start menu shortcut
+productName: Agent Ops
+copyright: Copyright (c) Krik IT
+
+directories:
+  output: dist/electron
+  buildResources: build
+
+# Main, preload and renderer are bundled by electron-vite into out/. Runtime
+# packages are only the "dependencies" of package.json (electron-updater);
+# renderer libraries are bundled and stay in devDependencies.
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+asar: true
+electronLanguages:
+  - en-US
+extraResources:
+  - from: resources/icons
+    to: icons
+    filter:
+      - '*.ico'
+      - '*.png'
+  # The canonical task-plan skill, installed only from Settings > Skills.
+  - from: skills/task-plan/SKILL.md
+    to: skills/task-plan/SKILL.md
+  # No-op task-sync/task-report stubs kept at the old Go install path for
+  # sessions and hooks of earlier releases (see src/main/modules/updater/legacy-move.ts).
+  - from: build/legacy-stubs
+    to: legacy-stubs
+  # The fixed process/path helper the installer also embeds; the app uses it to
+  # stop the old Go runtime by exact executable identity (updater/windows.ts).
+  - from: build/installer-helper.ps1
+    to: installer-helper.ps1
+
+win:
+  executableName: agent-ops
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # Unsigned by owner decision: trust rests on HTTPS and the GitHub account.
+  verifyUpdateCodeSignature: false
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  runAfterFinish: true
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  shortcutName: Agent Ops
+  uninstallDisplayName: Agent Ops
+  deleteAppDataOnUninstall: false # the uninstaller asks instead (build/installer.nsh)
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  include: build/installer.nsh
+  artifactName: agent-ops-setup-${version}.${ext}
+
+
+publish:
+  provider: github
+  owner: krik-it-dept
+  repo: agent-ops
+  releaseType: release

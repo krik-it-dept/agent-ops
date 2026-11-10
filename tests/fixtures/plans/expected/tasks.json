@@ -1,0 +1,263 @@
+{
+  "diagnostics": [
+    {
+      "file": "\u003cROOT\u003e/repos/alpha/.tasks/Shared.md",
+      "kind": "duplicate",
+      "message": "The Tasks folder has a plan with the same name (\u003cROOT\u003e/Công việc/alpha/shared.md); this older copy inside the workspace is not shown. Delete it once it is no longer needed.",
+      "plan": "Shared",
+      "project": "work",
+      "repo": "alpha"
+    }
+  ],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Công việc/ALPHA-case/plan with space.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "plan with space",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "ALPHA-case",
+      "revision": "1ea6d243aed382f42193e52529f7f7e4886153c38e4d6b6a9781bdf06993bbd7",
+      "root": "",
+      "source": "tasks",
+      "spec": "",
+      "status": "Reviewing",
+      "step": 2,
+      "steps": [],
+      "tone": "review",
+      "workspace": "ALPHA-case"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Công việc/Dự án mới/kế hoạch v1.2.md",
+      "gh": "",
+      "goal": "Tên tiếng Việt có dấu",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "kế hoạch v1.2",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "Dự án mới",
+      "revision": "affb96c23923244cf7b36fa65137459842ac7da60e24d6d246086ba2fd29a8a1",
+      "root": "",
+      "source": "tasks",
+      "spec": "",
+      "status": "Planning",
+      "step": 0,
+      "steps": [
+        {
+          "index": 0,
+          "line": 4,
+          "milestone": "",
+          "status": "todo",
+          "text": "Bước một"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "Dự án mới"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Công việc/alpha/release.md",
+      "gh": "",
+      "goal": "Tasks folder plan",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "release",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "alpha",
+      "revision": "7a083fedde79118dda1c5a071321f427abd45ecad0f2baed974c45095abee706",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "source": "tasks",
+      "spec": "",
+      "status": "Implementing",
+      "step": 1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 4,
+          "milestone": "",
+          "status": "doing",
+          "text": "One"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "alpha"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Công việc/alpha/shared.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "shared",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "alpha",
+      "revision": "ce5c350c8244f1b4a01ead88cdf388375062bf53f9257c1b097bd81d6d082ebf",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "source": "tasks",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 3,
+          "milestone": "",
+          "status": "done",
+          "text": "Newer copy"
+        }
+      ],
+      "tone": "test",
+      "workspace": "alpha"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Công việc/orphan/only-in-tasks.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "only-in-tasks",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "orphan",
+      "revision": "1a2623605ec677c2a2dee40c80f4db035e9ff1da2cbcee48341996eba042f812",
+      "root": "",
+      "source": "tasks",
+      "spec": "",
+      "status": "Blocked",
+      "step": -1,
+      "steps": [],
+      "tone": "bad",
+      "workspace": "orphan"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/alpha/.tasks/legacy.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "legacy",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "alpha",
+      "revision": "d9bd74c38c1d24d4a5df10cbeee0a89ac972a83fb17a2fbbf9fc828cb2ed7c70",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "source": "legacy",
+      "spec": "",
+      "status": "Waiting for owner",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 3,
+          "milestone": "",
+          "status": "todo",
+          "text": "Old"
+        }
+      ],
+      "tone": "pending",
+      "workspace": "alpha"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/beta.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "beta",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "beta",
+      "revision": "ebe063941bb208121fb98f67fed2bbb9f21082dc86b4b6f02411c920a54fab7c",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 3,
+          "milestone": "",
+          "status": "done",
+          "text": "B"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "beta"
+    }
+  ],
+  "projects": [
+    {
+      "id": "tasks",
+      "kind": "tasks",
+      "message": "",
+      "name": "Tasks",
+      "path": "\u003cROOT\u003e\\Công việc",
+      "plans": 5,
+      "repos": 5,
+      "status": "ok"
+    },
+    {
+      "id": "work",
+      "kind": "folder",
+      "message": "",
+      "name": "Work",
+      "path": "\u003cROOT\u003e\\repos",
+      "plans": 2,
+      "repos": 2,
+      "status": "ok"
+    }
+  ],
+  "repos": [
+    {
+      "gh": "",
+      "name": "alpha",
+      "plans": 1,
+      "project": "work",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "worktrees": []
+    },
+    {
+      "gh": "",
+      "name": "beta",
+      "plans": 1,
+      "project": "work",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "worktrees": []
+    }
+  ]
+}

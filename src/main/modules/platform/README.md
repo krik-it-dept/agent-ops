@@ -1,0 +1,44 @@
+# Main-process platform services
+
+The module does not register IPC. The integration entry owns the trusted sender/frame checks and maps `PlatformError` (`code`, fixed `message`, `retryable`) to the contract Result envelope. Picked paths remain untrusted choices until the destination service validates them. `resources` paths and `dataDir` are supplied by main, never by React.
+
+## Integration order
+
+1. Resolve and set Electron's isolated `userData` directory before taking the single-instance lock. Create services with `createPlatformServices({ dataDir, resourcesDir, allowPath, snapshot, pickerPreferences })`. Creation sets only the process AppUserModelID and creates local logging storage; it performs no OS registration.
+2. Call `services.installSingleInstance(argv, open)` once, before `app.whenReady`, replacing the scaffold's lock/listeners. A nonprimary instance quits. A background second launch stays silent. Initial/warm protocol links queue until the returned controller's `ready()` is called after the trusted renderer is loaded. `open(plan?)` routes/focuses the main window and emits validated `app:activate`; unknown keys remain unavailable routes.
+3. Optionally call `services.installCrashCapture()` to record main exceptions/rejections and child-process failures. An uncaught main error records the marker synchronously and exits with status 1; it does not resume an unsafe process. `services.crashes.readCrash()` gives the next-start notice and `dismissCrash()` removes only that marker.
+4. After app readiness, call `services.attachWindow(window, { activate, refresh })` before loading/showing the renderer. Keep the returned object for `open(target)`, `updateTray(counts)`, `refreshStartupMenu()`, `notify(events)` and `dispose()`. Closing hides the window; explicit Quit permits close. `--background` suppresses even an existing ready-to-show callback until an explicit open. Use `trayCounts(plans)` for baseline tooltip counts. `testState()` exposes only `{ trayCreated }` to main-process tests; it is not a renderer bridge or global production hook.
+5. Only the installed app, or an explicit `AGENT_OPS_REGISTER=1` instance, may call `services.protocol.register()`, startup mutation, the user environment writer or notifications. The normal installed location is `%LOCALAPPDATA%/Programs/AgentOps`; a custom installer may supply its verified `installedRoot`. Packaging alone does not authorize registration. Ordinary development and smoke profiles remain unmanaged and do not read/write startup values.
+6. Dispose services before shutdown. Notify the instance controller separately when disposed. The platform does not manage plan refresh, settings persistence, source identity/revision checks, source migrations, routes or IPC.
+
+## Small service interfaces
+
+- `startup.get(): { enabled: boolean; managed: boolean }`; `startup.set(enabled: boolean)` returns the read-back value. Both get/set use the same executable/arguments; login uses `--background` and the owned `Agent Ops` name. Supply application launch arguments when explicitly testing registration under the Electron development executable.
+- `protocol.register(): boolean`; `protocol.remove(): boolean`; `parsePlanLink(uri): string | null`; `planLink(key): string`. Only one bounded `plan` parameter in `agent-ops:open?...` is accepted. Two-segment legacy keys remain lookup-only, resolved unambiguously by main. No path, arbitrary URL or command is executed.
+- `picker.pick({ requestId, purpose }, senderScope): Promise<PickResponse>`; `picker.cancelPick({ requestId }, senderScope): Promise<{ cancelled: boolean }>`. Purposes and results match `shell:pick`; scope is trusted main sender identity. All dialogs have an owning app window, remembered valid start/home fallback and a 120-second deadline. Preference-save errors do not discard the selected path. The instruction-file picker is Markdown-only and remembers its parent.
+- `folders.trash(path): Promise<void>`; `folders.openFolder(path): Promise<void>`; `folders.openLogs(): Promise<void>`. The injected `allowPath(path, action)` validates main-resolved identity, regular-file/revision/reparse/fixed-drive rules for trash, and existing known directories for folder opens. There is no permanent-delete fallback, arbitrary executable opener or general external URL opener. The plan-action service owns confirmation; runtime performs the final realpath/SHA-256/fixed-drive check immediately before `shell.trashItem`. Accepted limitation: no native no-write/share-mode guard spans that final shell call, so a file changed in the last milliseconds may still be recycled; recoverable from the Recycle Bin. Success copy must say the file went to the Recycle Bin.
+- `environment.setUserEnv('AGENT_OPS_TASKS', value: string | null): Promise<{ managed: boolean; changed: boolean }>` is serialized, skips unchanged values, uses `reg.exe` argument arrays, then broadcasts `WM_SETTINGCHANGE`. A broadcast failure is reported even though the registry value may already have changed. The app never modifies the process environment in this writer.
+- `diagnostics.collectDiagnostics()` returns only fixed version/count/boolean fields; `diagnostics.get(): { text: string }`; `diagnostics.copy(): { copied: true }`. Copy generates its own redacted text in main. Neither copied output nor diagnostics DTOs contain paths, plan names/content or error prose. `snapshot()` accepts aggregate counts and boolean settings only.
+- Logging exports `RotatingLogger`, `CrashService`, `installCrashHandlers`, `collectDiagnostics`, `diagnosticsText` and `createDiagnosticsService`. Logging uses `<dataDir>/logs/agent-ops.log` (1 MiB plus four rotations), with a separate `update.log` option. Detailed failure text stays local in bounded records; `crash.json` contains only notice fields and is atomically replaced. `LogStorage`, process/window, command, dialog, shell, tray, notification and registration ports all have test fakes.
+
+## Native differences and cleanup
+
+Electron supplies owned `dialog.showOpenDialog` but no open-dialog cancellation method. A fixed Windows helper enumerates only this process's standard dialog directly owned by the app window and posts `WM_CLOSE`. The numeric owner/PID travel as environment data. Cancellation only succeeds after the Electron promise confirms closure; a failed close returns an error and keeps the picker busy until the user/native dialog actually closes. There is no SendKeys, window-title matching or process termination. This helper still needs disposable Windows interactive validation of a real modal dialog; unit tests fake it, and smoke never opens one.
+
+Notifications use Electron's native `Notification`, fixed title `Agent Ops`, the app icon and `KrikIT.AgentOps`; plan text is bounded data, never PowerShell/XML source. Only blocked, waiting and open-question events supplied by the ledger are announced. Stale events are deliberately excluded by this work-package brief; the ledger still owns quiet-seed suppression. The PowerShell sender fallback is retired. An installer must create the correctly branded shortcut/AppUserModelID for reliable Windows notification branding; unpackaged development toasts are suppressed.
+
+Electron's single-instance lock replaces the Windows mutex/HTTP session handoff; it relies on the main entry setting its per-data-folder profile before taking the lock. Main/renderer/child failure events replace Go panic/fatal-output handling; old fatal-log archives are left untouched. This module does not install an updater or supervise arbitrary background jobs.
+
+Uninstall must first finish guarded Skills cleanup, then disable the owned login entry, call `protocol.remove()` and `environment.setUserEnv('AGENT_OPS_TASKS', null)` from the installed scope, and remove only installer-owned shortcut/AppUserModelID/uninstall metadata. Never remove the Tasks folder or plans. Optional data deletion belongs to the installer after verifying its own data root; ordinary service disposal removes no user registrations or data.
+
+## Verification
+
+Unit tests use fake OS surfaces and memory/temp logging storage. The extra owned Playwright suite starts the normal built app with a temporary profile and attaches the separately bundled service at the main-process test boundary, because another worker owns production startup wiring:
+
+```powershell
+npm run build
+npm run smoke
+npx playwright test --config src/main/modules/platform/playwright.config.ts
+```
+
+It creates a real Tray/window icon, checks close/hide/open behavior and diagnostics/test-hook output, and destroys the tray before exit. It performs no registry registration, notification, Recycle Bin operation or picker interaction. The integration owner should add this service to the normal startup and migrate the same assertions into the integrated smoke suite when wiring the shared IPC contract.

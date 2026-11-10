@@ -1,0 +1,1070 @@
+{
+  "diagnostics": [],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [
+    {
+      "decisions": [
+        {
+          "key": "202611101840",
+          "text": "Use Go continued on the next line",
+          "when": "10/11 18:40"
+        },
+        {
+          "key": "202611099999",
+          "text": "Keep the JSON contract",
+          "when": "09/11"
+        },
+        {
+          "key": "",
+          "text": "undated decision",
+          "when": ""
+        }
+      ],
+      "file": "\u003cROOT\u003e/repos/alpha/.tasks/current.md",
+      "gh": "https://github.com/owner/sample",
+      "goal": "Ship the Go collector",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 2,
+            "total": 2
+          },
+          "state": "done",
+          "steps": [
+            {
+              "index": 0,
+              "line": 23,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Port the parser"
+            },
+            {
+              "index": 1,
+              "line": 24,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Golden tests"
+            }
+          ],
+          "summary": "parser ported, PR #3",
+          "title": "Parser"
+        },
+        {
+          "id": "M2",
+          "progress": {
+            "done": 0,
+            "total": 4
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 27,
+              "milestone": "M2",
+              "status": "doing",
+              "text": "Collect plans"
+            },
+            {
+              "index": 1,
+              "line": 28,
+              "milestone": "M2",
+              "status": "todo",
+              "text": "Remove Node"
+            },
+            {
+              "index": 2,
+              "line": 29,
+              "milestone": "M2",
+              "status": "blocked",
+              "text": "Wait for review"
+            },
+            {
+              "index": 3,
+              "line": 30,
+              "milestone": "M2",
+              "status": "partial",
+              "text": "Docs written"
+            }
+          ],
+          "summary": "",
+          "title": "Collector"
+        },
+        {
+          "id": "M2A",
+          "progress": {
+            "done": 0,
+            "total": 1
+          },
+          "state": "blocked",
+          "steps": [
+            {
+              "index": 0,
+              "line": 33,
+              "milestone": "M2A",
+              "status": "todo",
+              "text": "Nested step"
+            }
+          ],
+          "summary": "",
+          "title": "Sub milestone"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "current",
+      "next": "ship the build",
+      "owner": "Claude",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [
+        {
+          "answer": "No",
+          "ask": "Keep Node?",
+          "key": "202611101745",
+          "open": false,
+          "when": "10/11 17:45"
+        },
+        {
+          "answer": "",
+          "ask": "Which port?",
+          "key": "202611100905",
+          "open": true,
+          "when": "10/11 09:05"
+        },
+        {
+          "answer": "",
+          "ask": "Undated question",
+          "key": "",
+          "open": true,
+          "when": ""
+        },
+        {
+          "answer": "",
+          "ask": "Open source?",
+          "key": "",
+          "open": true,
+          "when": ""
+        }
+      ],
+      "repo": "alpha",
+      "revision": "f0bdf86600af7ead9894d639ef0de11857e14d4bfb65f80e697ad450472fb2ac",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "source": "legacy",
+      "spec": "docs/spec.md",
+      "status": "Implementing - wiring the collector #12",
+      "step": 1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 23,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Port the parser"
+        },
+        {
+          "index": 1,
+          "line": 24,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Golden tests"
+        },
+        {
+          "index": 0,
+          "line": 27,
+          "milestone": "M2",
+          "status": "doing",
+          "text": "Collect plans"
+        },
+        {
+          "index": 1,
+          "line": 28,
+          "milestone": "M2",
+          "status": "todo",
+          "text": "Remove Node"
+        },
+        {
+          "index": 2,
+          "line": 29,
+          "milestone": "M2",
+          "status": "blocked",
+          "text": "Wait for review"
+        },
+        {
+          "index": 3,
+          "line": 30,
+          "milestone": "M2",
+          "status": "partial",
+          "text": "Docs written"
+        },
+        {
+          "index": 0,
+          "line": 33,
+          "milestone": "M2A",
+          "status": "todo",
+          "text": "Nested step"
+        },
+        {
+          "index": 7,
+          "line": 37,
+          "milestone": "",
+          "status": "done",
+          "text": "Loose step after a heading"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "alpha"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/alpha/.tasks/duplicates.md",
+      "gh": "https://github.com/owner/sample",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 2,
+            "total": 3
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 5,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Run tests"
+            },
+            {
+              "index": 1,
+              "line": 6,
+              "milestone": "M1",
+              "status": "todo",
+              "text": "Run tests"
+            },
+            {
+              "index": 2,
+              "line": 7,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Run tests"
+            }
+          ],
+          "summary": "",
+          "title": "First"
+        },
+        {
+          "id": "M2",
+          "progress": {
+            "done": 0,
+            "total": 2
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 10,
+              "milestone": "M2",
+              "status": "doing",
+              "text": "Run tests"
+            },
+            {
+              "index": 1,
+              "line": 12,
+              "milestone": "M2",
+              "status": "todo",
+              "text": "Run tests"
+            }
+          ],
+          "summary": "",
+          "title": "Second"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "duplicates",
+      "next": "dedupe",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "alpha",
+      "revision": "475acd7db0e75254f4f373e6c421ad65d77bd40873a8fe415d1db4b1805ec998",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "source": "legacy",
+      "spec": "",
+      "status": "Reviewing",
+      "step": 2,
+      "steps": [
+        {
+          "index": 0,
+          "line": 5,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Run tests"
+        },
+        {
+          "index": 1,
+          "line": 6,
+          "milestone": "M1",
+          "status": "todo",
+          "text": "Run tests"
+        },
+        {
+          "index": 2,
+          "line": 7,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Run tests"
+        },
+        {
+          "index": 0,
+          "line": 10,
+          "milestone": "M2",
+          "status": "doing",
+          "text": "Run tests"
+        },
+        {
+          "index": 1,
+          "line": 12,
+          "milestone": "M2",
+          "status": "todo",
+          "text": "Run tests"
+        }
+      ],
+      "tone": "review",
+      "workspace": "alpha"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/alpha/.tasks/fences.md",
+      "gh": "https://github.com/owner/sample",
+      "goal": "Fenced examples",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 1,
+            "total": 3
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 5,
+              "milestone": "M1",
+              "status": "doing",
+              "text": "Before the fence"
+            },
+            {
+              "index": 1,
+              "line": 10,
+              "milestone": "M1",
+              "status": "todo",
+              "text": "Between fences"
+            },
+            {
+              "index": 2,
+              "line": 20,
+              "milestone": "M1",
+              "status": "done",
+              "text": "After the fences"
+            }
+          ],
+          "summary": "",
+          "title": "Fences"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "fences",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "alpha",
+      "revision": "2e47f183c0216f0201ac774b50b4b97bc72e27dbb63c241d1e019691957dc40a",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 5,
+          "milestone": "M1",
+          "status": "doing",
+          "text": "Before the fence"
+        },
+        {
+          "index": 1,
+          "line": 10,
+          "milestone": "M1",
+          "status": "todo",
+          "text": "Between fences"
+        },
+        {
+          "index": 2,
+          "line": 20,
+          "milestone": "M1",
+          "status": "done",
+          "text": "After the fences"
+        }
+      ],
+      "tone": "test",
+      "workspace": "alpha"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/crlf-bom.md",
+      "gh": "",
+      "goal": "Windows files",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 1,
+            "total": 2
+          },
+          "state": "doing",
+          "steps": [
+            {
+              "index": 0,
+              "line": 7,
+              "milestone": "M1",
+              "status": "doing",
+              "text": "CRLF step"
+            },
+            {
+              "index": 1,
+              "line": 8,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Second CRLF step"
+            }
+          ],
+          "summary": "line endings",
+          "title": "Windows"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "crlf-bom",
+      "next": "CRLF and BOM",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [
+        {
+          "answer": "yes",
+          "ask": "CRLF question",
+          "key": "202601020304",
+          "open": false,
+          "when": "02/01 03:04"
+        }
+      ],
+      "repo": "beta",
+      "revision": "39bf07eab5c73b398909280d316776a36087c58631b6e0bf1878a68249704dda",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "Planning",
+      "step": 0,
+      "steps": [
+        {
+          "index": 0,
+          "line": 7,
+          "milestone": "M1",
+          "status": "doing",
+          "text": "CRLF step"
+        },
+        {
+          "index": 1,
+          "line": 8,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Second CRLF step"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "beta"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/done-label.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "done-label",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "beta",
+      "revision": "131cb25d3ae60eff0aa6139c731e63a377309e971ec3957751136a3cc4714e71",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "merged and shipped",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "beta"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/empty.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "empty",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "beta",
+      "revision": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "Not started",
+      "step": -1,
+      "steps": [],
+      "tone": "idle",
+      "workspace": "beta"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/free-label.md",
+      "gh": "",
+      "goal": "Older free-text status",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "free-label",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "beta",
+      "revision": "4f564202a6c92441ae475cb2f30d8db7a271f03bad6f0c4662d11da062d34125",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "chờ owner duyệt",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 4,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "pending",
+      "workspace": "beta"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/no-header-blocked.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "no-header-blocked",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "beta",
+      "revision": "1d733ba3254be5c0559263a9a8920138f71c820838f3b78686fcdc84ad1658b4",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "Blocked",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "todo",
+          "text": "Loose"
+        },
+        {
+          "index": 1,
+          "line": 2,
+          "milestone": "",
+          "status": "blocked",
+          "text": "Stuck step"
+        }
+      ],
+      "tone": "bad",
+      "workspace": "beta"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/no-header.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 2,
+            "total": 2
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 2,
+              "milestone": "M1",
+              "status": "done",
+              "text": "One"
+            },
+            {
+              "index": 1,
+              "line": 3,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Two"
+            }
+          ],
+          "summary": "",
+          "title": "Only steps"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "no-header",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "beta",
+      "revision": "d912b66008558a49f900a926128f8900835cabf3ebad008e5be41e2375ac081c",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "M1",
+          "status": "done",
+          "text": "One"
+        },
+        {
+          "index": 1,
+          "line": 3,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Two"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "beta"
+    },
+    {
+      "decisions": [
+        {
+          "key": "202611101430",
+          "text": "Dùng Go thay cho Node",
+          "when": "10/11 14:30"
+        }
+      ],
+      "file": "\u003cROOT\u003e/repos/beta/.tasks/tieng-viet.md",
+      "gh": "",
+      "goal": "Bỏ yêu cầu Node cho người dùng Việt",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 1,
+            "total": 7
+          },
+          "state": "doing",
+          "steps": [
+            {
+              "index": 0,
+              "line": 10,
+              "milestone": "M1",
+              "status": "done",
+              "text": "Đọc tiêu đề"
+            },
+            {
+              "index": 1,
+              "line": 11,
+              "milestone": "M1",
+              "status": "doing",
+              "text": "Đọc các mốc"
+            },
+            {
+              "index": 2,
+              "line": 12,
+              "milestone": "M1",
+              "status": "todo",
+              "text": "Viết tài liệu"
+            },
+            {
+              "index": 3,
+              "line": 13,
+              "milestone": "M1",
+              "status": "partial",
+              "text": "Kiểm tra tiếng Việt có dấu"
+            },
+            {
+              "index": 4,
+              "line": 14,
+              "milestone": "M1",
+              "status": "blocked",
+              "text": "Chặn bởi review"
+            },
+            {
+              "index": 5,
+              "line": 15,
+              "milestone": "M1",
+              "status": "todo",
+              "text": "Bước có ước lượng giữa câu"
+            },
+            {
+              "index": 6,
+              "line": 16,
+              "milestone": "M1",
+              "status": "todo",
+              "text": "Không phải ước lượng ~5mét"
+            }
+          ],
+          "summary": "đọc tiêu đề, mốc và bước",
+          "title": "Bộ đọc"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "tieng-viet",
+      "next": "viết lại bộ đọc plan",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "beta",
+      "revision": "1593033b7b66272cab63f641b846955714bd700c1f760613f0e19369decc1bd2",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "source": "legacy",
+      "spec": "",
+      "status": "Đang làm",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 10,
+          "milestone": "M1",
+          "status": "done",
+          "text": "Đọc tiêu đề"
+        },
+        {
+          "index": 1,
+          "line": 11,
+          "milestone": "M1",
+          "status": "doing",
+          "text": "Đọc các mốc"
+        },
+        {
+          "index": 2,
+          "line": 12,
+          "milestone": "M1",
+          "status": "todo",
+          "text": "Viết tài liệu"
+        },
+        {
+          "index": 3,
+          "line": 13,
+          "milestone": "M1",
+          "status": "partial",
+          "text": "Kiểm tra tiếng Việt có dấu"
+        },
+        {
+          "index": 4,
+          "line": 14,
+          "milestone": "M1",
+          "status": "blocked",
+          "text": "Chặn bởi review"
+        },
+        {
+          "index": 5,
+          "line": 15,
+          "milestone": "M1",
+          "status": "todo",
+          "text": "Bước có ước lượng giữa câu"
+        },
+        {
+          "index": 6,
+          "line": 16,
+          "milestone": "M1",
+          "status": "todo",
+          "text": "Không phải ước lượng ~5mét"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "beta"
+    },
+    {
+      "decisions": [
+        {
+          "key": "",
+          "text": "decision line",
+          "when": ""
+        }
+      ],
+      "file": "\u003cROOT\u003e/repos/gamma/.tasks/headings.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [
+        {
+          "id": "M3",
+          "progress": {
+            "done": 1,
+            "total": 1
+          },
+          "state": "done",
+          "steps": [
+            {
+              "index": 0,
+              "line": 4,
+              "milestone": "M3",
+              "status": "done",
+              "text": "a"
+            }
+          ],
+          "summary": "",
+          "title": "lower case id"
+        },
+        {
+          "id": "M4",
+          "progress": {
+            "done": 0,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 6,
+              "milestone": "M4",
+              "status": "todo",
+              "text": "b"
+            }
+          ],
+          "summary": "",
+          "title": "dash title"
+        },
+        {
+          "id": "M5",
+          "progress": {
+            "done": 0,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 8,
+              "milestone": "M5",
+              "status": "partial",
+              "text": "c"
+            }
+          ],
+          "summary": "",
+          "title": "no space"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "headings",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "gamma",
+      "revision": "251cf73668ef1b736630e3986baa678b298264fbe5155596a4a8fe86a74f88ab",
+      "root": "\u003cROOT\u003e/repos/gamma",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 4,
+          "milestone": "M3",
+          "status": "done",
+          "text": "a"
+        },
+        {
+          "index": 0,
+          "line": 6,
+          "milestone": "M4",
+          "status": "todo",
+          "text": "b"
+        },
+        {
+          "index": 0,
+          "line": 8,
+          "milestone": "M5",
+          "status": "partial",
+          "text": "c"
+        },
+        {
+          "index": 3,
+          "line": 12,
+          "milestone": "",
+          "status": "doing",
+          "text": "after top heading"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "gamma"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/single repo/.tasks/solo.md",
+      "gh": "",
+      "goal": "A repo project",
+      "milestones": [
+        {
+          "id": "M1",
+          "progress": {
+            "done": 1,
+            "total": 1
+          },
+          "state": "",
+          "steps": [
+            {
+              "index": 0,
+              "line": 5,
+              "milestone": "M1",
+              "status": "done",
+              "text": "One"
+            }
+          ],
+          "summary": "",
+          "title": "Solo"
+        }
+      ],
+      "mtime": "\u003cTIME\u003e",
+      "name": "solo",
+      "next": "",
+      "owner": "",
+      "project": "solo",
+      "projectName": "\u003cROOT\u003e\\single repo",
+      "questions": [],
+      "repo": "single repo",
+      "revision": "b30ca7d0b0ee6c19a221e51648452b48f054499ebc6546a44b17ecb1e2d85c10",
+      "root": "\u003cROOT\u003e/single repo",
+      "source": "legacy",
+      "spec": "",
+      "status": "Shipping",
+      "step": 5,
+      "steps": [
+        {
+          "index": 0,
+          "line": 5,
+          "milestone": "M1",
+          "status": "done",
+          "text": "One"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "single repo"
+    }
+  ],
+  "projects": [
+    {
+      "id": "work",
+      "kind": "folder",
+      "message": "",
+      "name": "Work",
+      "path": "\u003cROOT\u003e\\repos",
+      "plans": 11,
+      "repos": 4,
+      "status": "ok"
+    },
+    {
+      "id": "solo",
+      "kind": "repo",
+      "message": "",
+      "name": "\u003cROOT\u003e\\single repo",
+      "path": "\u003cROOT\u003e\\single repo",
+      "plans": 1,
+      "repos": 1,
+      "status": "ok"
+    },
+    {
+      "id": "gone",
+      "kind": "folder",
+      "message": "Folder not found.",
+      "name": "Gone",
+      "path": "\u003cROOT\u003e\\missing",
+      "plans": 0,
+      "repos": 0,
+      "status": "missing"
+    }
+  ],
+  "repos": [
+    {
+      "gh": "https://github.com/owner/sample",
+      "name": "alpha",
+      "plans": 3,
+      "project": "work",
+      "root": "\u003cROOT\u003e/repos/alpha",
+      "worktrees": []
+    },
+    {
+      "gh": "",
+      "name": "beta",
+      "plans": 7,
+      "project": "work",
+      "root": "\u003cROOT\u003e/repos/beta",
+      "worktrees": []
+    },
+    {
+      "gh": "",
+      "name": "gamma",
+      "plans": 1,
+      "project": "work",
+      "root": "\u003cROOT\u003e/repos/gamma",
+      "worktrees": []
+    },
+    {
+      "gh": "https://github.com/owner/sample",
+      "name": "no-tasks",
+      "plans": 0,
+      "project": "work",
+      "root": "\u003cROOT\u003e/repos/no-tasks",
+      "worktrees": []
+    },
+    {
+      "gh": "",
+      "name": "single repo",
+      "plans": 1,
+      "project": "solo",
+      "root": "\u003cROOT\u003e/single repo",
+      "worktrees": []
+    }
+  ]
+}

@@ -1,0 +1,256 @@
+{
+  "diagnostics": [],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Tasks folder with a long name/direct/direct.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "direct",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "direct",
+      "revision": "63415cbb376c2b8b211fc7bacb4ac096eb1a4d9095749146edc633645ceed1d1",
+      "root": "",
+      "source": "tasks",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Direct"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "direct"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Tasks folder with a long name/linked workspace/tasks-through-junction.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "tasks-through-junction",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "linked workspace",
+      "revision": "8e2a00d80ca9cb8de2653fbe1c0ad4db721fd6e2f217a203ab02e37a9d654b15",
+      "root": "",
+      "source": "tasks",
+      "spec": "",
+      "status": "Planning",
+      "step": 0,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "todo",
+          "text": "Tasks workspace behind a junction"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "linked workspace"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/A long workspace folder/linked/.tasks/through-junction.md",
+      "gh": "https://github.com/owner/sample",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "through-junction",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "linked",
+      "revision": "cefd88b14bf2c5efd9801b1ee162398829bfec9ae45fcc4b7a96941b26195511",
+      "root": "\u003cROOT\u003e/A long workspace folder/linked",
+      "source": "legacy",
+      "spec": "",
+      "status": "Implementing",
+      "step": 1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "doing",
+          "text": "Reached through a junction"
+        }
+      ],
+      "tone": "doing",
+      "workspace": "linked"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/A long workspace folder/plain/.tasks/plain.md",
+      "gh": "https://github.com/owner/sample",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "plain",
+      "next": "",
+      "owner": "",
+      "project": "work",
+      "projectName": "Work",
+      "questions": [],
+      "repo": "plain",
+      "revision": "2eeca8af51414b64d87e9d45164cb130b772affab8a1ba0378815b8959e716d3",
+      "root": "\u003cROOT\u003e/A long workspace folder/plain",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "Plain repository"
+        }
+      ],
+      "tone": "test",
+      "workspace": "plain"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Another long repository/.tasks/kế hoạch dài tên.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "kế hoạch dài tên",
+      "next": "",
+      "owner": "",
+      "project": "solo",
+      "projectName": "\u003cROOT\u003e\\Another long repository",
+      "questions": [],
+      "repo": "ANOTHE~1",
+      "revision": "42ef616a6d42bd1a776226ab66b4fa1cc17ba381f18e1a0ee69001ee9ff87e19",
+      "root": "\u003cROOT\u003e/Another long repository",
+      "source": "legacy",
+      "spec": "",
+      "status": "Blocked",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "blocked",
+          "text": "Tên tiếng Việt"
+        }
+      ],
+      "tone": "bad",
+      "workspace": "ANOTHE~1"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/Another long repository/.tasks/release~2 notes.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "release~2 notes",
+      "next": "",
+      "owner": "",
+      "project": "solo",
+      "projectName": "\u003cROOT\u003e\\Another long repository",
+      "questions": [],
+      "repo": "ANOTHE~1",
+      "revision": "3f1bba6f14be1cc857fa3894ba8fdd9c03de4034c4a898fec7bced951c95796f",
+      "root": "\u003cROOT\u003e/Another long repository",
+      "source": "legacy",
+      "spec": "",
+      "status": "Reviewing",
+      "step": 2,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "todo",
+          "text": "A name that only looks short"
+        }
+      ],
+      "tone": "review",
+      "workspace": "ANOTHE~1"
+    }
+  ],
+  "projects": [
+    {
+      "id": "tasks",
+      "kind": "tasks",
+      "message": "",
+      "name": "Tasks",
+      "path": "\u003cROOT\u003e\\Tasks folder with a long name",
+      "plans": 2,
+      "repos": 2,
+      "status": "ok"
+    },
+    {
+      "id": "work",
+      "kind": "folder",
+      "message": "",
+      "name": "Work",
+      "path": "\u003cROOT\u003e\\A long workspace folder",
+      "plans": 2,
+      "repos": 2,
+      "status": "ok"
+    },
+    {
+      "id": "solo",
+      "kind": "repo",
+      "message": "",
+      "name": "\u003cROOT\u003e\\Another long repository",
+      "path": "\u003cROOT\u003e\\Another long repository",
+      "plans": 2,
+      "repos": 1,
+      "status": "ok"
+    }
+  ],
+  "repos": [
+    {
+      "gh": "https://github.com/owner/sample",
+      "name": "linked",
+      "plans": 1,
+      "project": "work",
+      "root": "\u003cROOT\u003e/A long workspace folder/linked",
+      "worktrees": []
+    },
+    {
+      "gh": "https://github.com/owner/sample",
+      "name": "plain",
+      "plans": 1,
+      "project": "work",
+      "root": "\u003cROOT\u003e/A long workspace folder/plain",
+      "worktrees": []
+    },
+    {
+      "gh": "",
+      "name": "ANOTHE~1",
+      "plans": 2,
+      "project": "solo",
+      "root": "\u003cROOT\u003e/Another long repository",
+      "worktrees": []
+    }
+  ]
+}

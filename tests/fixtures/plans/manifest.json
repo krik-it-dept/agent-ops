@@ -1,0 +1,256 @@
+[
+  {
+    "name": "ambiguous",
+    "tasksDir": "tasks",
+    "projects": [
+      {
+        "id": "a",
+        "name": "",
+        "path": "one",
+        "kind": "folder"
+      },
+      {
+        "id": "b",
+        "name": "",
+        "path": "two",
+        "kind": "folder"
+      }
+    ],
+    "dirs": null,
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "edge",
+    "tasksDir": "",
+    "projects": [
+      {
+        "id": "p",
+        "name": "P",
+        "path": "repos",
+        "kind": "folder"
+      }
+    ],
+    "dirs": null,
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": {
+      "repos/edge/.tasks/bom-mid.md": 1700000000,
+      "repos/edge/.tasks/cr-inside.md": 1700025200,
+      "repos/edge/.tasks/decisions.md": 1700050400,
+      "repos/edge/.tasks/emoji.md": 1700075600,
+      "repos/edge/.tasks/empty-status.md": 1700075600,
+      "repos/edge/.tasks/estimates.md": 1700043200,
+      "repos/edge/.tasks/fences.md": 1700068400,
+      "repos/edge/.tasks/header-case.md": 1700010800,
+      "repos/edge/.tasks/headings.md": 1700036000,
+      "repos/edge/.tasks/invalid-leading.md": 1700036000,
+      "repos/edge/.tasks/invalid-surrogate.md": 1700003600,
+      "repos/edge/.tasks/label-case.md": 1700028800,
+      "repos/edge/.tasks/label-stage.md": 1700054000,
+      "repos/edge/.tasks/label-vietnamese.md": 1700079200,
+      "repos/edge/.tasks/ls2028-heading.md": 1700079200,
+      "repos/edge/.tasks/nbsp.md": 1700046800,
+      "repos/edge/.tasks/nel.md": 1700072000,
+      "repos/edge/.tasks/ps2029-sections.md": 1700014400,
+      "repos/edge/.tasks/status-derived.md": 1700039600,
+      "repos/edge/.tasks/steps-variants.md": 1700039600,
+      "repos/edge/.tasks/summary.md": 1700007200,
+      "repos/edge/.tasks/title-then-header.md": 1700032400,
+      "repos/edge/.tasks/unicode-ws-trim.md": 1700057600
+    },
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "empty",
+    "tasksDir": "",
+    "projects": null,
+    "dirs": null,
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "faults",
+    "tasksDir": "",
+    "projects": [
+      {
+        "id": "p",
+        "name": "P",
+        "path": "repos",
+        "kind": "folder"
+      }
+    ],
+    "dirs": [
+      "repos/web/.tasks/folder.md"
+    ],
+    "unreadable": [
+      "locked.md"
+    ],
+    "grown": [
+      "grown.md"
+    ],
+    "oversized": [
+      "repos/web/.tasks/large.md"
+    ],
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "file-tasks",
+    "tasksDir": "file",
+    "projects": null,
+    "dirs": null,
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "golden",
+    "tasksDir": "",
+    "projects": [
+      {
+        "id": "work",
+        "name": "Work",
+        "path": "repos",
+        "kind": "folder"
+      },
+      {
+        "id": "solo",
+        "name": "",
+        "path": "single repo",
+        "kind": "repo"
+      },
+      {
+        "id": "gone",
+        "name": "Gone",
+        "path": "missing",
+        "kind": "folder"
+      }
+    ],
+    "dirs": [
+      "repos/alpha/.git",
+      "repos/no-tasks/.git",
+      "repos/plain-folder"
+    ],
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "intentional",
+    "tasksDir": "",
+    "projects": [
+      {
+        "id": "p",
+        "name": "P",
+        "path": "repos",
+        "kind": "folder"
+      }
+    ],
+    "dirs": null,
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "missing",
+    "tasksDir": "missing-tasks",
+    "projects": [
+      {
+        "id": "gone",
+        "name": "",
+        "path": "none",
+        "kind": "folder"
+      },
+      {
+        "id": "file",
+        "name": "F",
+        "path": "file.txt",
+        "kind": "repo"
+      }
+    ],
+    "dirs": null,
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  },
+  {
+    "name": "short-junction",
+    "tasksDir": "Tasks folder with a long name",
+    "projects": [
+      {
+        "id": "work",
+        "name": "Work",
+        "path": "A long workspace folder",
+        "kind": "folder"
+      },
+      {
+        "id": "solo",
+        "name": "",
+        "path": "Another long repository",
+        "kind": "repo"
+      }
+    ],
+    "dirs": [
+      "A long workspace folder/plain/.git",
+      "real targets/repository/.git"
+    ],
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": [
+      {
+        "link": "A long workspace folder/linked",
+        "target": "real targets/repository"
+      },
+      {
+        "link": "Tasks folder with a long name/linked workspace",
+        "target": "real targets/workspace"
+      }
+    ],
+    "shortPaths": true
+  },
+  {
+    "name": "tasks",
+    "tasksDir": "Công việc",
+    "projects": [
+      {
+        "id": "work",
+        "name": "Work",
+        "path": "repos",
+        "kind": "folder"
+      }
+    ],
+    "dirs": null,
+    "unreadable": null,
+    "grown": null,
+    "oversized": null,
+    "mtimes": null,
+    "junctions": null,
+    "shortPaths": false
+  }
+]

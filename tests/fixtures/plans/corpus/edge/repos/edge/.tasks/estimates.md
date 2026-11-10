@@ -1,0 +1,13 @@
+- [done] A ~2H
+- [done] B ~3 PHÚT
+- [done] C ~1,5d
+- [done] D ~2hx
+- [done] E ~2 h.
+- [done] F ~10min
+- [done] G ~2 giờ!
+- [done] H ~2.h
+- [done] I ~1.5MIN later
+- [done] J ~ 4 Ngày
+- [done] K ~2pháp
+- [done] L~3m
+- [done] M ~12 ph

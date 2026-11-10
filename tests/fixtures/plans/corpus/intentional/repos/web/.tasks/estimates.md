@@ -1,0 +1,9 @@
+- [todo] Port ~2h
+- [todo] Port ~ 1,5 ngày now
+- [todo] Two ~2ph and ~3PHÚT
+- [todo] Not ~5mét an estimate
+- [todo] Half ~1.5
+- [todo] Tight~30min
+- [todo] Mixed ~2m.
+- [todo] Vietnamese ~1 giờ rồi
+- [todo] Unit then letter ~2hours

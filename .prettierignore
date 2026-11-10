@@ -1,0 +1,16 @@
+# Format the application sources/config and the development guide; other docs are hand-wrapped.
+/*
+!/src/
+!/electron-tests/
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/electron.vite.config.ts
+!/vitest.config.mts
+!/eslint.config.mjs
+!/.prettierrc.json
+!/docs/
+/docs/*
+!/docs/development-electron.md
+node_modules/
+out/

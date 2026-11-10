@@ -1,0 +1,129 @@
+{
+  "diagnostics": [
+    {
+      "file": "\u003cROOT\u003e/one/alpha/.tasks/a.md",
+      "kind": "duplicate",
+      "message": "The Tasks folder has a plan with the same name (\u003cROOT\u003e/tasks/ALPHA/a.md); this older copy inside the workspace is not shown. Delete it once it is no longer needed.",
+      "plan": "a",
+      "project": "a",
+      "repo": "alpha"
+    }
+  ],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/tasks/ALPHA/a.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "a",
+      "next": "",
+      "owner": "",
+      "project": "tasks",
+      "projectName": "Tasks",
+      "questions": [],
+      "repo": "ALPHA",
+      "revision": "0bb1d5b6da1b8de455fd36d08b772e6aa99c18ce44c8abc48a27ca17d842af7c",
+      "root": "",
+      "source": "tasks",
+      "spec": "",
+      "status": "Partly done",
+      "step": -1,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "partial",
+          "text": "Part"
+        }
+      ],
+      "tone": "pending",
+      "workspace": "ALPHA"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/two/Alpha/.tasks/b.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "b",
+      "next": "",
+      "owner": "",
+      "project": "b",
+      "projectName": "\u003cROOT\u003e\\two",
+      "questions": [],
+      "repo": "Alpha",
+      "revision": "2ebb70bc10aa90b53c4afce3a010d270b87df96c8c79bbad456cf26e00a4e9b9",
+      "root": "\u003cROOT\u003e/two/Alpha",
+      "source": "legacy",
+      "spec": "",
+      "status": "Done",
+      "step": 6,
+      "steps": [
+        {
+          "index": 0,
+          "line": 1,
+          "milestone": "",
+          "status": "done",
+          "text": "Done"
+        }
+      ],
+      "tone": "ok",
+      "workspace": "Alpha"
+    }
+  ],
+  "projects": [
+    {
+      "id": "tasks",
+      "kind": "tasks",
+      "message": "",
+      "name": "Tasks",
+      "path": "\u003cROOT\u003e\\tasks",
+      "plans": 1,
+      "repos": 1,
+      "status": "ok"
+    },
+    {
+      "id": "a",
+      "kind": "folder",
+      "message": "",
+      "name": "\u003cROOT\u003e\\one",
+      "path": "\u003cROOT\u003e\\one",
+      "plans": 0,
+      "repos": 1,
+      "status": "ok"
+    },
+    {
+      "id": "b",
+      "kind": "folder",
+      "message": "",
+      "name": "\u003cROOT\u003e\\two",
+      "path": "\u003cROOT\u003e\\two",
+      "plans": 1,
+      "repos": 1,
+      "status": "ok"
+    }
+  ],
+  "repos": [
+    {
+      "gh": "",
+      "name": "alpha",
+      "plans": 0,
+      "project": "a",
+      "root": "\u003cROOT\u003e/one/alpha",
+      "worktrees": []
+    },
+    {
+      "gh": "",
+      "name": "Alpha",
+      "plans": 1,
+      "project": "b",
+      "root": "\u003cROOT\u003e/two/Alpha",
+      "worktrees": []
+    }
+  ]
+}

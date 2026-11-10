@@ -1,0 +1,181 @@
+{
+  "diagnostics": [
+    {
+      "file": "\u003cROOT\u003e/repos/web/.tasks/bad-utf8.md",
+      "kind": "invalid-utf8",
+      "message": "The plan is not valid UTF-8; unreadable characters are shown as �.",
+      "plan": "bad-utf8",
+      "project": "p",
+      "repo": "web"
+    },
+    {
+      "file": "\u003cROOT\u003e/repos/web/.tasks/fence.md",
+      "kind": "unclosed-fence",
+      "message": "The code block opened on line 2 is never closed, so the lines after it are not read.",
+      "plan": "fence",
+      "project": "p",
+      "repo": "web"
+    },
+    {
+      "file": "\u003cROOT\u003e/repos/web/.tasks/grown.md",
+      "kind": "too-large",
+      "message": "The plan grew over 8 MB while it was read.",
+      "plan": "grown",
+      "project": "p",
+      "repo": "web"
+    },
+    {
+      "file": "\u003cROOT\u003e/repos/web/.tasks/large.md",
+      "kind": "too-large",
+      "message": "The plan is 8 MB; plans over 8 MB are not read.",
+      "plan": "large",
+      "project": "p",
+      "repo": "web"
+    },
+    {
+      "file": "\u003cROOT\u003e/repos/web/.tasks/locked.md",
+      "kind": "unreadable",
+      "message": "The plan cannot be read (EIO).",
+      "plan": "locked",
+      "project": "p",
+      "repo": "web"
+    }
+  ],
+  "generatedAt": "\u003cTIME\u003e",
+  "plans": [
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/bad-utf8.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "bad-utf8",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "b58c5f90393393ca8046c122200331ec07fc37a09e45f505cdf6cbe4bb9346a7",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "todo",
+          "text": "�"
+        }
+      ],
+      "tone": "test",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/fence.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "fence",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "d48d0c2b2cb02da436265abcc2c6b95cc211695906a8b6acac67f81f0bfa1424",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [],
+      "tone": "test",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/good.md",
+      "gh": "",
+      "goal": "",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "good",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "9fe6c658b0f1c4e93e9385215a11ad1cf441170dc177ff02ee784c9118fc4e8a",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Testing",
+      "step": 3,
+      "steps": [
+        {
+          "index": 0,
+          "line": 2,
+          "milestone": "",
+          "status": "done",
+          "text": "ok"
+        }
+      ],
+      "tone": "test",
+      "workspace": "web"
+    },
+    {
+      "decisions": [],
+      "file": "\u003cROOT\u003e/repos/web/.tasks/half.md",
+      "gh": "",
+      "goal": "half wr",
+      "milestones": [],
+      "mtime": "\u003cTIME\u003e",
+      "name": "half",
+      "next": "",
+      "owner": "",
+      "project": "p",
+      "projectName": "P",
+      "questions": [],
+      "repo": "web",
+      "revision": "2b79b1da946a319330e9e7be2af3fe3c19d10c9cc2977c98e819cba4ee45086a",
+      "root": "\u003cROOT\u003e/repos/web",
+      "source": "legacy",
+      "spec": "",
+      "status": "Implementing",
+      "step": 1,
+      "steps": [],
+      "tone": "doing",
+      "workspace": "web"
+    }
+  ],
+  "projects": [
+    {
+      "id": "p",
+      "kind": "folder",
+      "message": "",
+      "name": "P",
+      "path": "\u003cROOT\u003e\\repos",
+      "plans": 4,
+      "repos": 1,
+      "status": "ok"
+    }
+  ],
+  "repos": [
+    {
+      "gh": "",
+      "name": "web",
+      "plans": 4,
+      "project": "p",
+      "root": "\u003cROOT\u003e/repos/web",
+      "worktrees": []
+    }
+  ]
+}

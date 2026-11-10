@@ -1,0 +1,17 @@
+# Agent Ops development
+
+Agent Ops is a Windows desktop reader built with Electron, React and TypeScript.
+Read README.md, INSTALL.md and docs/release-readiness.md before release work.
+
+- Keep the app a reader: no run recording, agent assignments, plan-content edits or inferred acceptance states. Orchestration belongs to Orca. The two plan actions are Archive/Unarchive (app settings only) and confirmed Delete to the Windows Recycle Bin, never permanent deletion.
+- Plans live at `<TasksDir>/<workspace>/<plan>.md`; configured workspace plan folders can still be read. A move into Tasks is a separate owner-requested Settings action: keep a backup, never overwrite and report every file.
+- `tasksDir` is a setting. Skills read `AGENT_OPS_TASKS` or `<data folder>/tasks-dir.txt`, never a baked-in machine path. Only the verified installed app changes the user environment value. File and config names are English.
+- The single canonical skill is `skills/task-plan/SKILL.md`, embedded at build time. Write Skills or AI client instructions only on the owner's action, with backups, atomic replacement and hash/marker guards. Preserve unrelated text and locally changed files. An app update never installs Skills automatically.
+- Main owns files/native actions/updates; preload exposes named typed methods; React has no Node. Keep sandbox, contextIsolation, strict CSP, sender/top-frame/payload/result validation and denied navigation/new windows. Add no HTTP server or general command, file or URL executor.
+- Preserve `%LOCALAPPDATA%/AgentOps/config.json` and unknown keys. Newer/unreadable config stays read-only. Stop only verified beta executable paths before shared data writers start; retain recovery backups/journals. Go is retired; its quirks are not acceptance criteria. Frozen fixtures remain regression tests.
+- Tests use temporary data, plans and AI profiles. Never use real data, AI client config, registry or the installed app. Inject OS effects. Ordinary development/smoke must not register startup/protocols or send real notifications. Never commit private plans, logs or profiles.
+- Validate with `npm ci`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run smoke`, `npm run package` and `npm run smoke:packaged`. Real install/uninstall, picker, Recycle Bin restore and published-release update checks require a disposable Windows account/VM. Packaging never runs the installer.
+- Development uses `.dev-data` or temporary `AGENT_OPS_DATA_DIR`. Sample/test modes are disabled in packaged apps. Release drafts require review; do not push or publish without an instruction.
+- User-facing language is Workspace / Skills / Tasks. Explain problems plainly. Speak to the owner in concise Vietnamese; code comments and documentation are English.
+
+Business hierarchy and richer problem/impact briefs remain separate work. Do not invent acceptance states or rewrite historical evidence.
