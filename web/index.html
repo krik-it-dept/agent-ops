@@ -2057,7 +2057,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function baseName(path){return String(path || '').split(/[\\/]/).pop();}
   function errorFor(owner){return integrationsUI.errorFor===owner && integrationsUI.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'';}
   function integrationButton(t,action,label,cls){
-    var busy=!!integrationsUI.busy || !t.enabled,mine=integrationsUI.busy===t.id+':'+action,confirming=integrationsUI.confirm===t.id+':'+action;
+    var busy=!!integrationsUI.busy || !t.enabled && action!=='remove' && action!=='instructions-off',mine=integrationsUI.busy===t.id+':'+action,confirming=integrationsUI.confirm===t.id+':'+action;
     var text=confirming?(action==='replace'?'Click again to replace':'Click again to remove'):label;
     return '<button class="btn btn-xs'+(confirming?' btn-danger':cls?' '+cls:'')+'" id="integration-'+esc(t.id)+'-'+action+'" data-integration-action="'+action+'" data-integration-target="'+esc(t.id)+'"'+(busy || integrationReadOnly()?' disabled':'')+'>'+(mine?spinner():'')+esc(text)+'</button>';
   }
@@ -2073,11 +2073,11 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
         out.push(integrationButton(t,'replace','Replace',''));
       }
       if(t.state==='installed' || t.state==='update-available')out.push(integrationButton(t,'remove','Remove skill',''));
-    }
+    }else if(t.state==='installed' || t.state==='update-available')out.push(integrationButton(t,'remove','Remove skill','')); // cleanup stays possible while off
     out.push('<button class="btn btn-xs" id="integration-'+esc(t.id)+'-edit" data-integration-edit="'+esc(t.id)+'" aria-expanded="'+(integrationsUI.editing===t.id)+'"'+(busy?' disabled':'')+'>Edit path</button>');
-    var dropping=integrationsUI.confirm===t.id+':drop';
-    out.push('<button class="btn btn-xs'+(dropping?' btn-danger':'')+'" id="integration-'+esc(t.id)+'-drop" data-integration-drop="'+esc(t.id)+'"'+(busy?' disabled':'')+'>'+icon('trash')+(dropping?'Click again to remove':'Remove from list')+'</button>');
-    var c=integrationsUI.confirm,note=c===t.id+':replace'?'<small>Your file is backed up before Agent Ops writes its version.</small>':c===t.id+':remove'?'<small>The skill file is removed; a backup is kept.</small>':c===t.id+':drop'?'<small>Agent Ops stops managing this folder. Files on disk are not changed.</small>':'';
+    var dropping=integrationsUI.confirm===t.id+':drop',reminder=reminderOn(t);
+    out.push('<button class="btn btn-xs'+(dropping?' btn-danger':'')+'" id="integration-'+esc(t.id)+'-drop" data-integration-drop="'+esc(t.id)+'"'+(busy || reminder?' disabled':'')+(reminder?' title="Turn the reminder off first"':'')+'>'+icon('trash')+(dropping?'Click again to remove':'Remove from list')+'</button>');
+    var c=integrationsUI.confirm,note=c===t.id+':replace'?'<small>Your file is backed up before Agent Ops writes its version.</small>':c===t.id+':remove'?'<small>The skill file is removed; a backup is kept.</small>':c===t.id+':drop'?'<small>Agent Ops stops managing this folder. Files on disk are not changed.</small>':reminder?'<small>Turn the reminder off before removing this folder from the list.</small>':'';
     return '<div class="project-actions">'+out.join('')+note+'</div>';
   }
   function diffPanel(t){
@@ -2092,7 +2092,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function instructionRow(t){
     var ins=t.instructions || {},state=ins.state || 'none',id='integration-instructions-'+t.id;
     if(state==='none' || !ins.path)return '';
-    var on=state!=='off' && state!=='missing-folder',busy=!!integrationsUI.busy || !!integrationReadOnly() || !t.enabled || state==='missing-folder';
+    var on=state!=='off' && state!=='missing-folder',busy=!!integrationsUI.busy || !!integrationReadOnly() || !t.enabled && !on || state==='missing-folder';
     return '<div class="integration-reminder"><label class="project-toggle" for="'+esc(id)+'"><input type="checkbox" role="switch" class="switch" id="'+esc(id)+'" data-integration-instructions="'+esc(t.id)+'"'+(on?' checked':'')+(busy?' disabled':'')+'><span>Add a one-line reminder to '+esc(baseName(ins.path))+'</span></label>'+
       '<small class="integration-reminder-state">'+esc(instructionStateText(state))+'</small>'+(state==='outdated' && t.enabled?integrationButton(t,'instructions-on','Refresh reminder',''):'')+
       '<code class="setting-path">'+esc(ins.path)+'</code></div>';
@@ -2100,12 +2100,13 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function fieldInput(field,id,label,placeholder,extra){
     return '<label class="integration-field" for="'+id+'"><span>'+esc(label)+'</span><input id="'+id+'" class="input" data-integration-input="'+field+'" placeholder="'+esc(placeholder)+'" value="'+esc(integrationsUI[field])+'" autocomplete="off" spellcheck="false"'+(extra || '')+'></label>';
   }
+  function reminderOn(t){var s=(t.instructions || {}).state;return s==='on' || s==='outdated';}
   function editPanel(t){
     if(integrationsUI.editing!==t.id)return '';
-    var busy=!!integrationsUI.busy,locked=(t.instructions || {}).state==='on' || (t.instructions || {}).state==='outdated';
+    var busy=!!integrationsUI.busy,locked=reminderOn(t),left=t.state==='installed' || t.state==='update-available' || t.state==='modified';
     return '<div class="integration-edit" role="group" aria-label="'+esc('Edit '+t.label)+'">'+fieldInput('editLabel','integration-edit-label','Name','Claude Code')+fieldInput('editPath','integration-edit-path','Skills folder','C:\\Users\\me\\tools\\skills')+
       fieldInput('editInstr','integration-edit-instr','Instruction file (optional)','C:\\Users\\me\\tools\\AGENTS.md',locked?' disabled title="Turn the reminder off first"':'')+
-      '<div class="project-actions"><button class="btn btn-xs" data-integration-pick-file'+(busy || locked?' disabled':'')+'>Choose file…</button><button class="btn btn-primary btn-xs" id="integration-edit-save" data-integration-save'+(busy?' disabled':'')+'>'+(integrationsUI.busy===t.id+':edit'?spinner():'')+'Save</button><button class="btn btn-ghost btn-xs" data-integration-cancel>Cancel</button>'+(locked?'<small>Turn the reminder off before changing the instruction file.</small>':'')+'</div></div>';
+      '<div class="project-actions"><button class="btn btn-xs" data-integration-pick-file'+(busy || locked?' disabled':'')+'>Choose file…</button><button class="btn btn-primary btn-xs" id="integration-edit-save" data-integration-save'+(busy?' disabled':'')+'>'+(integrationsUI.busy===t.id+':edit'?spinner():'')+'Save</button><button class="btn btn-ghost btn-xs" data-integration-cancel>Cancel</button>'+(locked?'<small>Turn the reminder off before changing the instruction file.</small>':'')+(left?'<small>A new skills folder does not move the skill: the copy in '+esc(t.skillDir)+' stays. Remove skill first if you no longer want it there.</small>':'')+'</div></div>';
   }
   function integrationCard(t){
     var tag=!t.enabled?'<span class="tag is-off">Off</span>':t.state==='modified'?'<span class="tag is-danger">Modified locally</span>':t.state==='missing-folder'?'<span class="tag is-danger">Missing folder</span>':t.state==='update-available'?'<span class="tag">Update available</span>':'';

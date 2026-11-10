@@ -1111,3 +1111,17 @@ test('Integrations shows unfinished migration errors, escaped, with the next ret
  assert.match(page,/Review by hand/);assert.match(page,/not finished/);assert.match(page,/datetime="2026-11-10T03:15:00Z"/);
  assert.match(page,/role="alert"><li><span>D:\/home\/\.claude\/settings\.json: the file changed &lt;while&gt; editing/);assert.doesNotMatch(page,/<while>/);
 });
+
+test('A turned-off folder keeps its cleanup actions, Remove from list waits for the reminder, and Edit path says the old copy stays',async()=>{
+ const h=harness();const payload=integrationsPayload();
+ payload.targets[0]={...payload.targets[0],enabled:false,state:'installed',installedVersion:2,instructions:{...payload.targets[0].instructions,state:'on'}};
+ settingsServer(h,{'GET /api/settings':()=>[200,settingsPayload([workProject],{setupRequired:false})],'GET /api/integrations':()=>[200,payload]});
+ h.api.openSettings('integrations');await drain();
+ const card=()=>integrationCard(h.ids.settings.innerHTML,'aa11aa11');
+ assert.match(card(),/data-integration-action="remove"[^>]*>Remove skill/);assert.doesNotMatch(card(),/data-integration-action="remove"[^>]*disabled/);
+ assert.doesNotMatch(card(),/data-integration-action="(install|update|replace)"/);
+ assert.match(card(),/data-integration-instructions="aa11aa11" checked>/,'the reminder can be turned off while the folder is off');
+ assert.match(card(),/data-integration-drop="aa11aa11" disabled title="Turn the reminder off first"/);assert.match(card(),/Turn the reminder off before removing this folder/);
+ h.handlers.click({target:hit('[data-integration-edit]',{'data-integration-edit':'aa11aa11'})});
+ assert.match(card(),/the copy in C:\\Users\\me\\\.claude\\skills stays/);
+});

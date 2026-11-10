@@ -348,7 +348,10 @@ func TestPickFolderReturnsPathOrCancelledAndOpensOnlyKnownFolders(t *testing.T) 
 		t.Fatal(w.Code, out)
 	}
 	asked := []string{}
-	pickFolder = func(_ context.Context, purpose string) (string, error) { asked = append(asked, purpose); return `C:\Tools\skills`, nil }
+	pickFolder = func(_ context.Context, purpose string) (string, error) {
+		asked = append(asked, purpose)
+		return `C:\Tools\skills`, nil
+	}
 	for _, purpose := range []string{"skills", "instruction-file"} {
 		if w, out := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", map[string]string{"purpose": purpose}); w.Code != 200 || out["path"] != `C:\Tools\skills` {
 			t.Fatal(purpose, w.Code, out)
