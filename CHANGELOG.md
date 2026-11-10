@@ -3,6 +3,20 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v0.2.2 - Desktop workspace and Archive
+
+- Quieter light and dark surfaces, bundled Geist typography and readable task rows.
+- A project tree, persistent plan tabs and a resizable details pane keep plans
+  beside the workspace on wide windows. Narrow windows use a focused dialog.
+- Ctrl+K searches plans and commands, including Vietnamese without accents.
+  Shortcut hints expose view switching, sidebar navigation and Settings search.
+- Summary puts current work and recorded next actions first, with direct plan
+  previews and the existing status and execution evidence.
+- Settings > General > Plans adds automatic archiving, off by default. Plans
+  explicitly marked Done enter Archive and return when their status is reopened.
+  Original files, task markers and execution evidence stay in place.
+- Fixed a false error in plan previews caused by reading hidden banner buttons.
+
 ## v0.2.1 - Release and update foundation
 
 This is the bridge release: install it before any release that adds, renames or

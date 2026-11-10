@@ -73,8 +73,12 @@ func TestPanicsInBackgroundWorkAndHandlersLeaveACrashMarker(t *testing.T) {
 	done := make(chan struct{})
 	safeGo("test worker", func() { defer close(done); panic("worker failed") })
 	<-done
-	time.Sleep(50 * time.Millisecond)
 	rec, ok := readCrash()
+	deadline := time.Now().Add(5 * time.Second)
+	for !ok && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+		rec, ok = readCrash()
+	}
 	if !ok || rec.Kind != "panic" || rec.Where != "test worker" || rec.Message != "worker failed" || rec.Count != 1 || rec.Version != appVersion {
 		t.Fatal(rec)
 	}
