@@ -521,12 +521,16 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	}
 
 	// SKILL.md copies, in every client folder detection finds. The list of
-	// integration folders is seeded from what is found here (a folder that holds
-	// a task-plan skill), never from fixed client names.
+	// integration folders is seeded once from what is found here (a folder that
+	// holds a task-plan skill), never from fixed client names. Later runs (the
+	// installer, the update helper, the retry on start) only refresh the hashes
+	// of folders still listed: a folder the owner removed is never added back.
 	cfg, cfgErr := readAppConfig(configFilePath(opts.DataDir))
+	configExists := cfgErr == nil
 	if errors.Is(cfgErr, fs.ErrNotExist) {
 		cfg, cfgErr = defaultAppConfig(), nil
 	}
+	seed := !cfg.IntegrationsSeeded
 	cfgChanged := false
 	stamp := opts.Now.UTC().Format(time.RFC3339)
 	if opts.Now.IsZero() {
@@ -560,6 +564,9 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 				i = j
 			}
 		}
+		if i < 0 && !seed {
+			continue
+		}
 		if i < 0 {
 			cfg.Integrations = append(cfg.Integrations, IntegrationTarget{ID: projectIDFor(found.SkillDir), Label: found.Label, SkillDir: found.SkillDir, InstructionFile: found.InstructionFile, Enabled: true, Source: "detected", AddedAt: stamp})
 			i = len(cfg.Integrations) - 1
@@ -573,6 +580,13 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 			t.Version, t.SHA256, t.InstalledAt, t.Kept = embeddedSkillVersion, sha256Hex([]byte(lfText(embeddedSkill))), stamp, ""
 			cfgChanged = true
 		}
+	}
+
+	// Recorded with the seeded list (the same config.json write). A missing
+	// config.json with nothing to seed stays missing, so a later run can still
+	// copy the previous settings.
+	if seed && cfgErr == nil && (configExists || cfgChanged) {
+		cfg.IntegrationsSeeded, cfgChanged = true, true
 	}
 
 	// The old integration record was carried into the folders above; delete it.

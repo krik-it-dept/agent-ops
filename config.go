@@ -51,6 +51,10 @@ type AppConfig struct {
 	AutoArchiveDone bool `json:"autoArchiveDone"`
 	// Integrations are the folders the owner chose to receive the task-plan skill.
 	Integrations []IntegrationTarget `json:"integrations,omitempty"`
+	// IntegrationsSeeded is set once the migration has seeded Integrations from
+	// detection, or the owner has changed the list. Later runs never add to it,
+	// so a folder the owner removed stays removed.
+	IntegrationsSeeded bool `json:"integrationsSeeded,omitempty"`
 }
 
 // IntegrationTarget is one folder that receives task-plan/SKILL.md, with an

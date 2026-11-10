@@ -417,6 +417,7 @@ func saveIntegrations(list []IntegrationTarget) error {
 	next := appCfg
 	next.Projects = append([]Project{}, appCfg.Projects...)
 	next.Integrations = append([]IntegrationTarget{}, list...)
+	next.IntegrationsSeeded = true // the owner manages the list from now on
 	if len(next.Integrations) == 0 {
 		next.Integrations = nil
 	}

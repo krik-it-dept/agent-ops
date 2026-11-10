@@ -718,3 +718,55 @@ func TestMigrationEdgeInputs(t *testing.T) {
 		}
 	})
 }
+
+// The list is seeded once: a folder the owner removed is not added back by a
+// later installer run or retry, which only refreshes the hashes of listed folders.
+func TestMigrationSeedsTheFolderListOnlyOnce(t *testing.T) {
+	f := newMigrationFixture(t)
+	if r, err := runMigration(f.opts); err != nil || len(r.Errors) != 0 {
+		t.Fatal(err, r.Errors)
+	}
+	cfg, err := readAppConfig(configFilePath(f.data))
+	if err != nil || len(cfg.Integrations) != 2 || !cfg.IntegrationsSeeded {
+		t.Fatal(err, cfg.Integrations, cfg.IntegrationsSeeded)
+	}
+	sharedDir := filepath.Dir(filepath.Dir(f.skillShared))
+	kept := []IntegrationTarget{}
+	for _, it := range cfg.Integrations {
+		if !samePath(it.SkillDir, sharedDir) {
+			kept = append(kept, it)
+		}
+	}
+	cfg.Integrations = kept // the owner's Remove from list
+	if err := writeAppConfig(configFilePath(f.data), cfg); err != nil {
+		t.Fatal(err)
+	}
+	// The kept folder now holds an unedited embedded copy; a later run records it.
+	mput(t, f.skillClaude, string(embeddedSkill))
+	f.opts.Now = f.opts.Now.Add(time.Hour)
+	if r, err := runMigration(f.opts); err != nil || len(r.Errors) != 0 {
+		t.Fatal(err, r.Errors)
+	}
+	cfg, err = readAppConfig(configFilePath(f.data))
+	if err != nil || len(cfg.Integrations) != 1 || samePath(cfg.Integrations[0].SkillDir, sharedDir) {
+		t.Fatal("a removed folder was added back", err, cfg.Integrations)
+	}
+	if cfg.Integrations[0].SHA256 != sha256Hex([]byte(lfText(embeddedSkill))) {
+		t.Fatalf("hashes of a listed folder were not refreshed: %+v", cfg.Integrations[0])
+	}
+}
+
+// A config.json saved by the owner before any seeding (the list edited in
+// Settings) also counts as seeded.
+func TestOwnerListChangeMarksTheListSeeded(t *testing.T) {
+	profile := integrationsFixture(t)
+	dir := filepath.Join(profile, "a", "skills")
+	os.MkdirAll(filepath.Dir(dir), 0o700)
+	if id, w := addTarget(t, map[string]any{"skillDir": dir}); id == "" {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	cfg, err := readAppConfig(configFilePath(dataDir))
+	if err != nil || !cfg.IntegrationsSeeded {
+		t.Fatal(err, cfg.IntegrationsSeeded)
+	}
+}
