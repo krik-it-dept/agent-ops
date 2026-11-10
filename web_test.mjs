@@ -4,12 +4,12 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const html=readFileSync(new URL('./web/index.html',import.meta.url),'utf8');
 const source=html.match(/<script>([\s\S]*?)<\/script>/)[1];
-function harness(saved={},nav={},stored={}){
+function harness(saved={layout:"board"},nav={},stored={}){
  const ids={}, handlers={}, timers=[], requests=[], streams=[],storage={'wb-ui':JSON.stringify(saved),'wb-navigation':JSON.stringify(nav),...stored},writes=[];let context;
- function element(id){return {id,innerHTML:'',textContent:'',className:'',hidden:false,isConnected:true,scrollTop:0,value:'',selectionStart:0,selectionEnd:0,attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v;},getAttribute(k){return this.attributes[k];},showModal(){this.open=true;},close(){this.open=false;},addEventListener(name,fn){this.listeners[name]=fn;},focus(){context.document.activeElement=this;},select(){this.selectionStart=0;this.selectionEnd=this.value.length;},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b;}};}
- ['view','top','tabs','nav','q','refresh','upd','error','live','connection','save-state','plan-sidebar','sidebar-toggle','quick-plan','quick-plan-content','quick-plan-scroll','quick-close','quick-tab-overview','quick-tab-checklist','quick-tab-activity','quick-star','quick-refresh','quick-full','quick-error','update-card','update-segment','update-dismiss','update-minimize','update-retry','update-apply','update-skip','app-version','status-totals','error-raw','error-details','settings-check-updates','setup-keep','setup-skip-confirm','setup-choose','onboarding-card','settings-add','settings-nav-add','error-text','error-detail','error-retry','warnings','crash','onboarding','settings','settings-open','settings-search','settings-main','settings-close','settings-choose','settings-path','setup-path','setup-next','setup-finish','setup-back','setup-skip'].forEach(id=>ids[id]=element(id));
+ function element(id){return {id,innerHTML:'',textContent:'',className:'',hidden:false,isConnected:true,scrollTop:0,value:'',selectionStart:0,selectionEnd:0,attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v;},getAttribute(k){return this.attributes[k];},removeAttribute(k){delete this.attributes[k];},show(){this.open=true;this.modal=false;},showModal(){this.open=true;this.modal=true;},close(){this.open=false;},addEventListener(name,fn){this.listeners[name]=fn;},focus(){context.document.activeElement=this;},select(){this.selectionStart=0;this.selectionEnd=this.value.length;},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b;}};}
+ ['inspector-toggle','inspector-resize','command-dialog','command-input','command-results','view','top','tabs','nav','q','refresh','upd','error','live','connection','save-state','plan-sidebar','sidebar-toggle','quick-plan','quick-plan-content','quick-plan-scroll','quick-close','quick-tab-overview','quick-tab-checklist','quick-tab-activity','quick-star','quick-refresh','quick-full','quick-error','update-card','update-segment','update-dismiss','update-minimize','update-retry','update-apply','update-skip','app-version','status-totals','error-raw','error-details','settings-check-updates','setup-keep','setup-skip-confirm','setup-choose','onboarding-card','settings-add','settings-nav-add','error-text','error-detail','error-retry','warnings','crash','onboarding','settings','settings-open','settings-search','settings-main','settings-close','settings-choose','settings-path','setup-path','setup-next','setup-finish','setup-back','setup-skip'].forEach(id=>ids[id]=element(id));
  context=vm.createContext({console,Date,URL,encodeURI,encodeURIComponent,decodeURIComponent,setTimeout(fn){timers.push(fn);return timers.length;},clearTimeout(i){timers[i-1]=null;},setInterval(){},location:{hash:''},localStorage:{getItem(key){return storage[key] || null;},setItem(k,v){storage[k]=v;writes.push(k);}},window:{addEventListener(name,fn){handlers[name]=fn;}},document:{querySelectorAll(){return [];},activeElement:null,documentElement:{attributes:{},setAttribute(k,v){this.attributes[k]=v;}},getElementById(id){return ids[id];},addEventListener(name,fn){handlers[name]=fn;}},fetch(path){requests.push(path);return Promise.resolve({ok:true,json:async()=>data([])});},EventSource:class{constructor(){streams.push(this);}}});
- const instrumented=source.replace('jumpHash(); get(); connect(); initUpdates(); loadSettings();',`globalThis.api={updateUI,receiveUpdate,updateAction,showUpdateCard,dismissUpdateCard,renderUpdate,updateCardKind,applyTheme,shortcutsOn,setupGo,openSetup,errorUI,pollUpdates,initUpdates,navigation,quick,renderSidebar,sidebarPlans,openQuickPlan,closeQuickPlan,stepQuickPlan,togglePlanStar,recordPlanVisit,quickChecklist,taskRows,filteredTaskRows,taskAgentMatches,focusedTask,refresh,stepExecution,executorBadges, agentChain, agentMatches, executorValue, agentName, agentBadge, viewList, viewTimeline, viewSummary, timelineEntries, dateKey, monthDays, handleViewAction, moveStatus, statusSelect, planByKey, render, columnOf, owner, needsAttention, feedFor, orderedMilestones, stepsHTML, taskCard, prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui, setup, settingsUI, renderSetup, renderSettings, openSettings, closeSettings, loadSettings, addProject, chooseFolder, removeProject, toggleProject, saveSetting, finishSetup, handleSettingsAction, settingsInput, settingsChange, settingsKey, showWarnings, showCrash, crashAction, copyDiagnostics, syncSetup, key, repoLabel, viewHome, get settingsData(){return settingsData;}, set settingsData(v){settingsData=v;}};`);
+ const instrumented=source.replace('jumpHash(); get(); connect(); initUpdates(); loadSettings();',`globalThis.api={workspacePlans,archivedPlan,autoArchiveOn,openArchive,viewArchive,closePlanTab,syncQuickSurface,setInspectorWidth,commandState,openCommands,closeCommands,runCommand,commandItems,renderCommands,switchLayout,updateUI,receiveUpdate,updateAction,showUpdateCard,dismissUpdateCard,renderUpdate,updateCardKind,applyTheme,shortcutsOn,setupGo,openSetup,errorUI,pollUpdates,initUpdates,navigation,quick,renderSidebar,sidebarPlans,openQuickPlan,closeQuickPlan,stepQuickPlan,togglePlanStar,recordPlanVisit,quickChecklist,taskRows,filteredTaskRows,taskAgentMatches,focusedTask,refresh,stepExecution,executorBadges, agentChain, agentMatches, executorValue, agentName, agentBadge, viewList, viewTimeline, viewSummary, timelineEntries, dateKey, monthDays, handleViewAction, moveStatus, statusSelect, planByKey, render, columnOf, owner, needsAttention, feedFor, orderedMilestones, stepsHTML, taskCard, prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui, setup, settingsUI, renderSetup, renderSettings, openSettings, closeSettings, loadSettings, addProject, chooseFolder, removeProject, toggleProject, saveSetting, finishSetup, handleSettingsAction, settingsInput, settingsChange, settingsKey, showWarnings, showCrash, crashAction, copyDiagnostics, syncSetup, key, repoLabel, viewHome, get settingsData(){return settingsData;}, set settingsData(v){settingsData=v;}};`);
  vm.runInContext(instrumented,context);
  return {api:context.api,ids,context,handlers,requests,streams,storage,writes,flush(){timers.splice(0).forEach(fn=>fn&&fn());}};
 }
@@ -117,7 +117,54 @@ test('Work keeps decisions and questions in separate tabs',()=>{const h=harness(
 test('Milestones and steps retain required order',()=>{const h=harness();const m=(id,state)=>({id,state,steps:[]});assert.deepEqual(Array.from(h.api.orderedMilestones({milestones:[m('M1','todo'),m('M2','done'),m('M3','doing'),m('M4','doing'),m('M5','done')]}),x=>x.id),['M4','M3','M5','M2','M1']);const out=h.api.stepsHTML(['done','todo','partial','blocked','doing'].map(s=>({status:s,text:s})),'');assert.ok(out.indexOf('s-doing')<out.indexOf('s-blocked'));assert.ok(out.indexOf('s-blocked')<out.indexOf('s-partial'));assert.ok(out.indexOf('s-partial')<out.indexOf('s-todo'));assert.ok(out.indexOf('s-todo')<out.indexOf('s-done'));});
 test('Historical entries in different plans do not suppress each other',()=>{const h=harness(),a=plan(),b=plan('Testing','Kiểm thử');h.api.setData(data([a,b]));assert.equal(h.api.feedFor(null).length,4);});
 test('Encoded toast hash opens the matching plan Summary',()=>{const h=harness();h.context.location.hash='#plan='+encodeURIComponent('workboard/Cải thiện tìm kiếm');h.api.jumpHash();assert.equal(h.api.ui.view,'plan:workboard/Cải thiện tìm kiếm');assert.equal(h.api.ui.tab,'summary');});
-test('Ctrl+K focuses search and Escape returns to board',()=>{const h=harness();let prevented=false;h.handlers.keydown({ctrlKey:true,key:'k',preventDefault(){prevented=true;},target:{tagName:'BODY'}});assert.ok(prevented);assert.equal(h.context.document.activeElement,h.ids.q);h.api.setData(data([plan()]));h.api.ui.view='plan:workboard/Cải thiện tìm kiếm';h.handlers.keydown({key:'Escape',target:{tagName:'BODY'}});assert.equal(h.api.ui.view,'home');});
+test('Command search opens a plan with the keyboard and returns focus on Escape',()=>{
+ const h=harness(),p=plan();h.api.setData(data([p]));h.ids.q.focus();
+ const key=(value,extra={})=>h.handlers.keydown({key:value,target:{tagName:'INPUT'},preventDefault(){},...extra});
+ key('k',{ctrlKey:true});assert.equal(h.ids['command-dialog'].open,true);assert.equal(h.context.document.activeElement,h.ids['command-input']);
+ h.ids['command-input'].value='cai thien';h.handlers.input({target:h.ids['command-input']});
+ assert.equal(h.api.commandState.items.length,1);key('Enter');assert.equal(h.api.quick.key,'workboard/'+p.name);assert.equal(h.ids['command-dialog'].open,false);
+ key('Escape');assert.equal(h.api.quick.key,null);
+ h.ids.q.focus();key('k',{ctrlKey:true});key('Escape');assert.equal(h.context.document.activeElement,h.ids.q);
+ h.api.ui.view='plan:workboard/'+p.name;key('Escape');assert.equal(h.api.ui.view,'home');
+});
+test('Command search executes a view action and ignores Enter on an empty result',()=>{
+ const h=harness();h.api.openCommands();h.ids['command-input'].value='Timeline';h.handlers.input({target:h.ids['command-input']});h.api.runCommand(0);
+ assert.equal(h.api.ui.layout,'timeline');assert.equal(h.api.ui.view,'home');
+ h.api.openCommands();h.ids['command-input'].value='no such command';h.handlers.input({target:h.ids['command-input']});h.api.runCommand(0);
+ assert.equal(h.api.commandState.open,true);assert.equal(h.api.ui.layout,'timeline');h.api.closeCommands();
+});
+test('View and sidebar modifier shortcuts work while typing; a new workspace starts on Summary',()=>{
+ const h=harness({});assert.equal(h.api.ui.layout,'summary');
+ const key=(value)=>h.handlers.keydown({key:value,ctrlKey:true,target:{tagName:'INPUT'},preventDefault(){}});
+ key('2');assert.equal(h.api.ui.layout,'list');key('b');assert.equal(h.api.navigation.collapsed,true);key('b');assert.equal(h.api.navigation.collapsed,false);
+});
+
+test('Archive separates explicit Done plans without changing sources or hiding direct links',()=>{
+ const h=harness({}),a=plan('Implementing','Active'),b=plan('Done','Finished'),c=plan('Implementing','Complete checklist');
+ c.steps.forEach(s=>s.status='done');h.api.setData(data([a,b,c]));const before=JSON.stringify([a,b,c]);h.api.settingsData={autoArchiveDone:true};h.api.render();
+ assert.deepEqual(Array.from(h.api.workspacePlans(),p=>p.name),['Active','Complete checklist']);assert.equal(h.api.planByKey('workboard/Finished'),b);
+ h.api.openArchive();assert.equal(h.api.ui.view,'archive');assert.match(h.ids.view.innerHTML,/Finished/);assert.doesNotMatch(h.ids.view.innerHTML,/Complete checklist|>Active</);
+ h.api.openQuickPlan('workboard/Finished');assert.equal(h.api.quick.key,'workboard/Finished');h.api.closeQuickPlan();assert.equal(JSON.stringify([a,b,c]),before);
+ b.status='Reviewing';h.api.render();assert.match(h.ids.view.innerHTML,/No archived plans/);assert.equal(h.api.workspacePlans().length,3);
+ h.api.settingsData={autoArchiveDone:false};h.api.ui.view='home';h.api.render();assert.equal(h.api.sidebarPlans().length,3);assert.equal(h.requests.length,0);
+});
+
+test('Workspace plan tabs persist, close independently and leave source plans intact',()=>{
+ const h=harness(),a=plan('Testing','Alpha'),b=plan('Testing','Beta');h.api.setData(data([a,b]));
+ for(const p of [a,b]){h.api.ui.view='plan:workboard/'+p.name;h.api.render();}
+ assert.deepEqual(Array.from(h.api.navigation.openPlans),['workboard/Alpha','workboard/Beta']);h.api.closePlanTab('workboard/Beta');assert.equal(h.api.ui.view,'plan:workboard/Alpha');
+ h.api.closePlanTab('workboard/Alpha');assert.equal(h.api.ui.view,'home');assert.equal(h.api.planByKey('workboard/Beta'),b);assert.equal(h.requests.length,0);
+});
+
+test('Project folders collapse locally and details dock without blocking the workspace',()=>{
+ const h=harness(),p=plan();h.api.setData(data([p]));h.api.handleViewAction(actionEvent('data-repo-toggle','/workboard'));
+ assert.equal(h.api.navigation.folders['/workboard'],true);assert.match(h.ids['plan-sidebar'].innerHTML,/id="sidebar-folder-%2Fworkboard" hidden/);
+ h.context.window.matchMedia=()=>({matches:true});h.api.openQuickPlan('workboard/'+p.name);assert.equal(h.ids['quick-plan'].modal,false);assert.equal(h.ids['inspector-resize'].hidden,false);
+ h.api.openCommands();h.api.closeCommands();assert.equal(h.api.quick.key,'workboard/'+p.name);assert.equal(h.ids['quick-plan'].open,true);
+ h.ids.q.focus();h.api.render(true);assert.equal(h.ids['quick-plan'].open,true);assert.equal(h.api.ui.view,'home');h.api.setInspectorWidth(999,true);assert.equal(h.api.navigation.inspectorWidth,600);
+ h.context.window.matchMedia=()=>({matches:false});h.api.syncQuickSurface();assert.equal(h.ids['quick-plan'].modal,true);assert.equal(h.ids['inspector-resize'].hidden,true);
+ h.api.closeQuickPlan();assert.equal(h.ids['inspector-resize'].hidden,true);assert.equal(h.requests.length,0);
+});
 test('Offline status and error banner expose the reason',()=>{const h=harness();h.api.connection(false);assert.equal(h.ids.connection.textContent,'Reconnecting…');h.api.showError('Node failed: test');assert.equal(h.ids.error.hidden,false);assert.equal(h.ids['error-text'].textContent,'Couldn’t read plans — test');assert.equal(h.ids['error-raw'].textContent,'Node failed: test');assert.equal(h.ids['error-raw'].hidden,true);assert.equal(h.ids['error-details'].hidden,false);h.handlers.click({target:hit('[data-error-details]')});assert.equal(h.ids['error-raw'].hidden,false);assert.equal(h.ids['error-details'].textContent,'Hide details');h.api.showError('');assert.equal(h.ids.error.hidden,true);});
 test('User text is escaped and pull request numbers link at all lengths',()=>{const h=harness();assert.equal(h.api.prs('<script>#1 #123456</script>','https://github.com/krik/workboard').includes('<script>'),false);assert.match(h.api.prs('#1 #123456','https://github.com/krik/workboard'),/pull\/123456/);});
 
@@ -700,6 +747,12 @@ test('Quick refresh failures expose their reason, and disappearing plans remain 
  h.api.setData(data([]));h.api.render();assert.match(h.ids['quick-plan-content'].innerHTML,/Plan unavailable/);assert.equal(h.ids['quick-plan'].open,true);h.api.handleViewAction(actionEvent('data-quick-close',''));assert.equal(h.ids['quick-plan'].open,false);
 });
 
+test('Quick view does not turn hidden error-banner button labels into a failure',()=>{
+ const h=harness(),p=plan();h.api.setData(data([p]));h.ids.error.textContent='DetailsRetry';h.ids.error.hidden=true;
+ h.api.openQuickPlan(p.repo+'/'+p.name);assert.match(h.ids['quick-plan-content'].innerHTML,/id="quick-error" role="status" hidden><\/div>/);
+ h.api.showError('Collector unavailable');h.api.render();assert.match(h.ids['quick-plan-content'].innerHTML,/id="quick-error" role="status">Collector unavailable<\/div>/);
+});
+
 test('Quick navigation keeps a stable Recent sequence and selected tab while opened times change',()=>{
  const h=harness(),ps=['Alpha','Beta','Gamma'].map(n=>plan('Testing',n));h.api.setData(data(ps));
  for(const p of ps.slice().reverse())h.api.recordPlanVisit(p.repo+'/'+p.name);h.api.navigation.section='recent';h.api.openQuickPlan('workboard/Alpha');h.api.handleViewAction(actionEvent('data-quick-tab','checklist'));
@@ -1014,7 +1067,7 @@ test('Stars, recent plans and collapsed groups saved before projects move to pro
  assert.deepEqual(JSON.parse(h.storage["wb-navigation"]).starred,[...h.api.navigation.starred],'migrated preferences are saved once');
  assert.equal(JSON.parse(h.storage['wb-ui']).collapsedPlans['p1/workboard/Alpha'],true);
  h.api.navigation.section='starred';
- assert.deepEqual([...h.api.sidebarPlans().map(p=>p.name)],['Alpha','Beta'],'the Starred collection shows the old stars');
+ assert.deepEqual([...h.api.sidebarPlans().map(p=>p.name)].sort(),['Alpha','Beta'],'the Starred collection preserves both migrated plans regardless of edit-time order');
  const writes=h.writes.length;await h.api.get();assert.equal(h.writes.length,writes,'a second state load does not rewrite preferences');
  h.api.togglePlanStar('p1/workboard/Alpha');
  assert.equal(h.api.navigation.starred.includes('p1/workboard/Alpha'),false,'clicking the star removes the migrated key instead of adding a second one');

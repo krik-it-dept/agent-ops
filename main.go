@@ -60,6 +60,9 @@ var indexHTML []byte
 //go:embed web/icons/*
 var iconFiles embed.FS
 
+//go:embed web/fonts/*
+var fontFiles embed.FS
+
 // ---------- state from tasks-overview.mjs ----------
 
 type Step struct {
@@ -1117,6 +1120,8 @@ func serve(ln net.Listener) {
 	mux.HandleFunc("/api/plans/step-executor", handleReadOnlyAgent)
 	icons, _ := fs.Sub(iconFiles, "web/icons")
 	mux.Handle("/icons/", http.StripPrefix("/icons/", http.FileServer(http.FS(icons))))
+	fonts, _ := fs.Sub(fontFiles, "web/fonts")
+	mux.Handle("/fonts/", http.StripPrefix("/fonts/", http.FileServer(http.FS(fonts))))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
