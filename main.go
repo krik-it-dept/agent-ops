@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"fyne.io/systray"
 	"golang.org/x/sys/windows/registry"
@@ -1223,34 +1224,71 @@ func notify(fresh []Event) {
 	}
 }
 
-func psq(s string) string { return strings.ReplaceAll(s, "'", "''") }
+// The toast script is a constant: plan text (written by agents, or committed in a
+// cloned repository) only reaches PowerShell as data in an environment variable,
+// never as script text. PowerShell treats typographic quotes as string delimiters,
+// so escaping quotes inside a script string is not a safe alternative.
+const (
+	toastEnv        = "AGENT_OPS_TOAST"
+	toastLoadScript = `[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null;` +
+		`[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null;` +
+		`$x = New-Object Windows.Data.Xml.Dom.XmlDocument; $x.LoadXml([Environment]::GetEnvironmentVariable('` + toastEnv + `'));`
+	toastShowScript = `[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($x))`
+)
+
+func toastXML(title, body, target string) string {
+	return `<toast activationType="protocol" launch="` + xmlEsc(target) + `"><visual><binding template="ToastGeneric"><text>` +
+		xmlEsc(title) + `</text><text>` + xmlEsc(body) + `</text></binding></visual></toast>`
+}
+
+// toastCommand runs script with the toast XML in its environment.
+func toastCommand(ctx context.Context, script, xml string) *exec.Cmd {
+	cmd := hidden(exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command", script))
+	for _, v := range os.Environ() {
+		if k, _, _ := strings.Cut(v, "="); !strings.EqualFold(k, toastEnv) {
+			cmd.Env = append(cmd.Env, v)
+		}
+	}
+	cmd.Env = append(cmd.Env, toastEnv+"="+xml)
+	return cmd
+}
 
 func toast(title, body, target string) {
-	xml := fmt.Sprintf(`<toast activationType='protocol' launch='%s'><visual><binding template='ToastGeneric'><text>%s</text><text>%s</text></binding></visual></toast>`,
-		xmlEsc(target), xmlEsc(title), xmlEsc(body))
-	script := `[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null;` +
-		`[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] > $null;` +
-		`$x = New-Object Windows.Data.Xml.Dom.XmlDocument; $x.LoadXml('` + psq(xml) + `');` +
-		`[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($x))`
+	xml := toastXML(title, body, target)
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		_ = hidden(exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command", script)).Run()
+		_ = toastCommand(ctx, toastLoadScript+toastShowScript, xml).Run()
 	}()
 }
 
+// xmlEsc escapes markup and every quote character, drops characters XML 1.0
+// cannot carry, and caps the length so the environment block stays small.
 func xmlEsc(s string) string {
-	var b bytes.Buffer
+	var b strings.Builder
+	n := 0
 	for _, r := range s {
-		switch r {
-		case '<':
+		if n++; n > 1000 {
+			b.WriteString("…")
+			break
+		}
+		switch {
+		case r == '<':
 			b.WriteString("&lt;")
-		case '>':
+		case r == '>':
 			b.WriteString("&gt;")
-		case '&':
+		case r == '&':
 			b.WriteString("&amp;")
-		case '"':
+		case r == '"':
 			b.WriteString("&quot;")
+		case r == '\'':
+			b.WriteString("&apos;")
+		case r >= 0x2018 && r <= 0x201F:
+			fmt.Fprintf(&b, "&#x%X;", r)
+		case r == '\t' || r == '\n' || r == '\r':
+			b.WriteRune(r)
+		case r < 0x20 || r == 0xFFFE || r == 0xFFFF || r == utf8.RuneError:
+			continue
 		default:
 			b.WriteRune(r)
 		}
