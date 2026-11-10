@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 )
 
 // persistFixture isolates the persisted stores in a temp data folder.
@@ -131,5 +133,37 @@ func TestPersistWritesStoresAtomically(t *testing.T) {
 	var snapshot map[string]Plan
 	if b, _ := os.ReadFile(filepath.Join(dir, "snapshot.json")); json.Unmarshal(b, &snapshot) != nil || snapshot["p/r/plan"].Name != "plan" {
 		t.Fatalf("snapshot %s", b)
+	}
+}
+
+// A plan the collector left out or read only partly is shown as a warning
+// instead of silently missing from the board; the list stays short.
+func TestPlanProblemsBecomeWarnings(t *testing.T) {
+	saved := planProblems
+	t.Cleanup(func() { planProblems = saved })
+	planProblems = nil
+	if got := planProblemWarnings(nil); len(got) != 0 {
+		t.Fatal(got)
+	}
+	var list []plans.Diagnostic
+	for i := 0; i < maxPlanWarnings+3; i++ {
+		list = append(list, plans.Diagnostic{Project: "p", Repo: "web", Plan: "plan" + string(rune('a'+i)), Kind: plans.DiagUnreadable, Message: "The plan cannot be read (EBUSY)."})
+	}
+	got := planProblemWarnings(list)
+	if len(got) != maxPlanWarnings+1 || got[0] != "Plan “web/plana”: The plan cannot be read (EBUSY)." || !strings.HasPrefix(got[maxPlanWarnings], "3 more plan problems") {
+		t.Fatal(got)
+	}
+	// Through a real refresh: an oversized plan is left out and reported.
+	stateFixture(t)
+	big := filepath.Join(filepath.Dir(stateFile), "..", "sample", ".tasks", "huge.md")
+	if err := os.WriteFile(filepath.Clean(big), bytes.Repeat([]byte("x"), plans.MaxPlanBytes+1), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	refresh(true)
+	mu.Lock()
+	warnings := stateWarnings(nil)
+	mu.Unlock()
+	if refreshError != "" || len(warnings) != 1 || !strings.Contains(warnings[0], "sample/huge") || !strings.Contains(string(rawState), `"kind":"too-large"`) {
+		t.Fatal(refreshError, warnings)
 	}
 }

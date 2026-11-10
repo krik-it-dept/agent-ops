@@ -31,6 +31,7 @@ import (
 
 	"fyne.io/systray"
 
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 	"github.com/krik-it-dept/agent-ops/internal/safeio"
 )
 
@@ -450,6 +451,8 @@ var (
 	projectStates []ProjectState
 	// Diagnostics count of the last refresh, logged when it changes.
 	lastDiagnostics int
+	// Plans the last refresh worked around (left out or partly read), shown as warnings.
+	planProblems []plans.Diagnostic
 )
 
 func refresh(first bool) {
@@ -460,6 +463,7 @@ func refresh(first bool) {
 	}
 	var st State
 	var raw []byte
+	var problems []plans.Diagnostic
 	if len(effectiveProjects()) == 0 {
 		// Nothing to collect: no Node process, no error, an empty board.
 		st = State{Plans: []Plan{}, Projects: []ProjectState{}}
@@ -505,6 +509,7 @@ func refresh(first bool) {
 		if err := safeio.WriteFile(stateFile, raw, 0o644); err != nil {
 			logWarn("could not write the state file", "error", err.Error())
 		}
+		problems = overview.Diagnostics
 		if n := len(overview.Diagnostics); n != lastDiagnostics {
 			lastDiagnostics = n
 			logInfo("plans read with problems", "diagnostics", n)
@@ -520,6 +525,7 @@ func refresh(first bool) {
 	rawState = raw
 	refreshError, refreshErrorKind = "", ""
 	projectStates = st.Projects
+	planProblems = problems
 	if err := safeio.WriteFile(filepath.Join(dataDir, "state.json"), raw, 0o644); err != nil {
 		logWarn("could not save state.json", "error", err.Error())
 	}

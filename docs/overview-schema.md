@@ -94,7 +94,8 @@ without a stamp); `when` is `DD/MM HH:MM` or `DD/MM`. The stamp is removed from 
 ## Diagnostic
 
 A problem with one plan, or with a repository's `.tasks` folder, that the collector worked around. A diagnostic
-never fails the refresh.
+never fails the refresh. `GET /api/state` also lists the first five as `warnings`, so a plan left out of the board is never
+silently missing.
 
 | Field | Type | Meaning |
 | --- | --- | --- |

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -17,6 +18,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 )
 
 var (
@@ -302,6 +305,28 @@ func stateWarnings(summaries []ProjectSummary) []string {
 			}
 			out = append(out, "Project “"+s.Name+"” "+reason+". Reconnect the drive or update it in Settings.")
 		}
+	}
+	return append(out, planProblemWarnings(planProblems)...)
+}
+
+// maxPlanWarnings bounds the plan problems listed one by one.
+const maxPlanWarnings = 5
+
+// planProblemWarnings turns the collector's diagnostics into warnings, so a
+// plan left out of the board (unreadable, too large) or partly read is not
+// silently missing. Called with mu held.
+func planProblemWarnings(list []plans.Diagnostic) []string {
+	out := []string{}
+	for i, d := range list {
+		if i == maxPlanWarnings {
+			out = append(out, fmt.Sprintf("%d more plan problems; see the diagnostics in the state file.", len(list)-maxPlanWarnings))
+			break
+		}
+		where := d.Repo
+		if d.Plan != "" {
+			where += "/" + d.Plan
+		}
+		out = append(out, "Plan “"+where+"”: "+d.Message)
 	}
 	return out
 }
