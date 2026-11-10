@@ -238,7 +238,11 @@ func stateWarnings(summaries []ProjectSummary) []string {
 	cfgMu.Unlock()
 	for _, s := range summaries {
 		if s.Status == "missing" {
-			out = append(out, "Project “"+s.Name+"” was not found at "+s.Path+". Reconnect the drive or update it in Settings.")
+			reason := "was not found at " + s.Path
+			if s.Message != "" && s.Message != "Folder not found." {
+				reason = "cannot be opened at " + s.Path + " (" + strings.TrimSuffix(strings.TrimPrefix(s.Message, "Folder cannot be opened ("), ").") + ")"
+			}
+			out = append(out, "Project “"+s.Name+"” "+reason+". Reconnect the drive or update it in Settings.")
 		}
 	}
 	return out

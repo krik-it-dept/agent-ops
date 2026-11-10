@@ -73,9 +73,12 @@ for (const project of SETTINGS.projects) {
   let found;
   try { found = projectRepos(project); }
   catch (error) {
-    // A missing folder (unplugged drive, renamed folder) is a warning; anything else stops the refresh.
-    result.status = error.code === 'ENOENT' ? 'missing' : 'error';
-    result.message = error.code === 'ENOENT' ? 'Folder not found.' : error.message;
+    // A project folder that cannot be opened at all (missing, unplugged or offline
+    // drive, network share, no permission, now a file) is a warning, so one
+    // unreachable project never fails the board or an update health check.
+    // Failures inside a readable project still stop the refresh.
+    result.status = 'missing';
+    result.message = error.code === 'ENOENT' ? 'Folder not found.' : 'Folder cannot be opened ('+(error.code || error.message)+').';
     continue;
   }
   result.repos = found.length;

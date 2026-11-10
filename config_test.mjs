@@ -69,6 +69,22 @@ test('Plans are located inside folder and repository projects only',()=>{
   }finally{rmSync(root,{recursive:true,force:true});}
 });
 
+test('A project folder that cannot be opened is a warning, not a failed refresh',()=>{
+  const {root,config}=fixture();
+  try{
+    const parsed=JSON.parse(readFileSync(config,'utf8'));
+    put(join(root,'now-a-file'),'not a folder');
+    parsed.projects.push({id:'file',path:join(root,'now-a-file'),name:'file',kind:'folder',enabled:true,addedAt:'2026-01-01T00:00:00Z'});
+    put(config,JSON.stringify(parsed));
+    const run=spawnSync(process.execPath,[join(here,'tasks-overview.mjs')],{env:env({AGENT_OPS_CONFIG:config}),encoding:'utf8',windowsHide:true});
+    assert.equal(run.status,0,run.stderr);
+    const state=JSON.parse(readFileSync(join(root,'data','state','tong-hop-chung.json'),'utf8'));
+    const project=state.projects.find(p=>p.id==='file');
+    assert.equal(project.status,'missing');assert.match(project.message,/cannot be opened \(ENOTDIR\)/);
+    assert.equal(state.plans.length,2);
+  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
 test('Collector without any project writes an empty state instead of failing',()=>{
   const root=mkdtempSync(join(tmpdir(),'agent-ops-empty-'));
   try{
