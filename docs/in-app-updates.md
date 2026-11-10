@@ -51,6 +51,8 @@ Until the owner confirms that every install runs v0.2.1 or later, later releases
 
 ## Integrity
 
+Trust model (owner decision, 2026-11-10): the manifest is not signed; update safety rests on HTTPS to fixed GitHub URLs and on the security of the `krik-it-dept` GitHub account and its release workflow, so whoever controls that account can ship an update every install accepts.
+
 SHA-256 detects corruption and a mismatch with the GitHub release, and the GitHub asset digest and size are checked when supplied. It does not replace code signing (not used, by owner decision) or protect against a compromised release maintainer. The existing local-user trust boundary still applies. Release notes are rendered as escaped text. HTTP requests to the app cannot supply a download URL, install directory or executable.
 
 ## Replacement and recovery
