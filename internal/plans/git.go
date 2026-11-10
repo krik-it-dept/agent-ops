@@ -86,7 +86,7 @@ func gitDetails(ctx context.Context, git GitFunc, repos []*Repo) error {
 				}
 			}
 			if out, err := git(ctx, root, "worktree", "list", "--porcelain"); err == nil {
-				r.Worktrees = parseWorktrees(out)
+				r.Worktrees = sameRootNames(parseWorktrees(out), r.Root)
 			}
 			if cached && ctx.Err() == nil {
 				gitCacheMu.Lock()
@@ -132,5 +132,21 @@ func parseWorktrees(out []byte) []Worktree {
 		}
 	}
 	flush()
+	return list
+}
+
+// sameRootNames writes each worktree path with long names, and the checkout
+// that is the repository itself exactly as the repository root, so short
+// (8.3) names or a different letter case never make it look like another folder.
+func sameRootNames(list []Worktree, root string) []Worktree {
+	rootPath := filepath.Clean(longPath(filepath.FromSlash(root)))
+	for i := range list {
+		p := filepath.Clean(longPath(filepath.FromSlash(list[i].Path)))
+		if strings.EqualFold(p, rootPath) {
+			list[i].Path = root
+		} else {
+			list[i].Path = filepath.ToSlash(p)
+		}
+	}
 	return list
 }

@@ -108,7 +108,10 @@ func requireNode(t *testing.T) {
 
 func TestGoCollectorMatchesNodeCollector(t *testing.T) {
 	requireNode(t)
-	root := t.TempDir()
+	// The Node collector keeps paths as given; the Go one writes long names
+	// (TestCollectWritesLongNamesForShortPaths). A temp folder under a short
+	// name (C:\Users\RUNNER~1 on CI) is given to both in long form.
+	root := longPath(t.TempDir())
 	repos := filepath.Join(root, "repos")
 	writeFixture(t, repos, goldenPlans)
 	// A real Git repository with a GitHub remote, and a repo project next to the folder project.

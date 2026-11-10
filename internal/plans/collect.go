@@ -84,7 +84,8 @@ func Collect(ctx context.Context, opt Options) (*Overview, error) {
 			if err := ctx.Err(); err != nil {
 				return nil, err
 			}
-			repo := &Repo{Project: project.ID, Name: r.Name, Root: filepath.ToSlash(r.Root), Worktrees: []Worktree{}}
+			// Long names, as Git reports worktrees (see longPath).
+			repo := &Repo{Project: project.ID, Name: r.Name, Root: filepath.ToSlash(longPath(r.Root)), Worktrees: []Worktree{}}
 			repos = append(repos, repo)
 			dir := filepath.Join(r.Root, ".tasks")
 			files, err := listPlans(dir)
