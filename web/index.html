@@ -1227,7 +1227,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(ui.layout==='summary') return notice+viewSummary(ps);
     if (!all.length) return '<div class="empty">No active plan</div>';
     if (ui.layout==='timeline') return notice+viewTimeline(ps);
-    return notice+'<div class="board">'+COLUMNS.map(function(title,i){var list=ps.filter(function(p){return columnOf(p)===i;});return '<section class="column" data-column="'+i+'" aria-label="'+esc(title)+'"><h2>'+esc(title)+' <span>'+list.length+'</span></h2>'+list.map(taskCard).join('')+(list.length?'':'<div class="empty-column">No work</div>')+'</section>';}).join('')+'</div>';
+    return notice+'<div class="board">'+COLUMNS.map(function(title,i){var list=ps.filter(function(p){return columnOf(p)===i;});return '<section class="column" aria-label="'+esc(title)+'"><h2>'+esc(title)+' <span>'+list.length+'</span></h2>'+list.map(taskCard).join('')+(list.length?'':'<div class="empty-column">No work</div>')+'</section>';}).join('')+'</div>';
   }
   function viewWaiting() {return viewHome();}
 

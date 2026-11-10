@@ -825,3 +825,147 @@ test('Stored keys are left alone until the first state with plans arrives',async
  h.context.fetch=async()=>({ok:true,json:async()=>data([{...plan('Implementing','Alpha'),project:'p1'}])});await h.api.get();
  assert.deepEqual([...h.api.navigation.starred],['p1/ledger/Alpha']);assert.deepEqual({...h.api.ui.collapsedPlans},{'p1/ledger/Alpha':true});
 });
+
+// ---------- Read-only ledger and integrations ----------
+const WRITE_PREFIXES=['/api/settings','/api/projects','/api/refresh','/api/updates/','/api/diagnostics','/api/integrations/'];
+function legacyPlan(){
+ const p=plan('Implementing','Legacy');Object.assign(p,{agent:'Claude',agentSource:'report',executors:['Codex','Anti'],executorSource:'report',declaredExecutors:['Codex'],historicalExecutors:['Anti'],executionReports:[{result:'old'}],executionUpdatedAt:new Date().toISOString(),slot:{id:'B',by:'Linh'}});
+ p.steps[0]=Object.assign(p.steps[0],{executors:['Codex'],executorSource:'report',sourceStatus:'doing',execution:{activeAgents:['Codex'],reportedAt:new Date().toISOString(),result:'Old run result'},executionHistory:{verifiedAt:'2026-11-07T00:00:00Z',summary:'Old verified history'}});
+ return p;
+}
+function integrationsPayload(extra={}){
+ const client=(id,name,skill,instructions)=>({id,name,detected:skill.state!=='not-detected',configDir:'C:\\Users\\me\\.'+id,skill:{path:'C:\\Users\\me\\.'+id+'\\skills\\task-plan\\SKILL.md',installedVersion:0,kept:false,sharedWith:[],...skill},instructions:{path:'C:\\Users\\me\\.'+id+'\\'+(id==='claude'?'CLAUDE.md':'AGENTS.md'),state:'off',line:'For substantial work, keep a plan.',...instructions}});
+ return {skillVersion:2,clients:[client('claude','Claude Code',{state:'not-installed'},{}),client('codex','Codex',{state:'modified',installedVersion:1,sharedWith:['gemini']},{state:'outdated'}),client('gemini','Antigravity / Gemini',{state:'not-detected'},{state:'not-detected'})],migration:null,readOnly:'',...extra};
+}
+
+test('The script never calls the retired plan endpoints and every write sends X-Agent-Ops to an allowed endpoint',async()=>{
+ assert.doesNotMatch(source,/\/api\/plans\//);assert.doesNotMatch(html,/X-Workboard/);assert.doesNotMatch(html,/workboard/i);assert.match(source,/'X-Agent-Ops'\]='1'/);
+ const h=harness(),calls=[];h.api.setData(data([plan()]));
+ h.context.fetch=async(path,options={})=>{calls.push({path,method:options.method || 'GET',headers:options.headers || {}});const body=path==='/api/integrations' || /^\/api\/integrations\/[a-z]+\/[a-z-]+$/.test(path)?integrationsPayload():path==='/api/settings/pick-folder'?{path:''}:path.startsWith('/api/settings') || path.startsWith('/api/projects')?settingsPayload([workProject],{setupRequired:false}):path==='/api/diagnostics'?{text:'x'}:data([plan()]);return {ok:true,status:200,json:async()=>body};};
+ h.context.navigator={clipboard:{writeText:async()=>{}}};
+ await h.api.refresh();await h.api.updateAction('skip');await h.api.updateAction('check');
+ await h.api.saveSetting('settings','theme','dark');await h.api.addProject('settings','C:\\work');await h.api.toggleProject('p1',false);
+ h.api.settingsUI.confirmRemove='p1';await h.api.removeProject('settings','p1');await h.api.chooseFolder('settings');await h.api.copyDiagnostics();await h.api.crashAction('dismiss');await h.api.crashAction('logs');
+ await h.api.loadIntegrations();await h.api.integrationAction('claude','install');await h.api.finishSetup();
+ const writes=calls.filter(c=>c.method!=='GET');
+ assert.ok(writes.length>=12,'every write path was exercised');
+ for(const c of writes){
+  assert.equal(c.headers['X-Agent-Ops'],'1',c.method+' '+c.path);assert.equal(c.headers['X-Workboard'],undefined);
+  assert.ok(WRITE_PREFIXES.some(prefix=>c.path.startsWith(prefix)),'unexpected write target '+c.path);
+ }
+ assert.ok(calls.every(c=>!c.path.startsWith('/api/plans')));
+});
+
+test('No drag, status control, agent or executor UI renders even when the state still carries old fields',()=>{
+ const h=harness(),p=legacyPlan(),j=data([p]);
+ j.activity=[{repo:p.repo,plan:p.name,actor:'Minh',agent:'Claude',executors:['Codex'],kind:'execution-report',text:'Ran tests',extra:'passed',ts:new Date().toISOString()},{repo:p.repo,plan:p.name,actor:'Minh',kind:'decision',text:'Keep it read-only',ts:new Date().toISOString()}];
+ h.api.setData(j);
+ const forbidden=/draggable|data-plan="|data-status=|status-select|data-column="|\/icons\/(codex|anti|claude)|agent-chip|>Coordinator<|Executed by|Not reported|Latest report|Verified history|Old run result|Old verified history|Agent workload|data-agent|data-executor|>Agent<|Linh/;
+ for(const layout of ['board','list','timeline','summary']){h.api.ui.view='home';h.api.ui.layout=layout;h.api.ui.taskStatus='all';h.api.render();assert.doesNotMatch(h.ids.view.innerHTML+h.ids.top.innerHTML,forbidden,layout);}
+ for(const tab of ['summary','checklist','activity']){h.api.ui.view='plan:'+p.repo+'/'+p.name;h.api.ui.tab=tab;h.api.render();assert.doesNotMatch(h.ids.view.innerHTML+h.ids.top.innerHTML,forbidden,tab);}
+ assert.match(h.ids.top.innerHTML,/class="pill status-doing">Implementing</);
+ assert.match(h.ids.view.innerHTML,/Keep it read-only/);
+ h.api.ui.view='home';h.api.render();for(const tab of ['overview','checklist','activity']){h.api.openQuickPlan(p.repo+'/'+p.name);h.api.handleViewAction(actionEvent('data-quick-tab',tab));assert.doesNotMatch(h.ids['quick-plan-content'].innerHTML,forbidden,'quick '+tab);}
+ assert.equal(h.api.owner(p),'Minh');
+ for(const name of ['dragstart','dragover','drop','dragend'])assert.equal(h.handlers[name],undefined,name+' handler');
+ assert.doesNotMatch(source,/savePlanField|moveStatus|agentChain|planRoles|executorBadges/);
+});
+
+test('Settings Integrations shows each client state with the matching actions and posts them with the header',async()=>{
+ const h=harness();let payload=integrationsPayload();
+ const calls=settingsServer(h,{
+  'GET /api/settings':()=>[200,settingsPayload([workProject],{setupRequired:false})],
+  'GET /api/integrations':()=>[200,payload],
+  'POST /api/integrations/claude/install':()=>{payload=integrationsPayload();payload.clients[0].skill={...payload.clients[0].skill,state:'installed',installedVersion:2};payload.clients[1].skill={...payload.clients[1].skill,state:'update-available',installedVersion:1};return [200,payload];},
+  'POST /api/integrations/claude/remove':()=>[409,{error:'The skill file was modified locally. Review the diff first.'}],
+  'POST /api/integrations/codex/update':()=>[200,payload],
+  'POST /api/integrations/claude/instructions-on':()=>[200,payload],
+ });
+ h.api.openSettings('integrations');await drain();
+ const page=()=>h.ids.settings.innerHTML,card=id=>page().match(new RegExp('<li class="project-card integration-card[^"]*" id="integration-'+id+'">[\\s\\S]*?</li>'))[0];
+ assert.match(page(),/data-settings-section="integrations"/);assert.match(page(),/Settings \/ Integrations/);
+ assert.ok(page().indexOf('All projects')<page().indexOf('AI clients') && page().indexOf('AI clients')<page().indexOf('data-settings-section="about"'),'nav sits between Projects and About');
+ assert.match(card('claude'),/Skill: Not installed/);assert.match(card('claude'),/data-integration-action="install"/);assert.match(card('claude'),/C:\\Users\\me\\.claude/);
+ assert.match(card('claude'),/Add a one-line reminder to CLAUDE\.md/);assert.doesNotMatch(card('claude'),/data-integration-instructions="claude" checked/);
+ assert.match(card('codex'),/Skill: Modified locally/);assert.match(card('codex'),/Shared with Antigravity \/ Gemini/);assert.match(card('codex'),/View diff/);assert.match(card('codex'),/Keep mine/);assert.match(card('codex'),/data-integration-action="replace"/);assert.doesNotMatch(card('codex'),/data-integration-action="(install|remove)"/);
+ assert.match(card('codex'),/reminder text is out of date/);assert.match(card('codex'),/Refresh reminder/);
+ assert.match(card('gemini'),/is-disabled/);assert.match(card('gemini'),/Not detected/);assert.doesNotMatch(card('gemini'),/<button|data-integration-instructions/);
+ // Replace asks first and says a backup is kept.
+ h.handlers.click({target:hit('[data-integration-action]',{'data-integration-action':'replace','data-integration-client':'codex'})});
+ assert.match(card('codex'),/Click again to replace/);assert.match(card('codex'),/backed up/);assert.equal(calls.filter(c=>c.method==='POST').length,0);
+ h.handlers.click({target:hit('[data-integration-action]',{'data-integration-action':'install','data-integration-client':'claude'})});await drain();
+ const install=calls.find(c=>c.path==='/api/integrations/claude/install');
+ assert.equal(install.method,'POST');assert.equal(install.headers['X-Agent-Ops'],'1');assert.equal(install.headers['Content-Type'],'application/json');assert.deepEqual(install.body,{});
+ assert.match(card('claude'),/Skill: Installed v2/);assert.match(card('claude'),/data-integration-action="remove"/);assert.match(card('codex'),/Update available/);assert.match(card('codex'),/data-integration-action="update"/);assert.match(card('codex'),/data-integration-action="remove"/);
+ h.handlers.click({target:hit('[data-integration-action]',{'data-integration-action':'remove','data-integration-client':'claude'})});assert.match(card('claude'),/Click again to remove/);assert.equal(calls.filter(c=>c.path.endsWith('/remove')).length,0);
+ h.handlers.click({target:hit('[data-integration-action]',{'data-integration-action':'remove','data-integration-client':'claude'})});await drain();
+ assert.equal(calls.filter(c=>c.path==='/api/integrations/claude/remove').length,1);assert.match(card('claude'),/role="alert">.*modified locally/);assert.doesNotMatch(card('codex'),/role="alert"/);
+ h.api.settingsChange({checked:true,closest(s){return s==='[data-integration-instructions]'?{getAttribute:()=>'claude'}:null;}});await drain();
+ assert.equal(calls.at(-1).path,'/api/integrations/claude/instructions-on');assert.equal(calls.at(-1).headers['X-Agent-Ops'],'1');
+});
+
+test('Integrations renders an escaped diff, the review-by-hand checklist and read-only mode',async()=>{
+ const h=harness();let payload=integrationsPayload({migration:{at:'2026-11-10T03:00:00Z',backup:'C:\\Users\\me\\AppData\\Local\\agent-ops\\backup',checklist:[{file:'C:\\Users\\me\\.claude\\CLAUDE.md',line:12,text:'Report to the <old> board'}],kept:['C:\\Users\\me\\.codex\\AGENTS.md (modified locally)']}});
+ const calls=settingsServer(h,{
+  'GET /api/settings':()=>[200,settingsPayload([workProject],{setupRequired:false})],
+  'GET /api/integrations':()=>[200,payload],
+  'GET /api/integrations/codex/diff':()=>[200,{path:'C:\\Users\\me\\.codex\\skills\\task-plan\\SKILL.md',identical:false,lines:[{op:' ',text:'# task-plan'},{op:'-',text:'my <script>edit</script>'},{op:'+',text:'version: 2'}]}],
+  'POST /api/integrations/codex/keep':()=>{payload=integrationsPayload();payload.clients[1].skill={...payload.clients[1].skill,kept:true};return [200,payload];},
+ });
+ h.api.openSettings('integrations');await drain();
+ const page=()=>h.ids.settings.innerHTML;
+ assert.match(page(),/Review by hand/);assert.match(page(),/CLAUDE\.md:12/);assert.match(page(),/Report to the &lt;old&gt; board/);assert.match(page(),/modified locally\)/);assert.match(page(),/agent-ops\\backup/);
+ h.handlers.click({target:hit('[data-integration-diff]',{'data-integration-diff':'codex'})});await drain();
+ assert.equal(calls.find(c=>c.path==='/api/integrations/codex/diff').method,'GET');
+ assert.match(page(),/class="diff-panel"/);assert.match(page(),/diff-line is-del"><span class="diff-op" aria-hidden="true">-<\/span>[\s\S]*?my &lt;script&gt;edit&lt;\/script&gt;/);assert.match(page(),/diff-line is-add"><span class="diff-op" aria-hidden="true">\+<\/span>[\s\S]*?version: 2/);assert.doesNotMatch(page(),/<script>/);
+ assert.match(page(),/Hide diff/);
+ h.handlers.click({target:hit('[data-integration-action]',{'data-integration-action':'keep','data-integration-client':'codex'})});await drain();
+ assert.equal(calls.at(-1).path,'/api/integrations/codex/keep');assert.match(page(),/your version is kept/);assert.doesNotMatch(page(),/class="diff-panel"/,'the diff closes after an action');assert.doesNotMatch(page(),/Keep mine/);
+ payload=integrationsPayload({readOnly:'Another Agent Ops window is changing these files.'});h.api.integrationsUI.data=null;await h.api.loadIntegrations();
+ assert.match(page(),/callout-danger" role="alert">[\s\S]*?Another Agent Ops window/);
+ for(const button of page().match(/<button[^>]*data-integration-action[^>]*>/g))assert.match(button,/ disabled/);
+ const before=calls.length;await h.api.integrationAction('claude','install');assert.equal(calls.length,before,'read-only mode posts nothing');
+ h.api.settingsInput({id:'settings-search',value:'codex'});h.flush();assert.match(page(),/<h3>Integrations<\/h3>/);assert.match(page(),/Codex/);
+});
+
+test('Setup offers Connect AI clients, pre-checks only detected clients without the skill and installs the checked ones',async()=>{
+ const h=harness();let payload=integrationsPayload();payload.clients[1].skill={...payload.clients[1].skill,state:'installed',installedVersion:2};
+ const calls=settingsServer(h,{
+  'GET /api/settings':()=>[200,settingsPayload([workProject])],
+  'GET /api/integrations':()=>[200,payload],
+  'POST /api/integrations/claude/install':()=>[200,payload],
+ });
+ h.api.setData({...data([]),setupRequired:true,projects:[workProject]});h.api.syncSetup();await drain();
+ const card=()=>h.ids.onboarding.innerHTML;
+ h.handlers.click({target:hit('[data-setup-next]')});assert.match(card(),/Add your projects/);
+ h.handlers.click({target:hit('[data-setup-next]')});await drain();
+ assert.match(card(),/Connect AI clients/);assert.match(card(),/Step 3 of 4/);assert.match(card(),/aria-label="Step 3: Connect AI clients"/);
+ assert.match(card(),/id="setup-client-claude" data-setup-client="claude" checked>/);
+ assert.match(card(),/id="setup-client-codex" data-setup-client="codex" disabled>/);assert.match(card(),/Installed v2/);
+ assert.match(card(),/id="setup-client-gemini" data-setup-client="gemini" disabled>/);assert.match(card(),/Not detected/);
+ assert.match(card(),/data-setup-clients-skip/);
+ h.handlers.click({target:hit('[data-setup-next]')});await drain();
+ const posts=calls.filter(c=>c.method==='POST');
+ assert.deepEqual(posts.map(c=>c.path),['/api/integrations/claude/install']);assert.equal(posts[0].headers['X-Agent-Ops'],'1');
+ assert.match(card(),/A few preferences/);assert.match(card(),/Step 4 of 4/);
+ h.handlers.click({target:hit('[data-setup-back]')});await drain();assert.match(card(),/Connect AI clients/);
+ h.api.settingsChange({checked:false,closest(s){return s==='[data-setup-client]'?{getAttribute:()=>'claude'}:null;}});assert.doesNotMatch(card(),/data-setup-client="claude" checked/);
+ h.handlers.click({target:hit('[data-setup-next]')});await drain();assert.equal(calls.filter(c=>c.method==='POST').length,1,'an unchecked client is not installed');assert.match(card(),/A few preferences/);
+});
+
+test('Skipping the Connect AI clients step posts nothing and failed installs stay on the step with the reason',async()=>{
+ const h=harness();const payload=integrationsPayload();
+ const calls=settingsServer(h,{
+  'GET /api/settings':()=>[200,settingsPayload([workProject])],
+  'GET /api/integrations':()=>[200,payload],
+  'POST /api/integrations/claude/install':()=>[409,{error:'The skill file changed on disk.'}],
+ });
+ h.api.setData({...data([]),setupRequired:true,projects:[workProject]});h.api.syncSetup();await drain();
+ h.api.setupGo(2);await drain();const card=()=>h.ids.onboarding.innerHTML;
+ assert.match(card(),/data-setup-client="claude" checked/);
+ h.handlers.click({target:hit('[data-setup-clients-skip]')});await drain();
+ assert.equal(calls.filter(c=>c.method!=='GET').length,0,'Skip posts nothing');assert.match(card(),/A few preferences/);
+ h.api.setupGo(2);await drain();h.handlers.keydown({key:'Enter',ctrlKey:true,preventDefault(){},target:{}});await drain();
+ assert.equal(calls.filter(c=>c.method==='POST').length,1);assert.match(card(),/Connect AI clients/);assert.match(card(),/role="alert">.*Claude Code: The skill file changed on disk/);
+ h.handlers.keydown({key:'Escape',preventDefault(){},target:{}});assert.match(card(),/Skip setup\?/,'Escape still asks before skipping setup');
+});
