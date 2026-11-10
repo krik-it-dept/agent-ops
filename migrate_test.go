@@ -48,9 +48,9 @@ func legacyHooks(runtime string) string {
 
 type migrationFixture struct {
 	profile, runtime, data, legacyData, states string
-	opts                                        migrationOptions
-	skillShared, skillClaude, ownerSkill        string
-	orca                                        []string
+	opts                                       migrationOptions
+	skillShared, skillClaude, ownerSkill       string
+	orca                                       []string
 }
 
 func newMigrationFixture(t *testing.T) migrationFixture {

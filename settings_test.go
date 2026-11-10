@@ -23,23 +23,23 @@ func settingsFixture(t *testing.T) string {
 	dir := isolated(t)
 	old := struct {
 		repos, state, script, data string
-		cfg                               AppConfig
-		warning, readOnly                 string
-		prevPlans                         map[string]Plan
-		ev                                []Event
-		raw                               []byte
-		errText                           string
-		stale                             map[string]time.Time
-		last                              map[string]bool
-		states                            []ProjectState
-		reader                            func() bool
-		writer                            func(bool)
-		managed                           func() bool
-		picker                            func(context.Context) (string, error)
-		opener                            func(string) error
-		legacy                            legacyPaths
-		allowLegacy                       func() bool
-		seen                              map[string]bool
+		cfg                        AppConfig
+		warning, readOnly          string
+		prevPlans                  map[string]Plan
+		ev                         []Event
+		raw                        []byte
+		errText                    string
+		stale                      map[string]time.Time
+		last                       map[string]bool
+		states                     []ProjectState
+		reader                     func() bool
+		writer                     func(bool)
+		managed                    func() bool
+		picker                     func(context.Context) (string, error)
+		opener                     func(string) error
+		legacy                     legacyPaths
+		allowLegacy                func() bool
+		seen                       map[string]bool
 	}{reposDir, stateFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed, seenProjects}
 	t.Cleanup(func() {
 		seenProjects = old.seen

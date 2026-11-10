@@ -67,11 +67,11 @@ var fontFiles embed.FS
 // ---------- state from tasks-overview.mjs ----------
 
 type Step struct {
-	Line      int      `json:"line"`
-	Milestone string   `json:"milestone,omitempty"`
-	Index     int      `json:"index"`
-	Status    string   `json:"status"`
-	Text      string   `json:"text"`
+	Line      int    `json:"line"`
+	Milestone string `json:"milestone,omitempty"`
+	Index     int    `json:"index"`
+	Status    string `json:"status"`
+	Text      string `json:"text"`
 }
 type Milestone struct {
 	ID      string `json:"id"`
@@ -1197,6 +1197,7 @@ func openWindowAt(fragment string) {
 	}
 	_ = hidden(exec.Command("rundll32", "url.dll,FileProtocolHandler", target)).Start()
 }
+
 var notifyKinds = map[string]string{"waiting": "Cần bạn xử lý", "blocked": "Bị chặn", "stale": "Đứng im", "question": "Câu hỏi mới"}
 
 func notify(fresh []Event) {

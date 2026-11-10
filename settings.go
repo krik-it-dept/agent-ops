@@ -41,7 +41,9 @@ var (
 func defaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), "AgentOps") }
 
 // legacyDefaultDataDir is the data folder of releases before v0.3.0.
-func legacyDefaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), legacyDataDirName) }
+func legacyDefaultDataDir() string {
+	return filepath.Join(os.Getenv("LOCALAPPDATA"), legacyDataDirName)
+}
 
 // The installed instance owns the Run key and protocol registration; dev, test
 // and smoke instances on other ports or data folders never rewrite them.

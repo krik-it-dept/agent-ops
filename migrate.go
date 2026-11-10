@@ -134,10 +134,10 @@ type migrationResult struct {
 	At      string `json:"at"`
 	// Done is set only when a run finished without errors; until then the next
 	// start retries (see NextRetryAt).
-	Done        bool   `json:"done"`
-	Attempts    int    `json:"attempts,omitempty"`
-	NextRetryAt string `json:"nextRetryAt,omitempty"`
-	Backup      string `json:"backup"`
+	Done           bool        `json:"done"`
+	Attempts       int         `json:"attempts,omitempty"`
+	NextRetryAt    string      `json:"nextRetryAt,omitempty"`
+	Backup         string      `json:"backup"`
 	ConfigCopied   bool        `json:"configCopied,omitempty"`
 	HooksRemoved   []string    `json:"hooksRemoved,omitempty"`
 	BlocksRemoved  []string    `json:"blocksRemoved,omitempty"`
