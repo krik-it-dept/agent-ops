@@ -183,6 +183,10 @@ func config() {
 	flag.StringVar(&updateFeed, "update-feed", "", "Loopback http://127.0.0.1:<port> release feed for isolated update tests")
 	flag.BoolVar(&migrateMode, "migrate", false, "Run the one-time migration from earlier releases for --profile-dir, print the result and exit")
 	flag.StringVar(&migrateRuntime, "runtime-dir", "", "With --migrate: the install folder whose run history registries are deleted")
+	flag.BoolVar(&installRequested, "install", false, "Install Agent Ops for the current user and launch")
+	flag.BoolVar(&installStartup, "install-startup", false, "With --install: start with Windows")
+	flag.BoolVar(&uninstallRequested, "uninstall", false, "Uninstall Agent Ops (keeps data by default)")
+	flag.IntVar(&setupParent, "setup-parent", 0, "Internal installer parent process")
 	flag.Parse()
 	// Precedence: flag > environment > config.json (applied by initSettings) > default.
 	given := map[string]bool{}
@@ -272,6 +276,9 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+		return
+	}
+	if installerExit() {
 		return
 	}
 	host, _, err := net.SplitHostPort(addr)

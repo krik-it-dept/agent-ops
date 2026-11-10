@@ -68,7 +68,8 @@ type migrationOptions struct {
 // folder together with its default data folder. Only that instance migrates the
 // real home's AI client files and deletes its legacy locations.
 func (o migrationOptions) installedInstance() bool {
-	return o.RuntimeDir != "" && samePath(o.RuntimeDir, filepath.Join(o.Profile, legacyRuntimeRel)) &&
+	return o.RuntimeDir != "" && (samePath(o.RuntimeDir, filepath.Join(o.Profile, legacyRuntimeRel)) ||
+		samePath(o.RuntimeDir, filepath.Join(profileLocalAppData(o.Profile), "Programs", "AgentOps"))) &&
 		samePath(o.DataDir, filepath.Join(profileLocalAppData(o.Profile), "AgentOps"))
 }
 
@@ -93,7 +94,7 @@ func (o migrationOptions) deletionScope() (roots []string, all bool) {
 		return nil, true
 	}
 	local := profileLocalAppData(o.Profile)
-	installed := []string{filepath.Join(o.Profile, legacyRuntimeRel), filepath.Join(local, "AgentOps"), filepath.Join(local, legacyDataDirName)}
+	installed := []string{filepath.Join(o.Profile, legacyRuntimeRel), filepath.Join(local, "Programs", "AgentOps"), filepath.Join(local, "AgentOps"), filepath.Join(local, legacyDataDirName)}
 	for _, dir := range []string{o.RuntimeDir, o.DataDir} {
 		own := dir != ""
 		for _, p := range installed {

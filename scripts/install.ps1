@@ -1,7 +1,6 @@
 param(
-    # The install folder of earlier releases stays the default until the installer
-    # moves to %LOCALAPPDATA%\Programs\AgentOps in a later release.
-    [string]$RuntimeDir = (Join-Path $env:USERPROFILE '.claude\tools\workboard'),
+    # Low-level ZIP copy path. Use agent-ops.exe --install for desktop registrations.
+    [string]$RuntimeDir = (Join-Path $env:LOCALAPPDATA 'Programs\AgentOps'),
     [string]$ProfileDir = $env:USERPROFILE,
     # Skip the one-time migration of AI client files (hooks, instruction blocks,
     # old skills) and old run history. -SkipSkills is the name earlier releases used.
@@ -58,7 +57,7 @@ foreach ($name in $retired) {
 }
 # An isolated -RuntimeDir with the default profile must not touch the real AI client
 # files or run history (the app enforces the same rule); it needs an explicit -ProfileDir.
-$defaultRuntime = [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE '.claude\tools\workboard'))
+$defaultRuntime = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs\AgentOps'))
 if (!$SkipMigration -and $RuntimeDir -ne $defaultRuntime -and !$PSBoundParameters.ContainsKey('ProfileDir')) {
     Write-Output 'Migration skipped: an isolated -RuntimeDir needs an explicit -ProfileDir (a temporary profile folder). No AI client file or run history was touched.'
     $SkipMigration = $true

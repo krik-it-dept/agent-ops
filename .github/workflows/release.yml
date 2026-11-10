@@ -70,6 +70,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: |
+            dist/agent-ops.exe
+            dist/agent-ops.exe.sha256
             dist/agent-ops-windows-amd64.zip
             dist/agent-ops-windows-amd64.zip.sha256
             dist/agent-ops-windows-amd64.manifest.json
@@ -94,5 +96,6 @@ jobs:
           cd assets
           # The artifact crossed jobs; check it still matches its checksum file.
           echo "$(cut -d' ' -f1 agent-ops-windows-amd64.zip.sha256)  agent-ops-windows-amd64.zip" | sha256sum --check --strict
+          sha256sum --check --strict agent-ops.exe.sha256
           gh release create "$TAG" --repo "$REPO" --draft --verify-tag --title "Agent Ops $TAG" --notes-file release-notes.md \
-            agent-ops-windows-amd64.zip agent-ops-windows-amd64.zip.sha256 agent-ops-windows-amd64.manifest.json
+            agent-ops.exe agent-ops.exe.sha256 agent-ops-windows-amd64.zip agent-ops-windows-amd64.zip.sha256 agent-ops-windows-amd64.manifest.json
