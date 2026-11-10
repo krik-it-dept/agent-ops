@@ -634,3 +634,17 @@ func TestV014HistoryIsUpgradedOnceAndRefreshIsQuiet(t *testing.T) {
 		t.Fatal("history detached after adding a same-named folder", events)
 	}
 }
+
+// The real picker pipeline (PowerShell output decoded by Go) keeps a Vietnamese
+// folder name; only the dialog itself is replaced by a constant chooser.
+func TestFolderPickerDecodesNonASCIIPaths(t *testing.T) {
+	want := `D:\Dự án\Tiếng Việt – ổn định`
+	t.Setenv("AGENT_OPS_PICK_TEST", want)
+	got, err := runFolderPicker(context.Background(), `$selected=[Environment]::GetEnvironmentVariable('AGENT_OPS_PICK_TEST');`)
+	if err != nil || got != want {
+		t.Fatalf("got %q, %v", got, err)
+	}
+	if got, err := runFolderPicker(context.Background(), ``); err != nil || got != "" {
+		t.Fatalf("a cancelled dialog must return nothing: %q, %v", got, err)
+	}
+}

@@ -619,14 +619,23 @@ func handleProject(w http.ResponseWriter, r *http.Request) {
 // pickFolderDialog opens the Windows folder dialog on the desktop. The console
 // stays hidden; the dialog is owned by a topmost form so it appears above Edge.
 func pickFolderDialog(ctx context.Context) (string, error) {
+	return runFolderPicker(ctx, folderDialogScript)
+}
+
+// folderDialogScript sets $selected to the chosen folder, or leaves it empty.
+const folderDialogScript = `$owner=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};` +
+	`$dialog=New-Object System.Windows.Forms.FolderBrowserDialog;` +
+	`$dialog.Description='Choose a project folder: a Git repository, or a folder that contains repositories.';` +
+	`$dialog.ShowNewFolderButton=$false;` +
+	`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){$selected=$dialog.SelectedPath};` +
+	`$owner.Dispose();`
+
+// runFolderPicker runs a constant chooser script and decodes its UTF-8 output, so
+// folder names outside the console code page (for example Vietnamese) survive.
+func runFolderPicker(ctx context.Context, choose string) (string, error) {
 	script := `Add-Type -AssemblyName System.Windows.Forms;` +
-		`[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;` +
-		`$owner=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};` +
-		`$dialog=New-Object System.Windows.Forms.FolderBrowserDialog;` +
-		`$dialog.Description='Choose a project folder: a Git repository, or a folder that contains repositories.';` +
-		`$dialog.ShowNewFolderButton=$false;` +
-		`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Out.Write($dialog.SelectedPath)};` +
-		`$owner.Dispose()`
+		`[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;$selected='';` + choose +
+		`if($selected){[Console]::Out.Write($selected)}`
 	output, err := hidden(exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-STA", "-ExecutionPolicy", "Bypass", "-Command", script)).Output()
 	if err != nil {
 		return "", err
