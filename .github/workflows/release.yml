@@ -2,6 +2,9 @@ name: Release draft
 # Pushing a vX.Y.Z tag on main runs every check, builds the package and its manifest,
 # runs the N-1 to N update test and creates a DRAFT GitHub release. The owner reviews
 # the draft and publishes it; installed apps only see published releases.
+# Least privilege: the build job, which runs downloaded modules, the build and the
+# built binaries, holds only a read token that is not persisted in .git/config. Only
+# the publish job holds contents: write, and it runs no repository code.
 on:
   push:
     tags: ['v*']
@@ -11,14 +14,15 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  release:
+  build:
     runs-on: windows-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -60,12 +64,35 @@ jobs:
         run: node scripts/smoke.mjs
       - name: N-1 to N in-app update test
         run: node scripts/update-e2e.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/agent-ops-windows-amd64.zip
+            dist/agent-ops-windows-amd64.zip.sha256
+            dist/agent-ops-windows-amd64.manifest.json
+            dist/release-notes.md
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release-assets
+          path: assets
       - name: Create the draft release
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create $env:TAG --draft --verify-tag --title "Agent Ops $env:TAG" --notes-file dist/release-notes.md `
-            dist/agent-ops-windows-amd64.zip dist/agent-ops-windows-amd64.zip.sha256 dist/agent-ops-windows-amd64.manifest.json
-          if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release.' }
+          set -euo pipefail
+          cd assets
+          # The artifact crossed jobs; check it still matches its checksum file.
+          echo "$(cut -d' ' -f1 agent-ops-windows-amd64.zip.sha256)  agent-ops-windows-amd64.zip" | sha256sum --check --strict
+          gh release create "$TAG" --repo "$REPO" --draft --verify-tag --title "Agent Ops $TAG" --notes-file release-notes.md \
+            agent-ops-windows-amd64.zip agent-ops-windows-amd64.zip.sha256 agent-ops-windows-amd64.manifest.json

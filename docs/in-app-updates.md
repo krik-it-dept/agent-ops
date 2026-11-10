@@ -78,7 +78,7 @@ Recovery failures remain visible after restart instead of being overwritten by a
 
 1. Bump `VERSION` and add a `## vX.Y.Z` section to `CHANGELOG.md` in a PR; merge it to `main`.
 2. Tag the merge commit and push the tag: `git tag vX.Y.Z origin/main && git push origin vX.Y.Z`.
-3. `.github/workflows/release.yml` checks that the tag equals `VERSION` and is on `main`, runs tests, vet, the vulnerability scan, the build, the package smoke and the N-1 to N update test, then creates a **draft** release with the three assets and the changelog section as notes.
+3. `.github/workflows/release.yml` checks that the tag equals `VERSION` and is on `main`, runs tests, vet, the vulnerability scan, the build, the package smoke and the N-1 to N update test in a `build` job with a read-only token that is not persisted, then a separate `publish` job, the only one with `contents: write` and running no repository code, re-checks the ZIP checksum and creates a **draft** release with the three assets and the changelog section as notes.
 4. Review the draft on GitHub and click **Publish release**. Installed apps see it within six hours, or at once with **Check for updates**.
 
 A build of any commit that is not tagged with `VERSION` reports `vX.Y.Z-dev.<commit>`; the updater never offers updates to it and never installs it.
