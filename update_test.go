@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -843,5 +844,36 @@ func TestUpdatePathsRejectJunctions(t *testing.T) {
 	updatePut(t, filepath.Join(target, "SKILL.md"), []byte("x"))
 	if err := regularUpdateFile(filepath.Join(link, "SKILL.md")); err == nil {
 		t.Fatal("a file behind a junction was accepted")
+	}
+}
+
+func TestHandoffAtManifestLimitsIsReadable(t *testing.T) {
+	_, m := updateFixture(t)
+	m.Version = 2
+	padded := func(prefix string, i int) string {
+		head := fmt.Sprintf("%s%03d-", prefix, i)
+		return head + strings.Repeat("a", pkgmanifest.MaxPathLength-len(head)-len(".md")) + ".md"
+	}
+	for i := 0; len(m.Hashes) < pkgmanifest.MaxFiles; i++ {
+		name := padded("docs/file", i)
+		b := []byte(name)
+		updatePut(t, filepath.Join(m.Package, filepath.FromSlash(name)), b)
+		m.Hashes[name] = digestOf(b)
+	}
+	for i := 0; len(m.Remove) < pkgmanifest.MaxRemove; i++ {
+		m.Remove = append(m.Remove, padded("old/gone", i))
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(b) <= 64<<10 || len(b) > maxHandoffBytes/2 {
+		t.Fatal("the fixture does not exercise the limit:", len(b))
+	}
+	file := filepath.Join(filepath.Dir(m.Package), "manifest.json")
+	updatePut(t, file, b)
+	got, err := readUpdateManifest(file)
+	if err != nil || len(got.Hashes) != pkgmanifest.MaxFiles || len(got.Remove) != pkgmanifest.MaxRemove {
+		t.Fatal("a handoff at the manifest limits was rejected:", err)
 	}
 }

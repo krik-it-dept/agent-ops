@@ -115,6 +115,11 @@ func atomicUpdateFile(file string, b []byte) error {
 	return replaceUpdateFile(tmp, file)
 }
 
+// maxHandoffBytes covers a handoff at the package manifest maxima (MaxFiles
+// files and MaxRemove removals of MaxPathLength each, with digests and paths),
+// which is about 130 KiB, so every manifest the app accepts can be handed off.
+const maxHandoffBytes = 512 << 10
+
 func readUpdateManifest(file string) (updateManifest, error) {
 	var m updateManifest
 	if err := regularUpdateFile(file); err != nil {
@@ -125,7 +130,7 @@ func readUpdateManifest(file string) (updateManifest, error) {
 		return m, err
 	}
 	defer f.Close()
-	d := json.NewDecoder(io.LimitReader(f, 64<<10))
+	d := json.NewDecoder(io.LimitReader(f, maxHandoffBytes))
 	d.DisallowUnknownFields()
 	if err = d.Decode(&m); err != nil {
 		return m, err
