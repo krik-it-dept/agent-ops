@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {publishTask,claudeReportingHook} from './task-sync.mjs';
@@ -78,6 +79,47 @@ test('Installing twice makes no duplicate rules or extra edits',t=>{
   assert.deepEqual(again.changed,[]);assert.equal(again.backup,null);
   assert.equal(readFileSync(join(home,'.codex','AGENTS.md'),'utf8'),before);
   assert.equal((before.match(/workboard-task-reporting:start/g)||[]).length,1);
+});
+test('Updates keep skills, hooks and instruction blocks the owner changed or removed',t=>{
+  const home=join(isolated(t),'profile');
+  const shared=join(home,'.agents','skills','task-plan','SKILL.md'),claudeSkill=join(home,'.claude','skills','task-plan','SKILL.md');
+  const settings=join(home,'.claude','settings.json'),codex=join(home,'.codex','AGENTS.md'),claude=join(home,'.claude','CLAUDE.md');
+  const ledger=join(home,'.agents','workboard-integrations.json');
+  const first=installReporting(home);
+  assert.deepEqual(first.kept,[]);assert.ok(existsSync(ledger));
+  const template=readFileSync(shared,'utf8');
+  // The owner adds a section to the shared skill, deletes the hooks and edits one block.
+  const custom=template+'\n## Workspace root (shared with Orca)\nOwner text.\n';put(shared,custom);
+  const config=JSON.parse(readFileSync(settings,'utf8'));delete config.hooks;config.model='mine';put(settings,JSON.stringify(config,null,2));
+  put(codex,readFileSync(codex,'utf8').replace('Do not create plans for trivial work.','Owner wording.'));
+  const again=installReporting(home);
+  assert.equal(readFileSync(shared,'utf8'),custom);
+  assert.equal(JSON.parse(readFileSync(settings,'utf8')).hooks,undefined);
+  assert.match(readFileSync(codex,'utf8'),/Owner wording\./);
+  assert.deepEqual(again.kept.map(k=>[k.file,k.part,k.reason]).sort(),[[shared,'file','modified locally'],[codex,'block','modified locally'],[settings,'hooks','removed locally']].sort());
+  assert.deepEqual(again.changed,[]);
+  // A file that still holds what the installer last wrote is replaced.
+  put(claudeSkill,'older text written by Agent Ops\n');
+  const parts=JSON.parse(readFileSync(ledger,'utf8')).parts;
+  parts['.claude/skills/task-plan/SKILL.md#file']=createHash('sha256').update('older text written by Agent Ops\n').digest('hex');
+  put(ledger,JSON.stringify({version:1,parts}));
+  assert.deepEqual(installReporting(home).changed,[claudeSkill]);
+  assert.equal(readFileSync(claudeSkill,'utf8'),template);
+});
+test('Without a record, only text from an earlier release is replaced',t=>{
+  const home=join(isolated(t),'profile');
+  const shared=join(home,'.agents','skills','task-plan','SKILL.md'),claude=join(home,'.claude','CLAUDE.md'),gemini=join(home,'.gemini','GEMINI.md');
+  installReporting(home);
+  rmSync(join(home,'.agents','workboard-integrations.json'));
+  // v0.1.3 wrote the block without the host-reporting sentence.
+  const host=/\nWhen WORKBOARD_HOST_REPORTING=1[^\n]*/;
+  put(claude,readFileSync(claude,'utf8').replace(host,''));
+  put(gemini,readFileSync(gemini,'utf8').replace('Workboard is an execution log','Owner edit'));
+  put(shared,readFileSync(shared,'utf8')+'\nOwner section\n');
+  const result=installReporting(home);
+  assert.match(readFileSync(claude,'utf8'),host);
+  assert.deepEqual(result.kept.map(k=>[k.file,k.reason]).sort(),[[gemini,'modified locally'],[shared,'modified locally']].sort());
+  assert.match(readFileSync(shared,'utf8'),/Owner section/);
 });
 test('Malformed managed blocks are rejected before any file is changed',t=>{
   const home=join(isolated(t),'profile'),file=join(home,'.gemini','GEMINI.md');

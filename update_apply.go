@@ -329,11 +329,12 @@ func applyUpdateManifest(file string) error {
 		return errors.Join(cause, restoreErr, restartErr)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	_, err = runUpdateCommand(ctx, "node", filepath.Join(m.Root, "integrations", "install-task-reporting.mjs"), "--home", m.Profile, "--runtime-dir", m.Root)
+	installed, err := runUpdateCommand(ctx, "node", filepath.Join(m.Root, "integrations", "install-task-reporting.mjs"), "--home", m.Profile, "--runtime-dir", m.Root)
 	cancel()
 	if err != nil {
 		return recoverOld(errors.New("Reporting instruction update failed"))
 	}
+	message := "Updated to " + m.Tag + keptIntegrationsNote(installed)
 	cmd, err := launchUpdatedApp(m)
 	if err != nil {
 		return recoverOld(err)
@@ -343,5 +344,29 @@ func applyUpdateManifest(file string) error {
 		_ = cmd.Wait()
 		return recoverOld(errors.New("Updated application failed its startup check"))
 	}
-	return writeUpdateJSON(resultFile, updateResult{"updated", m.Tag, "Updated to " + m.Tag})
+	return writeUpdateJSON(resultFile, updateResult{"updated", m.Tag, message})
+}
+
+// keptIntegrationsNote names the skill, hook and instruction files the reporting
+// installer left alone because the owner changed or removed them.
+func keptIntegrationsNote(installerOutput []byte) string {
+	var out struct {
+		Kept []struct {
+			File   string `json:"file"`
+			Reason string `json:"reason"`
+		} `json:"kept"`
+	}
+	if json.Unmarshal(installerOutput, &out) != nil || len(out.Kept) == 0 {
+		return ""
+	}
+	seen := map[string]bool{}
+	files := []string{}
+	for _, k := range out.Kept {
+		item := k.File + " (" + k.Reason + ")"
+		if !seen[item] {
+			seen[item] = true
+			files = append(files, item)
+		}
+	}
+	return ". Your changes were kept, so these were not updated: " + strings.Join(files, "; ")
 }

@@ -118,6 +118,9 @@ func newAppUpdater(root, data, profile string, args []string) *appUpdater {
 		if result.Phase == "updated" && result.Version == appVersion {
 			u.state.Phase = "updated"
 			u.state.Message = "Updated to " + appVersion
+			if strings.HasPrefix(result.Message, u.state.Message) {
+				u.state.Message = result.Message
+			}
 		}
 		if result.Phase == "error" {
 			u.state.Phase = "error"
