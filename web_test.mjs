@@ -915,7 +915,7 @@ test('Settings About opens the logs folder and copies diagnostics through protec
  const copied=[];h.context.navigator={clipboard:{writeText:async text=>{copied.push(text);}}};
  h.api.openSettings('about');await drain();
  const page=()=>h.ids.settings.innerHTML;
- assert.match(page(),/Troubleshooting/);assert.match(page(),/Open logs folder/);assert.match(page(),/Copy diagnostics/);assert.match(page(),/never plan content/);
+ assert.match(page(),/Troubleshooting/);assert.match(page(),/Open logs folder/);assert.match(page(),/Copy diagnostics/);assert.match(page(),/never plan content, project names or paths/);assert.match(page(),/do not post them publicly/);
  h.handlers.click({target:hit('[data-open-logs]')});await drain();
  const open=calls.find(c=>c.path==='/api/settings/open-folder');
  assert.deepEqual(open.body,{target:'logs'});assert.equal(open.headers['X-Workboard'],'1');

@@ -55,11 +55,16 @@ func TestRotatingLogCapsSizeAndKeepsFixedHistory(t *testing.T) {
 
 func TestLogRecordsKeyEvents(t *testing.T) {
 	data := isolateCrashState(t)
-	setRefreshError("Node.js was not found. Install Node.js 24, then restart Agent Ops.")
-	setRefreshError("")
+	setRefreshError(refreshKindProjectFailed+" (1)", `Could not read project “Secret Client” (C:\clients\secret): plan text`)
+	setRefreshError("", "")
 	b, _ := os.ReadFile(filepath.Join(data, "logs", "agent-ops.log"))
-	if !strings.Contains(string(b), "plan refresh failed") || !strings.Contains(string(b), "plan refresh recovered") {
+	if !strings.Contains(string(b), "plan refresh failed") || !strings.Contains(string(b), "project unreadable (1)") || !strings.Contains(string(b), "plan refresh recovered") {
 		t.Fatal(string(b))
+	}
+	for _, secret := range []string{"Secret Client", "secret", "plan text"} {
+		if strings.Contains(string(b), secret) {
+			t.Fatal("the log kept the refresh reason text", secret)
+		}
 	}
 }
 
@@ -141,19 +146,42 @@ func TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths(t *testing.T) {
 	t.Cleanup(func() { cfgMu.Lock(); appCfg = prevCfg; cfgMu.Unlock() })
 	appCfg.Projects = []Project{{ID: "p1", Path: secretPath, Name: "Secret Client", Kind: "folder", Enabled: true}}
 	cfgMu.Unlock()
-	mu.Lock()
-	refreshError = "Node failed: could not read plans (exit status 1). Plan text: confidential roadmap"
-	mu.Unlock()
-	t.Cleanup(func() { mu.Lock(); refreshError = ""; mu.Unlock() })
-	text := diagnosticsText()
-	for _, want := range []string{"Version: " + appVersion, "OS: Windows", "Node.js: v24.0.0", "Projects: 1 configured, 1 enabled, 1 folders", "Plan refresh: failing: Node failed: could not read plans (exit status 1)", "Last crash: none"} {
-		if !strings.Contains(text, want) {
-			t.Fatal("missing", want, "\n", text)
-		}
+	t.Cleanup(func() { mu.Lock(); refreshError, refreshErrorKind = "", ""; mu.Unlock() })
+	if text := diagnosticsText(); !strings.Contains(text, "Plan refresh: ok") || !strings.Contains(text, "Last crash: none") {
+		t.Fatal(text)
 	}
-	for _, secret := range []string{secretPath, "Secret Client", "confidential roadmap"} {
-		if strings.Contains(text, secret) {
-			t.Fatal("diagnostics leaked", secret)
+	// Every free-text source the app holds carries a secret: the crash message
+	// and location, the update error and each refresh failure reason.
+	writeCrash(crashRecord{Kind: "panic", Where: "http GET /api/x/Secret Client", Message: "open " + secretPath + `\plan.md: confidential roadmap`})
+	prevUpdates := updates
+	updates = &appUpdater{}
+	updates.state.Phase = "error"
+	updates.state.Error = "Could not write " + secretPath + `\agent-ops.exe`
+	t.Cleanup(func() { updates = prevUpdates })
+	secrets := []string{secretPath, "Secret Client", "secret-client-project", "confidential roadmap", logDir, `:\`, `\Users\`}
+	if user := os.Getenv("USERNAME"); len(user) > 2 {
+		secrets = append(secrets, user)
+	}
+	cases := []struct{ kind, reason, want string }{
+		{refreshKindCollector, "Node failed: could not read plans (exit status 1). Plan text: confidential roadmap", "Plan refresh: failing: collector failed"},
+		{refreshKindProjectFailed + " (2)", "Could not read project “Secret Client” (" + secretPath + "): confidential roadmap", "Plan refresh: failing: project unreadable (2)"},
+		{refreshKindStateFolder, "Cannot create the state folder " + secretPath + ": Access is denied.", "Plan refresh: failing: state folder"},
+		{"", "Secret Client failed in " + secretPath, "Plan refresh: failing: unknown"},
+	}
+	for _, c := range cases {
+		mu.Lock()
+		refreshError, refreshErrorKind = c.reason, c.kind
+		mu.Unlock()
+		text := diagnosticsText()
+		for _, want := range []string{"Version: " + appVersion, "OS: Windows", "Node.js: v24.0.0", "Projects: 1 configured, 1 enabled, 1 folders", c.want, "Updates: error, error reported", "Last crash: " + appVersion + " panic at ", "(1 total)"} {
+			if !strings.Contains(text, want) {
+				t.Fatal("missing", want, "\n", text)
+			}
+		}
+		for _, secret := range secrets {
+			if strings.Contains(strings.ToLower(text), strings.ToLower(secret)) {
+				t.Fatal("diagnostics leaked", secret, "\n", text)
+			}
 		}
 	}
 	mux := http.NewServeMux()

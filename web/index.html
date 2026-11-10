@@ -2037,10 +2037,10 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     return '<div class="setting-row about-head">'+appLogo()+'<div class="setting-text"><span class="setting-label">Agent Ops '+esc(data.version || s.current || D.appVersion || '')+'</span><small>A local work ledger for the plans in your projects.'+(s.commit?' Commit <span class="mono">'+esc(String(s.commit).slice(0,12))+'</span>':'')+'</small></div>'+
       '<div class="setting-control"><button class="btn btn-xs" id="settings-check-updates" data-settings-check-updates'+(busy?' disabled':'')+'>'+(checking?spinner()+'Checking…':'Check for updates')+'</button></div></div>'+status+notes+troubleshootingRow();
   }
-  // Logs and diagnostics stay on this computer; diagnostics never include plan content or project paths.
+  // Diagnostics are versions, counts, switches and fixed failure categories only (TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths).
   function troubleshootingRow(){
     var busy=settingsUI.busy;
-    return '<div class="setting-row" id="settings-row-diagnostics"><div class="setting-text"><span class="setting-label">Troubleshooting</span><small>Logs stay on this computer. Diagnostics list versions and a settings summary, never plan content or project paths.</small>'+fieldMessage(settingsUI)+'</div>'+
+    return '<div class="setting-row" id="settings-row-diagnostics"><div class="setting-text"><span class="setting-label">Troubleshooting</span><small>Diagnostics hold only versions, counts and on/off settings: never plan content, project names or paths. Logs stay on this computer and can contain folder paths, so do not post them publicly.</small>'+fieldMessage(settingsUI)+'</div>'+
       '<div class="setting-control"><button class="btn btn-xs" id="settings-open-logs" data-open-logs'+(busy?' disabled':'')+'>'+icon('folder')+'Open logs folder</button><button class="btn btn-xs" id="settings-copy-diagnostics" data-copy-diagnostics'+(busy?' disabled':'')+'>'+(busy==='copying'?spinner():'')+'Copy diagnostics</button></div></div>';
   }
   function group(title,rows){return '<section class="settings-group">'+(title?'<h3>'+esc(title)+'</h3>':'')+'<div class="setting-list">'+rows+'</div></section>';}

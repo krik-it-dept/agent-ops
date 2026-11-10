@@ -169,6 +169,7 @@ var (
 	dataDir             string
 	refreshMu           sync.Mutex
 	refreshError        string
+	refreshErrorKind    string
 	background          bool
 	activation          string
 	trayReady           atomic.Bool
@@ -469,18 +470,30 @@ func collectorCommand(ctx context.Context) *exec.Cmd {
 	return cmd
 }
 
-func collectorFailure(err error, output []byte) string {
+// Fixed refresh failure categories. Diagnostics and the log record only these,
+// never the reason text, which can quote plan files, project names or paths.
+const (
+	refreshKindStateFolder   = "state folder"
+	refreshKindNodeMissing   = "node missing"
+	refreshKindTimeout       = "timeout"
+	refreshKindCollector     = "collector failed"
+	refreshKindStateRead     = "state unreadable"
+	refreshKindStateInvalid  = "state invalid"
+	refreshKindProjectFailed = "project unreadable"
+)
+
+func collectorFailure(err error, output []byte) (kind, reason string) {
 	if errors.Is(err, exec.ErrNotFound) {
-		return "Node.js was not found. Install Node.js 24, then restart Agent Ops."
+		return refreshKindNodeMissing, "Node.js was not found. Install Node.js 24, then restart Agent Ops."
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return "Reading plans took longer than 30 seconds and was stopped. Retry, or disable a large project in Settings."
+		return refreshKindTimeout, "Reading plans took longer than 30 seconds and was stopped. Retry, or disable a large project in Settings."
 	}
-	reason := strings.TrimSpace(string(output))
+	reason = strings.TrimSpace(string(output))
 	if len(reason) > 400 {
 		reason = reason[:400]
 	}
-	return strings.TrimSpace(fmt.Sprintf("Node failed: could not read plans (%v). %s", err, reason))
+	return refreshKindCollector, strings.TrimSpace(fmt.Sprintf("Node failed: could not read plans (%v). %s", err, reason))
 }
 
 var (
@@ -512,7 +525,7 @@ func refresh(first bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		if err := os.MkdirAll(filepath.Dir(stateFile), 0o755); err != nil {
-			setRefreshError("Cannot create the state folder " + filepath.Dir(stateFile) + ": " + err.Error())
+			setRefreshError(refreshKindStateFolder, "Cannot create the state folder "+filepath.Dir(stateFile)+": "+err.Error())
 			return
 		}
 		output, err := collectorCommand(ctx).CombinedOutput()
@@ -525,23 +538,30 @@ func refresh(first bool) {
 		}
 		raw, err = os.ReadFile(stateFile)
 		if err != nil {
-			setRefreshError("Read state: " + err.Error())
+			setRefreshError(refreshKindStateRead, "Read state: "+err.Error())
 			return
 		}
 		if err := json.Unmarshal(raw, &st); err != nil {
-			setRefreshError("Invalid state JSON: " + err.Error())
+			setRefreshError(refreshKindStateInvalid, "Invalid state JSON: "+err.Error())
 			return
 		}
 		if err := validateState(st); err != nil {
-			setRefreshError("Invalid state JSON: " + err.Error())
+			setRefreshError(refreshKindStateInvalid, "Invalid state JSON: "+err.Error())
 			return
 		}
 		// A project that exists but cannot be read keeps the last good state.
+		failed, first := 0, ProjectState{}
 		for _, ps := range st.Projects {
 			if ps.Status == "error" {
-				setRefreshError("Could not read project “" + ps.Name + "” (" + ps.Path + "): " + ps.Message)
-				return
+				if failed == 0 {
+					first = ps
+				}
+				failed++
 			}
+		}
+		if failed > 0 {
+			setRefreshError(fmt.Sprintf("%s (%d)", refreshKindProjectFailed, failed), "Could not read project “"+first.Name+"” ("+first.Path+"): "+first.Message)
+			return
 		}
 	}
 	readable := map[string]bool{}
@@ -552,7 +572,7 @@ func refresh(first bool) {
 	}
 	mu.Lock()
 	rawState = raw
-	refreshError = ""
+	refreshError, refreshErrorKind = "", ""
 	projectStates = st.Projects
 	_ = os.WriteFile(filepath.Join(dataDir, "state.json"), raw, 0o644)
 	cur := map[string]Plan{}
@@ -651,14 +671,20 @@ func validateState(st State) error {
 	return nil
 }
 
-func setRefreshError(reason string) {
+// setRefreshError records a failed refresh. kind is a fixed category (see
+// refreshKind*); reason is shown to the owner in the app but is never logged or
+// copied into diagnostics because it can quote plan text, project names and paths.
+func setRefreshError(kind, reason string) {
+	if reason == "" {
+		kind = ""
+	}
 	mu.Lock()
 	changed := refreshError != reason
-	refreshError = reason
+	refreshError, refreshErrorKind = reason, kind
 	mu.Unlock()
 	if changed {
 		if reason != "" {
-			logWarn("plan refresh failed", "reason", reason)
+			logWarn("plan refresh failed", "category", kind, "reasonBytes", len(reason))
 		} else {
 			logInfo("plan refresh recovered")
 		}

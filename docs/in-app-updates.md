@@ -71,7 +71,8 @@ Recovery failures remain visible after restart instead of being overwritten by a
 - `<data-dir>\logs\agent-ops.log`, rotated at 1 MB with five files kept: start, plan refresh failures and recovery, update steps, notification failures and crashes.
 - `<data-dir>\logs\update.log`: the update helper's steps, including rollback.
 - Background work and HTTP handlers recover panics, log the stack and write `<data-dir>\crash.json`; long-lived loops restart with a growing delay. Fatal Go runtime output goes to `logs\fatal.log`; on the next start it is archived as `fatal-<time>.log` and becomes a crash marker. A crash marker shows a non-modal notice with **Open logs** and **Dismiss**.
-- **Copy diagnostics** copies versions, Windows build, Go and Node.js versions, a settings summary (counts and switches), the first sentence of a refresh failure, the update status and the last crash. It never includes plan content, project names or project paths. Nothing is sent anywhere.
+- **Copy diagnostics** copies versions, Windows build, Go and Node.js versions, a settings summary (counts and switches), a fixed category for a refresh failure (`node missing`, `timeout`, `collector failed`, `state folder`, `state unreadable`, `state invalid`, `project unreadable (n)`), the update phase with an error flag, and the last crash's version, kind, time and count. It never includes error text, crash messages, plan content, project names or paths. Nothing is sent anywhere.
+- The log records refresh failures by category and length, not their text. Update and crash entries can contain folder paths on this computer, so the UI says not to post logs publicly.
 
 ## Release flow
 

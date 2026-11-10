@@ -22,7 +22,8 @@ removes program files. A v0.2.0 installation updates to it in the app as usual.
   them and show a notice with **Open logs**. A crash that ends the app is reported
   on the next start.
 - **Settings > About** adds **Open logs folder** and **Copy diagnostics** (versions,
-  Windows build and a settings summary; never plan content or project paths).
+  Windows build, counts, switches and fixed failure categories; never plan
+  content, project names or paths). Logs stay local and can contain folder paths.
 - Old update staging folders are pruned; the newest three are kept.
 - Builds of an untagged commit report `vX.Y.Z-dev.<commit>` and are never offered
   updates. Releases are built by the release workflow from a version tag.

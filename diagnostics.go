@@ -33,8 +33,9 @@ func yesNo(v bool) string {
 }
 
 // diagnosticsText is what "Copy diagnostics" puts on the clipboard: versions,
-// OS, a configuration summary and recent failures. It never includes plan
-// content, project paths or names.
+// OS, counts, switches and fixed failure categories. It never includes free
+// text that could carry plan content, project names or paths: no refresh or
+// update error text, no crash message or location, no folder paths.
 func diagnosticsText() string {
 	var b strings.Builder
 	line := func(k, v string) { fmt.Fprintf(&b, "%s: %s\n", k, v) }
@@ -76,14 +77,15 @@ func diagnosticsText() string {
 	line("Config read-only", yesNo(readOnly != ""))
 
 	mu.Lock()
-	refreshFailing := refreshError
+	refreshFailing, refreshKind := refreshError, refreshErrorKind
 	plans := len(prev)
 	mu.Unlock()
 	line("Plans loaded", fmt.Sprint(plans))
 	if refreshFailing != "" {
-		// Only the first sentence: collector output may quote plan files.
-		first, _, _ := strings.Cut(refreshFailing, ". ")
-		line("Plan refresh", "failing: "+firstLine(first))
+		if refreshKind == "" {
+			refreshKind = "unknown"
+		}
+		line("Plan refresh", "failing: "+refreshKind)
 	} else {
 		line("Plan refresh", "ok")
 	}
@@ -97,16 +99,19 @@ func diagnosticsText() string {
 			status += ", checked " + s.CheckedAt
 		}
 		if s.Error != "" {
-			status += ", error: " + s.Error
+			// The message can name folders on this computer.
+			status += ", error reported"
 		}
 		line("Updates", status)
 	}
 	if rec, ok := readCrash(); ok {
-		line("Last crash", fmt.Sprintf("%s %s in %s at %s (%d total): %s", rec.Version, rec.Kind, rec.Where, rec.Time, rec.Count, rec.Message))
+		// Kind, version, time and count only: the panic message and request
+		// path can carry paths or plan text. The local log has the details.
+		line("Last crash", fmt.Sprintf("%s %s at %s (%d total)", rec.Version, rec.Kind, rec.Time, rec.Count))
 	} else {
 		line("Last crash", "none")
 	}
-	line("Logs", logDir)
+	line("Logs", "kept on this computer (Settings > About > Open logs folder)")
 	return b.String()
 }
 
