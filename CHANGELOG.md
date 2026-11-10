@@ -35,6 +35,9 @@ the package.
   (settings are copied once from the old folder), the `agent-ops:` protocol,
   the **Agent Ops** startup entry (the old protocol and startup entry are
   removed), `AGENT_OPS_*` variables and the `X-Agent-Ops` request header.
+  The app's Edge profile lives in the new data folder, so preferences kept in
+  the browser (stars, recent plans, collapsed groups, view settings) start
+  fresh once; plans and settings are unaffected.
 - The plan list, board, history and summary no longer show agents, executors,
   run evidence or slots.
 

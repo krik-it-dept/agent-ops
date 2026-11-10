@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -621,4 +622,86 @@ func TestOwnerActionItemsDoNotKeepTheMigrationOpen(t *testing.T) {
 	if strings.Count(kept, "(not valid JSON)") != 2 || mread(t, f.orca[0]) != "{ not json" || !strings.Contains(mread(t, f.orca[1]), "\xff") {
 		t.Fatal("invalid settings were edited or not listed", kept)
 	}
+}
+
+// Edge inputs: a client file changed at the last moment is not written and keeps
+// the migration open for a retry; a linked file is left alone and listed;
+// invalid JSON or UTF-8 is never rewritten.
+func TestMigrationEdgeInputs(t *testing.T) {
+	t.Run("file changed during the migration", func(t *testing.T) {
+		f := newMigrationFixture(t)
+		settings := filepath.Join(f.profile, ".claude", "settings.json")
+		old := beforeClientReplace
+		t.Cleanup(func() { beforeClientReplace = old })
+		concurrent := ""
+		beforeClientReplace = func(file string) {
+			if file == settings && concurrent == "" {
+				concurrent = mread(t, file) + " "
+				mput(t, file, concurrent)
+			}
+		}
+		r, err := runMigration(f.opts)
+		if err != nil || len(r.Errors) != 1 || !strings.Contains(r.Errors[0], errClientFileChanged.Error()) {
+			t.Fatal(err, r.Errors)
+		}
+		if mread(t, settings) != concurrent {
+			t.Fatal("a concurrent edit was overwritten")
+		}
+		if migrationDone(f.data) {
+			t.Fatal("a migration with a skipped file was recorded as done")
+		}
+		for _, w := range r.Writes {
+			if samePath(w.File, settings) {
+				t.Fatal("an unwritten file was recorded as written")
+			}
+		}
+	})
+	t.Run("linked settings file", func(t *testing.T) {
+		f := newMigrationFixture(t)
+		settings := filepath.Join(f.profile, ".claude", "settings.json")
+		target := filepath.Join(filepath.Dir(f.profile), "elsewhere-settings.json")
+		mput(t, target, mread(t, settings))
+		if err := os.Remove(settings); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(target, settings); err != nil {
+			// Without the symlink privilege, a junction (no privilege needed) at the
+			// file's name exercises the same "the file itself is a link" rule.
+			dir := filepath.Join(filepath.Dir(f.profile), "elsewhere-dir")
+			if err := os.MkdirAll(dir, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if out, err := exec.Command("cmd", "/c", "mklink", "/J", settings, dir).CombinedOutput(); err != nil {
+				t.Skip("no symbolic link or junction available:", err, string(out))
+			}
+			t.Cleanup(func() { os.Remove(settings) })
+		}
+		before := mread(t, target)
+		r, err := runMigration(f.opts)
+		if err != nil || len(r.Errors) != 0 || !r.Done {
+			t.Fatal(err, r.Errors)
+		}
+		if mread(t, target) != before || !strings.Contains(strings.Join(r.Kept, "\n"), settings+" (a link") {
+			t.Fatal("a linked file was edited or not listed", r.Kept)
+		}
+	})
+	t.Run("invalid JSON and UTF-8", func(t *testing.T) {
+		for name, content := range map[string]string{
+			"truncated":  `{"hooks":`,
+			"trailing":   `{"a":1} {"b":2}`,
+			"bad utf-8":  "{\"hooks\":{\"Stop\":[{\"hooks\":[{\"command\":\"node C:/x/task-sync.mjs --claude-hook\"}]}]},\"note\":\"caf\xe9\"}",
+			"not object": `[1,2]`,
+		} {
+			out, n, err := settingsWithoutHooks([]byte(content), legacyHookScript, legacyHookFlag)
+			if name == "not object" {
+				if err != nil || n != 0 || string(out) != content {
+					t.Fatal(name, err, n)
+				}
+				continue
+			}
+			if err == nil {
+				t.Fatal(name, "accepted", string(out))
+			}
+		}
+	})
 }

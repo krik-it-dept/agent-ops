@@ -6,9 +6,12 @@ package main
 //     final rename; if anything changed meanwhile, nothing is written;
 //   - backs the previous file up first;
 //   - replaces the file atomically (temp file in the same folder, then rename);
-//   - never follows a symbolic link or junction.
+//   - never edits a file that is itself a symbolic link or junction. Folders
+//     above it may be links (a junctioned ~/.claude, Orca's skills junction);
+//     the edit and its rollback then go through the same path.
 // Only text inside Agent Ops' own markers, or a whole file Agent Ops wrote, is
-// ever changed.
+// ever changed, apart from the blank lines that separated a block appended at
+// the end of a file (see removeBlock).
 
 import (
 	"bytes"
@@ -26,6 +29,10 @@ import (
 
 var errClientFileChanged = errors.New("the file changed while Agent Ops was editing it; nothing was written")
 var errClientFileLinked = errors.New("the file is a link; Agent Ops does not edit linked files")
+
+// beforeClientReplace runs just before the final re-read of a client write; tests
+// use it to change the file at the last moment, as Claude Code or Orca could.
+var beforeClientReplace = func(file string) {}
 
 // userHomeDir is replaced in tests. Paths outside a profile (APPDATA, CLAUDE_CONFIG_DIR,
 // LOCALAPPDATA) are used only when the profile is this user's real home, so a
@@ -82,7 +89,8 @@ func sha256Hex(b []byte) string {
 // lfText normalizes line endings for comparisons and hashes.
 func lfText(b []byte) string { return strings.ReplaceAll(string(b), "\r\n", "\n") }
 
-// linkedPath reports a symbolic link or junction at the file itself.
+// linkedPath reports a symbolic link or junction at the file itself (not at a
+// parent folder).
 func linkedPath(file string) bool {
 	info, err := os.Lstat(file)
 	return err == nil && info.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0
@@ -149,6 +157,7 @@ func writeClientFileAt(file string, expected, content []byte, base, backupDir st
 			return "", nil
 		}
 		// Re-check right before the delete as well.
+		beforeClientReplace(file)
 		if again, err := readClientFile(file); err != nil || !bytes.Equal(again, expected) {
 			return "", errClientFileChanged
 		}
@@ -172,6 +181,7 @@ func writeClientFileAt(file string, expected, content []byte, base, backupDir st
 	if err != nil {
 		return "", err
 	}
+	beforeClientReplace(file)
 	again, err := readClientFile(file)
 	if err != nil {
 		return "", err
@@ -198,8 +208,9 @@ func findBlock(text, start, end string) (a, b int, found, ok bool) {
 }
 
 // removeBlock deletes the text between a and b (a marked block) with its line
-// break, and the blank line that was added before it when it was appended at the
-// end of the file. Text outside the block is otherwise unchanged.
+// break. When the block ends the file, the blank lines before it (the separator
+// the installer added when it appended the block) go too; that is the only text
+// outside the markers it changes.
 func removeBlock(text string, a, b int) string {
 	before, after := text[:a], text[b:]
 	if strings.HasPrefix(after, "\r\n") {
