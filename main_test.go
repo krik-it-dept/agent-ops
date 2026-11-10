@@ -27,7 +27,7 @@ func isolated(t *testing.T) string {
 func fixture(steps ...Step) Plan {
 	return Plan{Repo: "sample", Name: "plan", Owner: "Lan", Status: "Implementing", Mtime: time.Now(), Steps: steps, Milestones: []Milestone{{ID: "M1", Title: "Delivery", Steps: steps}}}
 }
-func one(p Plan) map[string]Plan { return map[string]Plan{p.Repo + "/" + p.Name: p} }
+func one(p Plan) map[string]Plan { return map[string]Plan{planKey(p): p} }
 func kinds(events []Event) map[string]int {
 	m := map[string]int{}
 	for _, e := range events {
@@ -153,7 +153,7 @@ func TestStaleBoundary(t *testing.T) {
 }
 func TestActivation(t *testing.T) {
 	want := "repo/plan tiếng Việt & #"
-	if got := activationPlan(planURI("repo", "plan tiếng Việt & #")); got != want {
+	if got := activationPlan(planURI("repo/plan tiếng Việt & #")); got != want {
 		t.Fatal(got)
 	}
 	if activationPlan("https://example.com?plan=x") != "" {
@@ -269,3 +269,6 @@ func TestProtocolCommand(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+// testKey is the plan key produced for the --repos-dir override used by these tests.
+func testKey(repo, plan string) string { return projectIDFor(reposDir) + "/" + repo + "/" + plan }

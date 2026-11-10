@@ -50,8 +50,10 @@ func statusFixture(t *testing.T) (string, statusChange) {
 	if err := os.WriteFile(file, original, 0600); err != nil {
 		t.Fatal(err)
 	}
-	prev = one(fixture())
-	return file, statusChange{Repo: "sample", Plan: "plan", Status: "Done", Revision: revisionOf(original)}
+	p := fixture()
+	p.Project = projectIDFor(root)
+	prev = one(p)
+	return file, statusChange{Project: p.Project, Repo: "sample", Plan: "plan", Status: "Done", Revision: revisionOf(original)}
 }
 
 func TestWritePlanStatus(t *testing.T) {
@@ -170,7 +172,7 @@ func TestStatusEndpointIntegration(t *testing.T) {
 	if refreshError != "" {
 		t.Fatal(refreshError)
 	}
-	initial := prev["sample/plan"]
+	initial := prev[testKey("sample", "plan")]
 	if initial.Revision != change.Revision {
 		t.Fatal("parser did not export content revision")
 	}
@@ -186,7 +188,7 @@ func TestStatusEndpointIntegration(t *testing.T) {
 		return response
 	}
 	response := post(change)
-	if response.Code != 200 || prev["sample/plan"].Status != "Done" {
+	if response.Code != 200 || prev[testKey("sample", "plan")].Status != "Done" {
 		t.Fatalf("%d %s %v", response.Code, response.Body, refreshError)
 	}
 	if kinds(events)["status"] != 1 {
@@ -197,7 +199,7 @@ func TestStatusEndpointIntegration(t *testing.T) {
 		t.Fatal("replayed stale move accepted", response.Code)
 	}
 	change.Status, change.Revision = "Implementing", revisionOf(after)
-	if response := post(change); response.Code != 200 || prev["sample/plan"].Status != "Implementing" {
+	if response := post(change); response.Code != 200 || prev[testKey("sample", "plan")].Status != "Implementing" {
 		t.Fatal(response.Code, response.Body)
 	}
 	if kinds(events)["status"] != 2 || kinds(events)["done"] != 0 {

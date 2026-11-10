@@ -62,7 +62,7 @@ func configFilePath(dir string) string { return filepath.Join(dir, "config.json"
 
 // A stable ID derived from the folder keeps plan identity unchanged when the same
 // folder is removed and added again, and lets a --repos-dir override share keys.
-// tasks-overview.mjs computes the same value for its --repos-dir override.
+// projectIdFor in plan-reader.mjs computes the same value for a --repos-dir override.
 func projectIDFor(path string) string {
 	sum := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(path))))
 	return hex.EncodeToString(sum[:])[:8]
