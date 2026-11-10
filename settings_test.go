@@ -583,3 +583,54 @@ func TestSettingsPutIsRejectedWhileRestartingForAnUpdate(t *testing.T) {
 		t.Fatal("the in-memory setting changed during an update restart")
 	}
 }
+
+// An upgrade from v0.1.4 keeps its history: the first refresh after loading an old
+// snapshot announces nothing new or closed, and activity lines are rewritten with
+// their project once, so a later same-named folder cannot detach them.
+func TestV014HistoryIsUpgradedOnceAndRefreshIsQuiet(t *testing.T) {
+	dir := settingsFixture(t)
+	repos := filepath.Join(dir, "repos")
+	writePlan(t, filepath.Join(repos, "sample", ".tasks", "plan.md"), "Codex")
+	os.MkdirAll(filepath.Join(repos, "sample", ".git"), 0o700)
+	appCfg.SetupComplete = true
+	appCfg.Projects = []Project{{ID: "main", Path: repos, Name: "repos", Kind: "folder", Enabled: true}}
+	writeAppConfig(configFilePath(dataDir), appCfg)
+	refresh(true)
+	if refreshError != "" || len(prev) != 1 {
+		t.Fatal(refreshError, len(prev))
+	}
+	// Rewrite the snapshot and activity in the v0.1.4 format (no project).
+	legacy := map[string]Plan{}
+	for _, p := range prev {
+		p.Project, p.ProjectName, p.Root = "", "", ""
+		legacy[p.Repo+"/"+p.Name] = p
+	}
+	snapshot, _ := json.Marshal(legacy)
+	os.WriteFile(filepath.Join(dataDir, "snapshot.json"), snapshot, 0o600)
+	line, _ := json.Marshal(Event{TS: time.Now(), Repo: "sample", Plan: "plan", Kind: "decision", Text: "Keep history"})
+	original := append(append([]byte("not json\n"), line...), '\n')
+	os.WriteFile(filepath.Join(dataDir, "activity.jsonl"), original, 0o600)
+	os.Remove(filepath.Join(dataDir, "seen-projects.json"))
+	prev, events, lastProjects, seenProjects = nil, nil, nil, nil
+	loadPersisted()
+	refresh(false)
+	if k := kinds(events); k["new"] != 0 || k["closed"] != 0 || k["decision"] != 1 {
+		t.Fatal("the first refresh after the upgrade changed the feed", k)
+	}
+	b, _ := os.ReadFile(filepath.Join(dataDir, "activity.jsonl"))
+	if !strings.Contains(string(b), `"project":"main"`) || !strings.HasPrefix(string(b), "not json\n") {
+		t.Fatal("activity lines were not upgraded in place", string(b))
+	}
+	if saved, _ := os.ReadFile(filepath.Join(dataDir, "activity.jsonl.pre-projects")); string(saved) != string(original) {
+		t.Fatal("the original activity file was not kept")
+	}
+	// A second project with a same-named folder no longer detaches the history.
+	other := filepath.Join(dir, "other")
+	os.MkdirAll(filepath.Join(other, "sample", ".git"), 0o700)
+	appCfg.Projects = append(appCfg.Projects, Project{ID: "other", Path: other, Name: "other", Kind: "folder", Enabled: true})
+	prev, events = nil, nil
+	loadPersisted()
+	if len(events) != 1 || events[0].Project != "main" {
+		t.Fatal("history detached after adding a same-named folder", events)
+	}
+}

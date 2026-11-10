@@ -969,6 +969,7 @@ func loadPersisted() {
 	if b, err := os.ReadFile(filepath.Join(dataDir, "snapshot.json")); err == nil {
 		_ = json.Unmarshal(b, &prev)
 	}
+	_ = upgradeActivityFile(knownProjects())
 	if b, err := os.ReadFile(filepath.Join(dataDir, "activity.jsonl")); err == nil {
 		for _, line := range bytes.Split(b, []byte("\n")) {
 			var e Event

@@ -5,6 +5,7 @@ package main
 // status writes, is saved atomically to config.json and triggers a refresh.
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -194,6 +195,63 @@ func mapLegacyKeys(projects []Project) {
 			staleSeen[id+"/"+repo+"/"+name] = t
 		}
 	}
+}
+
+// upgradeActivityFile writes the project into legacy activity lines once, so the
+// mapping does not depend on the projects configured at a later start (a second
+// project with a same-named folder would make it ambiguous and detach history).
+// The original file is kept as activity.jsonl.pre-projects.
+func upgradeActivityFile(projects []Project) error {
+	file := filepath.Join(dataDir, "activity.jsonl")
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return nil
+	}
+	cache := map[string]string{}
+	lines := bytes.Split(b, []byte("\n"))
+	changed := false
+	for i, line := range lines {
+		var e Event
+		if len(bytes.TrimSpace(line)) == 0 || json.Unmarshal(line, &e) != nil || e.Project != "" || e.Repo == "" {
+			continue
+		}
+		id, ok := cache[e.Repo]
+		if !ok {
+			id = legacyProjectFor(e.Repo, projects)
+			cache[e.Repo] = id
+		}
+		if id == "" {
+			continue
+		}
+		e.Project = id
+		if mapped, err := json.Marshal(e); err == nil {
+			lines[i], changed = mapped, true
+		}
+	}
+	if !changed {
+		return nil
+	}
+	backup := file + ".pre-projects"
+	if !exists(backup) {
+		if err := os.WriteFile(backup, b, 0o644); err != nil {
+			return err
+		}
+	}
+	tmp, err := os.CreateTemp(dataDir, ".activity-*.tmp")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err = tmp.Write(bytes.Join(lines, []byte("\n"))); err == nil {
+		err = tmp.Sync()
+	}
+	if closeErr := tmp.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+	return replaceUpdateFile(tmp.Name(), file)
 }
 
 type ProjectSummary struct {
