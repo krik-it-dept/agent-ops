@@ -54,7 +54,7 @@ func setupFixture(t *testing.T) (installLayout, string, pkgmanifest.Manifest, *s
 	for _, name := range legacyStubs {
 		updatePut(t, filepath.Join(stage, name), []byte("stub "+name))
 	}
-	manifest, err := pkgmanifest.Generate(stage, "v0.3.0", nil)
+	manifest, err := pkgmanifest.Generate(stage, appVersion, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
