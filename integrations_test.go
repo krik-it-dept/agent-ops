@@ -341,7 +341,7 @@ func TestOldProductNameOnlyInMigrationCode(t *testing.T) {
 	// old installation) and tests asserting the old name is gone.
 	migration := map[string]bool{"legacy.go": true, "migrate.go": true, "migrate_test.go": true, "integrations_test.go": true, "testdata/legacy-task-plan-skill.md": true, "scripts/update-e2e.mjs": true, "web_test.mjs": true}
 	// Documents may name the install folder and data folder of earlier releases.
-	documented := regexp.MustCompile(`(?i)(tools[\\/]+workboard|%LOCALAPPDATA%[\\/]krik-workboard|krik-workboard\.exe)`)
+	documented := regexp.MustCompile(`(?i)(tools[\\/]+workboard|%LOCALAPPDATA%[\\/]krik-workboard|krik-workboard\.exe|workboard-executions|workboard-integrations\.json|workboard-task-reporting)`)
 	name := regexp.MustCompile(`(?i)workboard`)
 	checked := 0
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))

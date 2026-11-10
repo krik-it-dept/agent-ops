@@ -3,6 +3,37 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v0.3.0 - A read-only work ledger
+
+Agent Ops now only reads plans. Orchestration (worktrees, workers, hand-offs)
+belongs to Orca. Install v0.2.1 first: an older installation cannot take this
+release in the app and is reinstalled once from the package.
+
+- Run reporting is retired: no run history, no executor or agent attribution,
+  no worktree slots, and no status changes from the app. `task-sync.mjs` and
+  `task-report.mjs` stay as stubs that exit 0, so older sessions and hooks keep
+  working; `task-report.mjs --run-cli ... -- <CLI> <arguments>` runs the CLI
+  unchanged.
+- The update migrates once, with backups of every file it changes or deletes:
+  it removes the Claude reporting hooks (also from Orca's Claude profiles) and
+  the managed reporting instruction blocks, replaces task-plan skills that were
+  never edited, keeps edited ones as **Modified locally**, deletes the old run
+  history and lists text you wrote that still uses the old name. Text outside
+  the managed markers is never edited.
+- The task-plan skill is static (plan format and location, Orca mapping) and
+  built into the app. **Settings > Integrations** detects Claude Code, Codex
+  and Antigravity / Gemini, installs or updates the skill when you choose, shows
+  a diff of local changes with **Keep mine** and **Replace**, removes it, and
+  can add an optional one-line reminder to each client's instruction file.
+  First-run setup offers the same as an optional step. Updates never write AI
+  client files; a newer skill shows as **Update available**.
+- Renamed to Agent Ops everywhere: data folder `%LOCALAPPDATA%\AgentOps`
+  (settings are copied once from the old folder), the `agent-ops:` protocol,
+  the **Agent Ops** startup entry (the old protocol and startup entry are
+  removed), `AGENT_OPS_*` variables and the `X-Agent-Ops` request header.
+- The plan list, board, history and summary no longer show agents, executors,
+  run evidence or slots.
+
 ## v0.2.1 - Release and update foundation
 
 This is the bridge release: install it before any release that adds, renames or

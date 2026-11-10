@@ -38,16 +38,17 @@ Format 1 readers ignore unknown JSON fields. A change that older updaters must u
 
 ### Why the manifest is a separate asset (the v0.2.0 bridge)
 
-The v0.2.0 updater rejects any ZIP entry outside its compiled list and any missing one. To let v0.2.0 installs update in the app, the v0.2.1 ZIP holds exactly the v0.2.0 file set (13 runtime files plus `scripts/install.ps1`), and the manifest is published as its own asset, which v0.2.0 ignores. v0.2.0 then starts the v0.2.1 helper with its own handoff file (version 1: hashes of its fixed list), which v0.2.1 accepts.
+The v0.2.0 updater rejects any ZIP entry outside its compiled list and any missing one. To let v0.2.0 installs update in the app, the v0.2.1 ZIP held exactly the v0.2.0 file set, and the manifest is published as its own asset, which v0.2.0 ignores.
 
-Until the owner confirms that every install runs v0.2.1 or later, later releases must keep shipping every v0.2.0 file name, because a v0.2.0 install that skipped v0.2.1 sees only the latest release. Retired scripts become small stubs; M2 can then delete them through `remove` once the bridge is everywhere. After that, the ZIP may also carry `manifest.json` for manual installs.
+From v0.3.0 the file set changes (the run reporting modules are removed through `remove`, the task-plan skill is embedded in the executable), so only v0.2.1 or later can install it in the app. A v0.2.0 install that never took v0.2.1 fails safely ("Incomplete update package") and keeps running; install the release package by hand once. The retired `task-sync.mjs` and `task-report.mjs` stay in the package as small stubs, so older sessions and hooks that call them keep working.
 
 ### Compatibility rules for later releases
 
 - The staged helper is always the new version. It must accept every handoff version an installed release can write: 1 (v0.2.0) and 2 (v0.2.1+, hashes of the manifest files plus `remove`).
 - The relaunch reuses the previous version's arguments. A new version must keep accepting every flag an older release passes (`--background --addr --script --data-dir --profile-dir --repos-dir --state-file --slots-file --no-update-check --update-feed`).
 - The helper's health check reads `/api/updates` (`current`, `processId`) and `/api/state` (`appVersion`, `error`, `state.plans`). Later versions must keep these fields.
-- The helper runs `integrations/install-task-reporting.mjs` only when the package still ships it, so dropping the reporting installer (M2) is a package change, not an updater change. A move of the install folder (M6) is done by the new version's own helper.
+- From v0.3.0 the helper runs no script from the package. It runs the one-time migration from earlier releases in process (see below). A move of the install folder (M6) is done by the new version's own helper.
+- The relaunch of an earlier release names its data folder `%LOCALAPPDATA%\krik-workboard`; the new version maps that folder to `%LOCALAPPDATA%\AgentOps`, so the helper writes the result there.
 
 ## Integrity
 
@@ -60,11 +61,15 @@ SHA-256 detects corruption and a mismatch with the GitHub release, and the GitHu
 1. Download and validate into a new private directory under `<data-dir>/updates/` while the old app keeps running. Older staging folders are pruned; the newest three are kept, each holding the backup of its update.
 2. Start the verified staged executable as a separate helper. It rechecks every staged file against the handoff and confirms the exact parent process image before signaling readiness.
 3. Stop accepting status writes, finish an in-flight collector/status operation and exit the old process.
-4. Back up the files to replace or remove, any existing legacy executable alias, and managed reporting-instruction files. Atomically replace runtime files, delete the `remove` files, and run the idempotent skill installer (when shipped) against the configured profile. The installer records the sha256 of each part it writes in `~/.agents/workboard-integrations.json` and leaves a part the owner edited or removed alone; the update result names it as "modified locally" or "removed locally".
-5. Restart with the same collector, loopback address, app-data directory and profile. Verify the new version, exact new PID and successful state collection.
-6. If installation, instruction installation or startup fails, restore the saved files (including removed ones) and restart the previous app. An incomplete recovery is reported honestly with the backup location retained.
+4. Back up the files to replace or remove, any existing legacy executable alias, and the AI client files the migration may change (skills, instruction files, every Claude `settings.json` of the profile including Orca's). Atomically replace runtime files and delete the `remove` files.
+5. Once per data folder (until `migration.json` exists), run the client part of the migration from earlier releases: copy `config.json` into the new data folder, remove the retired reporting hooks and unedited instruction blocks, replace unedited old skills and carry the old integration record into `config.json`. Every change is backed up into `<data-dir>\backups\migration-<time>` and written atomically. See [INSTALL.md](../INSTALL.md#moving-from-earlier-releases-v02x-and-older).
+6. Restart with the same collector, loopback address, data folder and profile. Verify the new version, exact new PID and successful state collection.
+7. Only then delete the old run history (backed up first) and record `migration.json`. The update result names the files that were kept because the owner changed them, and how many owner-written lines still mention the old name (listed in Settings > Integrations).
+8. If installation, the client migration or startup fails, restore the saved files (including removed ones and client files) and restart the previous app. An incomplete recovery is reported honestly with the backup location retained.
 
-Task Markdown, execution/historical registries, activity, browser profile, navigation preferences and owner data are not replacement targets. There is no recursive cleanup of live runtime or task directories; pruning touches only `<data-dir>/updates/update-<digits>` folders that are real directories.
+Later updates never write AI client files: a newer embedded task-plan skill only shows as **Update available** in Settings > Integrations, where the owner installs it.
+
+Task Markdown, activity, browser profile, navigation preferences and owner data are not replacement targets. There is no recursive cleanup of live runtime or task directories; pruning touches only `<data-dir>/updates/update-<digits>` folders that are real directories.
 
 Recovery failures remain visible after restart instead of being overwritten by a startup check. The open UI notices a changed server version, saves its view state and reloads itself.
 
@@ -89,4 +94,4 @@ A build of any commit that is not tagged with `VERSION` reports `vX.Y.Z-dev.<com
 
 - Go unit tests cover the path rules and manifest validation, version ordering, anonymous checks with ETag reuse, rate-limit/offline/missing/unexpected responses, redirect host rules, the loopback feed rule, release asset requirements, ZIP-versus-manifest mismatches (traversal, unknown, duplicate, symlink, size, digest, embedded manifest), the full download-verify-handoff path against a local HTTP feed, tamper detection, the v0.2.0 handoff format, install with removals and rollback, staging pruning, exact-process health, logging, crash markers and diagnostics redaction.
 - `node scripts/smoke.mjs` validates the package and its manifest without contacting GitHub.
-- `node scripts/update-e2e.mjs [--from vX.Y.Z]` builds the previous release from its tag and the current source as N, N+1 and N+2, then, fully isolated (temp runtime, profile, data, port and task folder; no GitHub): updates the previous release to N with its own updater (a fake `gh` answers from a local feed for releases up to v0.2.0), N to N+1 over the HTTP feed with a manifest that adds and removes files, and N+1 to N+2 whose plan collector fails, which must roll back to N+1. CI and the release workflow run it. It needs the release tags (`git fetch --tags`).
+- `node scripts/update-e2e.mjs [--from vX.Y.Z]` builds the previous release from its tag and the current source as N, N+1 and N+2, then, fully isolated (temp runtime, profile, data, port and task folder; no GitHub): installs the previous release, whose installer writes its reporting hooks, blocks and skills into the temp profile (plus an Orca Claude profile copy); updates it to N with its own updater and N's real manifest (removing the retired modules), checking that the migration removed hooks and blocks, replaced the unedited skill, kept the owner-edited one as "modified locally" and deleted the run history with backups; then N to N+1 over the HTTP feed with a manifest that adds and removes files (the migration does not run again), and N+1 to N+2 whose plan collector fails, which must roll back to N+1 without bringing a hook back. CI and the release workflow run it. It needs the release tags (`git fetch --tags`).

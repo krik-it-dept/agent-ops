@@ -1,8 +1,13 @@
 // N-1 to N in-app update test, fully isolated: no GitHub, no live install, no real
-// task folders. It builds the previous release from its Git tag, installs it in a
-// temp runtime, then serves the current build from a local release feed:
-//   1. previous tag -> N (current source as VERSION). Releases up to v0.2.0 use gh, so
-//      a fake gh on PATH answers from the local feed.
+// task folders, no real AI client configuration. It builds the previous release
+// from its Git tag, installs it in a temp runtime and profile, then serves the
+// current build from a local release feed:
+//   1. previous tag -> N (current source as VERSION) with N's real package manifest,
+//      which removes the retired run reporting modules. Releases up to v0.2.0 use gh,
+//      so a fake gh on PATH answers from the local feed. The one-time migration must
+//      remove the reporting hooks (also from an Orca Claude profile) and instruction
+//      blocks the previous installer wrote, replace an unedited old skill, keep an
+//      owner-edited one ("modified locally"), and delete the old run history.
 //   2. N -> N+1 over the anonymous HTTP feed (--update-feed), with a manifest that adds
 //      a file and removes one.
 //   3. N+1 -> N+2 whose plan collector fails and whose manifest removes a file: the
@@ -69,7 +74,10 @@ try{
   const pkgN=build(root,join(fixture,'build-n'),version);
   const pkgNext=build(root,join(fixture,'build-next'),next);
   const pkgBroken=build(root,join(fixture,'build-broken'),broken);
-  const relN=release(version,pkgN,join(fixture,'release-n'));
+  // N ships with the remove list of its real build.
+  const builtRemove=JSON.parse(readFileSync(join(fixture,'build-n',manifestName),'utf8')).remove;
+  assert.ok(builtRemove.includes('execution-reports.mjs'),'N removes the retired modules');
+  const relN=release(version,pkgN,join(fixture,'release-n'),builtRemove);
   const custom=join(fixture,'package-next');cpSync(pkgNext,custom,{recursive:true});
   rmSync(join(custom,'INSTALL.md'));put(join(custom,'CHANGELOG.md'),'# Fixture changelog\n');
   const relNext=release(next,custom,join(fixture,'release-next'),['INSTALL.md']);
@@ -105,22 +113,34 @@ else process.exit(2);
 `);
     put(join(bin,'gh.cmd'),`@"${process.execPath}" "%~dp0fake-gh.mjs" %*\r\n`);
 
-    // Previous release installed in an isolated runtime and profile.
+    // Previous release installed in an isolated runtime and profile. Its installer
+    // writes the reporting hooks, instruction blocks and skills into the temp profile.
     const runtime=join(fixture,'runtime'),profile=join(fixture,'profile'),dataDir=join(fixture,'data');
-    put(join(profile,'.codex','AGENTS.md'),'# Owner instructions\nKeep the existing user rule.\n');
+    const ownerAgents='# Owner instructions\nKeep the existing user rule.\n';
+    put(join(profile,'.codex','AGENTS.md'),ownerAgents);
     run('powershell.exe',[...ps,'-File',join(oldPkg,'scripts','install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch']);
-    const privateFile=join(runtime,'historical-executions.json');put(privateFile,'{"private":"keep"}');
-    // The owner edits the installed shared skill; no update may overwrite it.
-    const skill=join(profile,'.agents','skills','task-plan','SKILL.md');
-    assert.ok(existsSync(skill),'the previous installer wrote the shared skill');
+    const ownerFile=join(runtime,'owner-notes.json');put(ownerFile,'{"private":"keep"}');
+    const registry=join(runtime,'historical-executions.json');put(registry,'{"old":"history"}');
+    const claudeSettings=join(profile,'.claude','settings.json');
+    assert.match(readFileSync(claudeSettings,'utf8'),/task-sync\.mjs/,'the previous installer wrote its hooks');
+    assert.match(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),/workboard-task-reporting:start/,'the previous installer wrote its block');
+    // An Orca Claude profile holds a copy of the settings with the same hooks.
+    const orcaSettings=join(profile,'AppData','Roaming','orca','claude-profiles','fixture','home','settings.json');
+    put(orcaSettings,readFileSync(claudeSettings,'utf8'));
+    // The owner edits the shared skill; the Claude copy stays as installed.
+    const skill=join(profile,'.agents','skills','task-plan','SKILL.md'),claudeSkill=join(profile,'.claude','skills','task-plan','SKILL.md');
+    assert.ok(existsSync(skill)&&existsSync(claudeSkill),'the previous installer wrote both skills');
     const ownerSkill=readFileSync(skill,'utf8')+'\n## Owner rule\n- Keep this local rule.\n';put(skill,ownerSkill);
+    // Run history the previous release recorded next to its state file.
+    const history=join(dataDir,'state','workboard-executions','run.json');put(history,'{"event":"start"}');
     const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','check.md'),source='Agent: Codex\nStatus: Testing\nGoal: Isolated update verification\nNext: Verify update\n\n## M1: Work\n- [doing] Verify the app\n';put(plan,source);
     const port=await freePort(),base='http://127.0.0.1:'+port;
-    const env=ps51Env({...process.env,PATH:bin+';'+process.env.PATH,FAKE_GH_FEED:feedURL,KRIK_AGENT_MAP:join(fixture,'missing-agent.json'),KRIK_HISTORY_MAP:join(fixture,'missing-history.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')});
+    const env=ps51Env({...process.env,PATH:bin+';'+process.env.PATH,FAKE_GH_FEED:feedURL,KRIK_AGENT_MAP:join(fixture,'missing-agent.json'),KRIK_HISTORY_MAP:join(fixture,'missing-history.json'),KRIK_EXECUTION_DIR:'',AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''});
     const args=['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',dataDir];
     const start=extra=>{const p=spawn(join(runtime,'agent-ops.exe'),[...args,...extra],{windowsHide:true,stdio:'ignore',env,detached:true});pids.add(p.pid);p.unref();return p.pid;};
     const status=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(2000)});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId))pids.add(s.processId);return s;};
-    const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());};
+    // Releases before v0.3.0 check X-Workboard; later ones X-Agent-Ops.
+    const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','X-Agent-Ops':'1','Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());};
     const fatal=s=>{if(s.phase==='error')throw Object.assign(Error('Update error: '+s.error),{fatal:true});};
     const result=()=>existsSync(join(dataDir,'update-result.json'))?JSON.parse(readFileSync(join(dataDir,'update-result.json'),'utf8')):{};
     async function update(to){
@@ -130,23 +150,33 @@ else process.exit(2);
       const after=await until(status,s=>{fatal(s);return s.current===to&&s.processId!==before.processId;},180000,'restart on '+to);
       await until(async()=>result(),r=>r.phase==='updated'&&r.version===to,30000,'update receipt');
       const snapshot=await (await fetch(base+'/api/state')).json();assert.equal(snapshot.appVersion,to);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
-      assert.equal(readFileSync(plan,'utf8'),source,'task source unchanged');assert.equal(readFileSync(privateFile,'utf8'),'{"private":"keep"}','runtime data preserved');
-      assert.ok(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8').startsWith('# Owner instructions\nKeep the existing user rule.\n'),'owner instructions preserved');
+      assert.equal(readFileSync(plan,'utf8'),source,'task source unchanged');assert.equal(readFileSync(ownerFile,'utf8'),'{"private":"keep"}','owner runtime file preserved');
+      assert.equal(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),ownerAgents,'owner instructions kept, reporting block removed');
       assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved');
-      assert.match(result().message,/Your changes were kept[^]*SKILL\.md \(modified locally\)/,'kept SKILL.md reported');
+      for(const file of [claudeSettings,orcaSettings])assert.doesNotMatch(readFileSync(file,'utf8'),/task-sync/,'reporting hooks removed from '+file);
+      assert.match(readFileSync(claudeSkill,'utf8'),/^agent-ops-skill: 2$/m,'the unedited old skill was replaced');
       return after;
     }
 
-    // 1. Previous release (gh) -> N, the bridge.
-    start([]);
+    // 1. Previous release -> N. Releases from v0.2.1 check the HTTP feed, earlier ones gh.
+    start(older(from,'v0.2.1')?[]:['--update-feed',feedURL]);
     const initial=await until(status,s=>s.current===from,60000,'previous release');
     await update(version);
     assert.ok(existsSync(join(dataDir,'logs','update.log')),'the N helper logs its steps');
-    console.log(`  ${from} -> ${version}: installed through the ${from} updater (gh fixture)`);
+    assert.match(result().message,/Run reporting is retired[^]*Your changes were kept[^]*SKILL\.md \(modified locally\)/,'migration and kept SKILL.md reported');
+    for(const name of builtRemove)assert.ok(!existsSync(join(runtime,name)),'retired file removed: '+name);
+    assert.ok(readFileSync(join(runtime,'task-sync.mjs'),'utf8').includes('no longer records runs'),'task-sync is the stub');
+    assert.ok(!existsSync(history)&&!existsSync(registry),'old run history deleted');
+    const migration=JSON.parse(readFileSync(join(dataDir,'migration.json'),'utf8'));
+    assert.ok(existsSync(join(migration.backup,'data'))&&existsSync(join(migration.backup,'profile','.claude','settings.json')),'history and client files backed up');
+    assert.ok(!existsSync(join(profile,'.agents','workboard-integrations.json')),'old integration record carried into config.json and deleted');
+    assert.ok(JSON.parse(readFileSync(join(dataDir,'config.json'),'utf8')).integrations,'integration records in config.json');
+    console.log(`  ${from} -> ${version}: installed through the ${from} updater; hooks, blocks and run history removed, owner SKILL.md kept`);
 
     // Restart N against the HTTP feed (the restart keeps --update-feed for later relaunches).
     const n=await status();process.kill(n.processId);await until(async()=>{try{await status();return false;}catch{return true;}},Boolean,30000,'N to stop');
-    start(['--update-feed',feedURL]);await until(status,s=>s.current===version,60000,'N restart');
+    start(['--update-feed',feedURL]);
+    const migratedAt=readFileSync(join(dataDir,'migration.json'),'utf8');await until(status,s=>s.current===version,60000,'N restart');
     const ghCallsBefore=seen.latest;
 
     // 2. N -> N+1 over HTTP: CHANGELOG.md added, INSTALL.md removed.
@@ -154,6 +184,7 @@ else process.exit(2);
     await update(next);
     assert.ok(seen.latest>ghCallsBefore,'N checked the HTTP feed');
     assert.ok(existsSync(join(runtime,'CHANGELOG.md')),'new file installed');assert.ok(!existsSync(join(runtime,'INSTALL.md')),'removed file deleted');
+    assert.equal(readFileSync(join(dataDir,'migration.json'),'utf8'),migratedAt,'the migration runs once');
     console.log(`  ${version} -> ${next}: anonymous HTTP feed, manifest added CHANGELOG.md and removed INSTALL.md`);
 
     // 3. N+1 -> N+2 with a failing collector: rollback to N+1.
@@ -168,6 +199,7 @@ else process.exit(2);
     assert.ok(existsSync(join(runtime,'CHANGELOG.md'))&&!existsSync(join(runtime,'INSTALL.md')),'N+1 file set restored');
     assert.equal(readFileSync(join(runtime,'CHANGELOG.md'),'utf8'),'# Fixture changelog\n','file removed by N+2 restored');
     assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved through the rollback');
+    for(const file of [claudeSettings,orcaSettings])assert.doesNotMatch(readFileSync(file,'utf8'),/task-sync/,'no hook comes back after the rollback');
     const stages=readdirSync(join(dataDir,'updates')).filter(n=>/^update-\d+$/.test(n));assert.ok(stages.length<=3,'staging pruned: '+stages.length);
     console.log(`  ${next} -> ${broken}: startup check failed, ${next} restored (incl. removed CHANGELOG.md) and restarted; owner SKILL.md kept throughout`);
     console.log(JSON.stringify({updateE2E:'passed',from,to:version,then:[next,broken+' (rolled back)'],initialPid:initial.processId}));

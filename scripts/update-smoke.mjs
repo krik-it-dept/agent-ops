@@ -19,14 +19,14 @@ try{
   const pkg=join(build,readdirSync(build).find(n=>n.startsWith('package-'))),runtime=join(fixture,'runtime'),profile=join(fixture,'profile');
   put(join(profile,'.codex','AGENTS.md'),'# Owner instructions\nKeep the existing user rule.\n');
   run('powershell.exe',[...ps,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch']);
-  const privateFile=join(runtime,'historical-executions.json'),dataDir=join(fixture,'data'),preference=join(dataDir,'owner-preference.json');put(privateFile,'{"private":"keep"}');put(preference,'{"preference":"keep"}');
+  const privateFile=join(runtime,'owner-notes.json'),dataDir=join(fixture,'data'),preference=join(dataDir,'owner-preference.json');put(privateFile,'{"private":"keep"}');put(preference,'{"preference":"keep"}');
   const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','check.md'),source='Agent: Codex\nStatus: Testing\nGoal: Isolated update verification\nNext: Verify update\n\n## M1: Work\n- [doing] Verify the app\n';put(plan,source);
-  const slots=join(fixture,'slots.json'),state=join(fixture,'output','state.json');put(slots,'{}');mkdirSync(dirname(state),{recursive:true});
+  const state=join(fixture,'output','state.json');mkdirSync(dirname(state),{recursive:true});
   const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const port=server.address().port;await new Promise(r=>server.close(r));const base='http://127.0.0.1:'+port;
-  app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--slots-file',slots,'--state-file',state,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',dataDir],{windowsHide:true,stdio:'ignore',env:{...process.env,KRIK_AGENT_MAP:join(fixture,'missing-agent.json'),KRIK_HISTORY_MAP:join(fixture,'missing-history.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')}});
+  app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--state-file',state,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',dataDir],{windowsHide:true,stdio:'ignore',env:{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''}});
   const get=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(1000)});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId) && s.processId!==app.pid)newPID=s.processId;return s;};
   const initial=await until(get,s=>s.current==='v0.0.0');assert.equal(initial.processId,app.pid);
-  const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());return r.json();};
+  const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Agent-Ops':'1','Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());return r.json();};
   await post('check');const available=await until(get,s=>{if(s.phase==='error')throw Object.assign(Error(s.error),{fatal:true});return s.available;});assert.equal(available.latest,target,'Publish VERSION as the latest stable release before running this test');
   await post('apply',{version:target});
   const installed=await until(get,s=>{if(s.phase==='error')throw Object.assign(Error(s.error),{fatal:true});return s.current===target && s.processId!==initial.processId;});newPID=installed.processId;
@@ -34,7 +34,6 @@ try{
   const snapshot=await (await fetch(base+'/api/state')).json();assert.equal(snapshot.appVersion,target);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
   assert.equal(readFileSync(plan,'utf8'),source);assert.equal(readFileSync(privateFile,'utf8'),'{"private":"keep"}');assert.equal(readFileSync(preference,'utf8'),'{"preference":"keep"}');
   const instructions=readFileSync(join(profile,'.codex','AGENTS.md'),'utf8');assert.ok(instructions.startsWith('# Owner instructions\nKeep the existing user rule.\n'));
-  assert.ok(readFileSync(join(profile,'.agents','skills','task-plan','SKILL.md'),'utf8').includes(runtime.replaceAll('\\','/')));
   console.log(JSON.stringify({update:'passed',from:'v0.0.0 test fixture',to:target,source:'public GitHub release',restart:'new process verified',tasks:'unchanged',privateData:'preserved',profile:'isolated and preserved'}));
 }finally{
   if(app && app.exitCode===null){const exited=new Promise(r=>app.once('exit',r));app.kill();await exited;}
