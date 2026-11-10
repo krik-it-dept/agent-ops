@@ -770,3 +770,24 @@ func TestOwnerListChangeMarksTheListSeeded(t *testing.T) {
 		t.Fatal(err, cfg.IntegrationsSeeded)
 	}
 }
+
+// A task-plan folder that is a junction (often into a repository) is never
+// written by the migration; it is listed for review instead.
+func TestMigrationLeavesALinkedTaskPlanFolderAlone(t *testing.T) {
+	f := newMigrationFixture(t)
+	source := filepath.Join(f.profile, "repos", "web", "skills", "task-plan")
+	shared := filepath.Dir(f.skillShared)
+	mput(t, filepath.Join(source, "SKILL.md"), mread(t, f.skillShared))
+	os.RemoveAll(shared)
+	if out, err := exec.Command("cmd", "/c", "mklink", "/J", shared, source).CombinedOutput(); err != nil {
+		t.Skip("junctions unavailable:", err, string(out))
+	}
+	before := mread(t, filepath.Join(source, "SKILL.md"))
+	r, err := runMigration(f.opts)
+	if err != nil || len(r.Errors) != 0 {
+		t.Fatal(err, r.Errors)
+	}
+	if mread(t, filepath.Join(source, "SKILL.md")) != before || !strings.Contains(strings.Join(r.Kept, "\n"), f.skillShared+" (a link") {
+		t.Fatal("a linked task-plan folder was written or not listed", r.Kept)
+	}
+}

@@ -539,6 +539,9 @@ func migrateClients(opts migrationOptions) (*migrationResult, error) {
 	for _, found := range detectIntegrationTargets(profile, nil) {
 		file := skillFileOf(found.SkillDir)
 		original, err := readClientFile(file)
+		if err == nil && linkedPath(filepath.Dir(file)) {
+			err = errClientFileLinked // a linked task-plan folder may point into a repository
+		}
 		if err != nil {
 			problem(file, err)
 			continue
