@@ -23,7 +23,7 @@ try {
   const runtime=join(fixture,'installed runtime'),profile=join(fixture,'profile');
   put(join(runtime,'historical-executions.json'),'private fixture sentinel');
   put(join(profile,'.codex','AGENTS.md'),'# Existing instructions\nPreserve this.\n');
-  const installer=[...psArgs,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile];
+  const installer=[...psArgs,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch'];
   run('powershell.exe',installer);run('powershell.exe',installer);
   assert.equal(readFileSync(join(runtime,'historical-executions.json'),'utf8'),'private fixture sentinel');
   const instructions=readFileSync(join(profile,'.codex','AGENTS.md'),'utf8');
