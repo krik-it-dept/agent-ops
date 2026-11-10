@@ -50,6 +50,7 @@ try {
   const script=html.match(/<script>([\s\S]*?)<\/script>/)[1].replaceAll('\r\n','\n').replaceAll('\r','\n');
   const digest=createHash('sha256').update(script).digest('base64');
   assert.ok(page.headers.get('content-security-policy').includes("script-src 'sha256-"+digest+"'"));
+  assert.ok(!page.headers.get('content-security-policy').includes('https:'),'nothing may load from another origin');
   assert.equal(page.headers.get('x-frame-options'),'DENY');
   const rebindingStatus=await new Promise((res,rej)=>{const req=request(base+'/api/state',{headers:{Host:'rebinding.invalid'}},r=>{r.resume();res(r.statusCode);});req.on('error',rej);req.end();});
   assert.equal(rebindingStatus,403);
@@ -77,7 +78,10 @@ try {
   assert.equal(freshState.setupRequired,true);assert.equal(freshState.error,'');assert.deepEqual(freshState.state.plans,[]);assert.deepEqual(freshState.projects,[]);
   const write=(path,method,body)=>fetch(fresh+path,{method,headers:{'X-Workboard':'1',Origin:fresh,'Content-Type':'application/json'},body:JSON.stringify(body)});
   assert.equal((await fetch(fresh+'/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:repos})})).status,403);
-  assert.equal((await write('/api/settings','PUT',{setupComplete:true})).status,400);
+  // Setup can be skipped before any project exists; the board then shows the empty state.
+  assert.equal((await write('/api/settings','PUT',{setupComplete:true,theme:'dark'})).status,200);
+  const skipped=await (await fetch(fresh+'/api/state')).json();
+  assert.equal(skipped.setupRequired,false);assert.equal(skipped.error,'');assert.deepEqual(skipped.projects,[]);
   const added=await write('/api/projects','POST',{path:repos});assert.equal(added.status,200);
   const addedBody=await added.json();assert.equal(addedBody.kind,'folder');assert.equal(addedBody.repos.length,1);assert.equal(addedBody.repos[0].planCount,1);
   assert.equal((await write('/api/settings','PUT',{startWithWindows:true})).status,409);
@@ -85,10 +89,10 @@ try {
   const configured=await (await fetch(fresh+'/api/state')).json();
   assert.equal(configured.setupRequired,false);assert.equal(configured.error,'');assert.equal(configured.state.plans.length,1);assert.equal(configured.state.plans[0].project,addedBody.project.id);
   const savedConfig=JSON.parse(readFileSync(join(freshData,'config.json'),'utf8'));
-  assert.equal(savedConfig.setupComplete,true);assert.equal(savedConfig.projects[0].path,repos);
+  assert.equal(savedConfig.setupComplete,true);assert.equal(savedConfig.projects[0].path,repos);assert.equal(savedConfig.theme,'dark');assert.equal(savedConfig.shortcuts,true);
   assert.ok(readFileSync(join(freshData,'state','tong-hop-chung.json'),'utf8').includes('"plans"'));
   assert.equal(readFileSync(plan,'utf8'),source);
-  console.log('First-run smoke passed: setup mode without flags, protected settings writes, project added, config.json and default state under the data folder.');
+  console.log('First-run smoke passed: setup mode without flags, setup skipped with no project, protected settings writes, project added, config.json and default state under the data folder.');
   console.log('Release smoke passed: exact package allowlist, repeat install, preserved data/instructions, portable paths, real HTTP/SSE/F5, script CSP, request protection and unchanged task source.');
 } finally {
   for(const child of [app,firstRun])if(child && child.exitCode===null){const exited=new Promise(res=>child.once('exit',res));child.kill();await exited;}
