@@ -13,7 +13,7 @@ func TestLocalBoundaryRejectsRebindingAndCrossSiteReads(t *testing.T) {
 	for _, tc := range []struct{ host, origin, site string }{
 		{"attacker.example", "", ""}, {addr, "https://attacker.example", "cross-site"}, {addr, "null", ""}, {addr, "", "cross-site"},
 	} {
-		r := httptest.NewRequest("GET", "http://"+addr+"/api/state", nil)
+		r := withSession(httptest.NewRequest("GET", "http://"+addr+"/api/state", nil))
 		r.Host = tc.host
 		r.Header.Set("Origin", tc.origin)
 		r.Header.Set("Sec-Fetch-Site", tc.site)
@@ -26,7 +26,7 @@ func TestLocalBoundaryRejectsRebindingAndCrossSiteReads(t *testing.T) {
 	if called != 0 {
 		t.Fatal("rejected requests reached state handler")
 	}
-	r := httptest.NewRequest("GET", "http://"+addr+"/api/state", nil)
+	r := withSession(httptest.NewRequest("GET", "http://"+addr+"/api/state", nil))
 	r.Header.Set("Origin", "http://"+addr)
 	r.Header.Set("Sec-Fetch-Site", "same-origin")
 	w := httptest.NewRecorder()

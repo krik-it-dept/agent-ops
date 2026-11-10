@@ -14,8 +14,9 @@
 //      owner-edited one ("modified locally"), and delete the old run history.
 //   2. N -> N+1 over the anonymous HTTP feed (--update-feed), with a manifest that adds
 //      a file and removes one.
-//   3. N+1 -> N+2 whose plan collector fails and whose manifest removes a file: the
-//      helper must roll back to N+1, including the removed file.
+//   3. N+1 -> N+2 whose plan collector fails (a build linked with
+//      -X main.testFault=collector) and whose manifest removes a file: the helper must
+//      roll back to N+1, including the removed file.
 // Scenario 2 (v0.2.1, LOCALAPPDATA redirected to the temp profile for both apps, no
 // --data-dir, so the previous release uses its default data folder):
 //   1. v0.2.1 -> a broken N (same version, failing collector): the helper migrates the
@@ -75,6 +76,9 @@ function release(tag,pkg,out,remove=[]){
   const assets={};for(const name of [zipName,zipName+'.sha256',manifestName])assets[name]=readFileSync(join(out,name));
   return {tag,assets};
 }
+// A build of this source whose plan collector always fails, so its startup check
+// fails and the updater rolls back. Release builds never set main.testFault.
+function brokenExe(tag,dest){run('go',['build','-trimpath','-ldflags',`-s -w -H windowsgui -X main.appVersion=${tag} -X main.appCommit=fixture -X main.testFault=collector`,'-o',dest,'.'],{cwd:root,env:{...process.env,GOTELEMETRY:'off'}});}
 async function freePort(){const s=netServer();await new Promise(r=>s.listen(0,'127.0.0.1',r));const p=s.address().port;await new Promise(r=>s.close(r));return p;}
 const readJSON=file=>existsSync(file)?JSON.parse(readFileSync(file,'utf8')):{};
 
@@ -90,14 +94,14 @@ try{
   assert.ok(builtRemove.includes('execution-reports.mjs'),'N removes the retired modules');
   const relN=release(version,pkgN,join(fixture,'release-n'),builtRemove);
   const brokenN=join(fixture,'package-broken-n');cpSync(pkgN,brokenN,{recursive:true});
-  put(join(brokenN,'tasks-overview.mjs'),"process.stderr.write('broken collector fixture');process.exit(3);\n");
+  brokenExe(version,join(brokenN,'agent-ops.exe'));
   const relBrokenN=release(version,brokenN,join(fixture,'release-broken-n'),builtRemove);
   const custom=join(fixture,'package-next');cpSync(pkgNext,custom,{recursive:true});
   rmSync(join(custom,'INSTALL.md'));put(join(custom,'CHANGELOG.md'),'# Fixture changelog\n');
   const relNext=release(next,custom,join(fixture,'release-next'),['INSTALL.md']);
   const bad=join(fixture,'package-broken');cpSync(pkgBroken,bad,{recursive:true});
   rmSync(join(bad,'INSTALL.md'));
-  put(join(bad,'tasks-overview.mjs'),"process.stderr.write('broken collector fixture');process.exit(3);\n");
+  brokenExe(broken,join(bad,'agent-ops.exe'));
   // N+2 also removes CHANGELOG.md, so the rollback must bring a removed file back.
   const relBroken=release(broken,bad,join(fixture,'release-broken'),['CHANGELOG.md']);
 
@@ -173,9 +177,11 @@ else process.exit(2);
     const args=['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--script',join(runtime,'tasks-overview.mjs'),
       ...(redirect?['--state-file',stateFile,'--slots-file',join(dir,'slots.json')]:['--data-dir',dataDir])];
     const start=extra=>{const p=spawn(join(runtime,'agent-ops.exe'),[...args,...extra],{windowsHide:true,stdio:'ignore',env,detached:true});pids.add(p.pid);p.unref();return p.pid;};
-    const status=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(2000)});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId))pids.add(s.processId);return s;};
+    // Releases after v0.3.x require the session secret from session.json; earlier ones ignore the header.
+    const sessionHeader=()=>{try{return {'X-Agent-Ops-Session':JSON.parse(readFileSync(join(dataDir,'session.json'),'utf8')).secret};}catch{return {};}};
+    const status=async()=>{const r=await fetch(base+'/api/updates',{signal:AbortSignal.timeout(2000),headers:sessionHeader()});assert.equal(r.status,200);const s=await r.json();if(Number.isInteger(s.processId))pids.add(s.processId);return s;};
     // Releases before v0.3.0 check X-Workboard; later ones X-Agent-Ops.
-    const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','X-Agent-Ops':'1','Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());};
+    const post=async(action,body={})=>{const r=await fetch(base+'/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','X-Agent-Ops':'1','Content-Type':'application/json',...sessionHeader()},body:JSON.stringify(body)});assert.equal(r.status,202,await r.clone().text());};
     // After a rolled-back update the previous release keeps showing that error; only a new one is fatal.
     let staleError=null;
     const fatal=s=>{if(s.phase==='error'&&s.error!==staleError)throw Object.assign(Error('Update error: '+s.error),{fatal:true});};
@@ -186,7 +192,7 @@ else process.exit(2);
       await post('apply',{version:to});
       const after=await until(status,s=>{fatal(s);return s.current===to&&s.processId!==before.processId;},180000,'restart on '+to);
       await until(async()=>result(),r=>r.phase==='updated'&&r.version===to,30000,'update receipt');
-      const snapshot=await (await fetch(base+'/api/state')).json();assert.equal(snapshot.appVersion,to);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
+      const snapshot=await (await fetch(base+'/api/state',{headers:sessionHeader()})).json();assert.equal(snapshot.appVersion,to);assert.equal(snapshot.error,'');assert.equal(snapshot.state.plans.length,1);
       assert.equal(readFileSync(plan,'utf8'),source,'task source unchanged');assert.equal(readFileSync(ownerFile,'utf8'),'{"private":"keep"}','owner runtime file preserved');
       assert.equal(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),ownerAgents,'owner instructions kept, reporting block removed');
       assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved');
@@ -269,7 +275,7 @@ else process.exit(2);
     const restored=await until(status,s=>{if(s.phase==='error'&&s.processId===beforeBroken.processId)fatal(s);return s.current===next&&s.processId!==beforeBroken.processId;},240000,'rollback restart');
     await until(async()=>result(),r=>r.phase==='error'&&r.version===broken,30000,'rollback receipt');
     assert.equal(restored.phase,'error');assert.match(restored.error,/previous version/);
-    assert.equal(readFileSync(join(runtime,'tasks-overview.mjs'),'utf8'),readFileSync(join(custom,'tasks-overview.mjs'),'utf8'),'collector restored');
+    assert.ok(readFileSync(join(runtime,'agent-ops.exe')).equals(readFileSync(join(custom,'agent-ops.exe'))),'the N+1 app restored');
     assert.ok(existsSync(join(runtime,'CHANGELOG.md'))&&!existsSync(join(runtime,'INSTALL.md')),'N+1 file set restored');
     assert.equal(readFileSync(join(runtime,'CHANGELOG.md'),'utf8'),'# Fixture changelog\n','file removed by N+2 restored');
     assert.equal(readFileSync(skill,'utf8'),ownerSkill,'owner-edited SKILL.md preserved through the rollback');

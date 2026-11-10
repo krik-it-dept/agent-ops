@@ -1035,8 +1035,8 @@ func appMigrationOptions() migrationOptions {
 }
 
 // runMigrateCommand is "agent-ops.exe --migrate --profile-dir <home>
-// [--runtime-dir <install folder>] [--data-dir <data folder>]", used by the
-// installer through integrations/install-task-reporting.mjs. Without --data-dir
+// [--runtime-dir <install folder>] [--data-dir <data folder>]", run by
+// scripts/install.ps1. Without --data-dir
 // the data folders are taken from the profile. With this user's real home, only
 // the installed instance (default install and data folders) edits client files
 // or deletes legacy locations; see migrationOptions.deletionScope. It prints the

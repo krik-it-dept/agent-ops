@@ -1,6 +1,6 @@
 # Install Agent Ops
 
-Requires Windows x64, Microsoft Edge and Node.js 24. No model/API account is needed for the dashboard or F5.
+Requires Windows x64 and Microsoft Edge. Node.js is not required (releases up to v0.3.x needed it for the plan collector). No model/API account is needed for the dashboard or F5.
 
 1. Quit a running Agent Ops from its tray menu.
 2. Extract the release ZIP to a temporary folder. Verify its SHA-256 against the adjacent checksum:
@@ -43,7 +43,7 @@ Precedence for each value is flag, then environment variable, then `config.json`
 | `--repos-dir` | `AGENT_OPS_REPOS_DIR` | Projects from `config.json`. When set, this folder replaces them for the run and Settings shows projects read-only |
 | `--state-file` | `AGENT_OPS_STATE_FILE` | `stateFile` in `config.json`; otherwise `<data-dir>/state/tong-hop-chung.json` |
 | `--script` | `AGENT_OPS_SCRIPT` | Collector beside the executable |
-| `--addr` | `AGENT_OPS_ADDR` | `127.0.0.1:7790` |
+| `--addr` | `AGENT_OPS_ADDR` | `127.0.0.1:7790`, or 7791 to 7799 or any free loopback port when another user or program holds it. An address you set is used as it is, without a fallback. |
 | `--data-dir` | — | `%LOCALAPPDATA%/AgentOps` (the folder of earlier releases is mapped to it) |
 | `--profile-dir` | — | Current user profile; where Settings > Integrations looks for folders to suggest |
 | `--no-update-check` | — | Off; disable automatic checks, retain manual checks |
@@ -62,7 +62,7 @@ In **Settings > General > Plans**, **Automatically archive Done plans** keeps pl
 
 Quit Agent Ops. Copy the previous runtime files from the printed `backups/<timestamp>` directory back into the runtime directory. AI client files changed by the migration or by Settings > Integrations are backed up under `%LOCALAPPDATA%\AgentOps\backups`. Keep the task sources and the data folder; they are not code rollback targets. Relaunch the previous binary and verify `/api/state` and one F5 check.
 
-The desktop service is loopback-only, with Host/Origin/Fetch-Metadata checks, protected POST actions, script-hash CSP and frame protection. It is not a public multi-user server and must not be exposed through a reverse proxy or port forwarding.
+The desktop service is loopback-only, with Host/Origin/Fetch-Metadata checks, protected POST actions, script-hash CSP and frame protection, and every request must carry this app session's secret (an HttpOnly cookie in the app window; `session.json` in the data folder for local tools). After the first update to this release, close a window that was already open and open Agent Ops again from the tray: it was opened before sessions existed. It is not a public multi-user server and must not be exposed through a reverse proxy or port forwarding.
 
 ## Uninstall
 

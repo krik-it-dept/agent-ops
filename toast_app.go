@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 
 	"golang.org/x/sys/windows/registry"
+
+	"github.com/krik-it-dept/agent-ops/internal/safeio"
 )
 
 // Toasts carry the app's own name and icon through an AppUserModelID registered
@@ -70,15 +72,7 @@ func writeToastIcon(dir string) (string, error) {
 	if old, err := os.ReadFile(path); err == nil && bytes.Equal(old, data) {
 		return path, nil
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return "", err
-	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return "", err
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		_ = os.Remove(tmp)
+	if err := safeio.WriteFile(path, data, 0o644); err != nil {
 		return "", err
 	}
 	return path, nil

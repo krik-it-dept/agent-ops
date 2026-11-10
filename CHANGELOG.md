@@ -3,6 +3,26 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## Unreleased - No Node.js, safer files
+
+- Node.js is no longer required: the plan collector is built into the app.
+  The update removes `tasks-overview.mjs`, `plan-reader.mjs` and the Node
+  migration shim; `task-sync.mjs` and `task-report.mjs` stay as stubs for older
+  sessions that still run them with Node.
+- One plan that cannot be read or parsed no longer breaks the board: it is
+  listed under `diagnostics` and every other plan still shows. Header lines and
+  steps inside code blocks are ignored.
+- The board data now lists each repository's Git worktrees and branches, and
+  each milestone's progress ([schema](docs/overview-schema.md)).
+- Nothing is written into your repositories any more (no `.tasks/tong-hop.md`).
+- State, settings and config files are replaced atomically and survive files
+  held by an editor or antivirus; the activity log is kept to a bounded size.
+- Other Windows users on the same PC can no longer read your board: every
+  request needs this session's secret. When port 7790 is taken by another user
+  or program, Agent Ops uses another port, and a second launch or a
+  notification click still opens the running app. After this update, close a
+  window that was already open and open Agent Ops again from the tray.
+
 ## v0.3.0 - A read-only work ledger
 
 Agent Ops now only reads plans. Orchestration (worktrees, workers, hand-offs)

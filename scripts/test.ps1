@@ -8,7 +8,7 @@ try {
     Invoke-Checked -File $goExecutable -Arguments @('mod','verify')
     Invoke-Checked -File $goExecutable -Arguments @('test','./...','-count=1')
     Invoke-Checked -File $goExecutable -Arguments @('vet','./...')
-    $syntaxFiles = @(Get-ChildItem -File -Filter '*.mjs') + @(Get-ChildItem -Path scripts,integrations -File -Recurse -Filter '*.mjs')
+    $syntaxFiles = @(Get-ChildItem -File -Filter '*.mjs') + @(Get-ChildItem -Path scripts -File -Recurse -Filter '*.mjs')
     foreach ($scriptFile in $syntaxFiles) {
         Invoke-Checked -File 'node' -Arguments @('--check',$scriptFile.FullName)
     }

@@ -18,6 +18,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/krik-it-dept/agent-ops/internal/safeio"
 )
 
 // Legacy defaults from the first, single-machine release. They are only used to
@@ -225,7 +227,7 @@ func validateAppConfig(c *AppConfig) error {
 
 // readAppConfig returns an error wrapping fs.ErrNotExist when there is no file.
 func readAppConfig(file string) (AppConfig, error) {
-	b, err := os.ReadFile(file)
+	b, err := safeio.ReadFile(file)
 	if err != nil {
 		return AppConfig{}, err
 	}

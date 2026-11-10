@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 )
 
 // settingsFixture runs the real collector against config.json in an isolated
@@ -40,10 +42,10 @@ func settingsFixture(t *testing.T) string {
 		legacy                     legacyPaths
 		allowLegacy                func() bool
 		seen                       map[string]bool
-	}{reposDir, stateFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed, seenProjects}
+	}{reposDir, stateFile, ignoredScript, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed, seenProjects}
 	t.Cleanup(func() {
 		seenProjects = old.seen
-		reposDir, stateFile, scriptFile, dataDir = old.repos, old.state, old.script, old.data
+		reposDir, stateFile, ignoredScript, dataDir = old.repos, old.state, old.script, old.data
 		appCfg, configWarning, configReadOnly = old.cfg, old.warning, old.readOnly
 		prev, events, rawState, refreshError, staleSeen = old.prevPlans, old.ev, old.raw, old.errText, old.stale
 		lastProjects, projectStates = old.last, old.states
@@ -54,7 +56,6 @@ func settingsFixture(t *testing.T) string {
 	reposDir, stateFile = "", ""
 	dataDir = filepath.Join(dir, "data")
 	os.MkdirAll(dataDir, 0o700)
-	scriptFile, _ = filepath.Abs("tasks-overview.mjs")
 	appCfg, configWarning, configReadOnly = defaultAppConfig(), "", ""
 	prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates = nil, nil, nil, "", map[string]time.Time{}, nil, nil
 	seenProjects = nil
@@ -181,9 +182,14 @@ func TestSameRepoNameInTwoProjectsAndMissingProjectWarning(t *testing.T) {
 	}
 }
 
-func TestNoProjectsNeverRunsNodeAndStaysHealthy(t *testing.T) {
+func TestNoProjectsNeverRunsTheCollectorAndStaysHealthy(t *testing.T) {
 	settingsFixture(t)
-	scriptFile = filepath.Join(dataDir, "missing-collector.mjs")
+	saved := collectPlans
+	t.Cleanup(func() { collectPlans = saved })
+	collectPlans = func(context.Context, plans.Options) (*plans.Overview, error) {
+		t.Error("the collector ran without a project")
+		return nil, errors.New("must not run")
+	}
 	refresh(true)
 	if refreshError != "" || !strings.Contains(string(rawState), `"plans":[]`) {
 		t.Fatal("empty configuration must not fail", refreshError)
@@ -199,14 +205,14 @@ func TestNoProjectsNeverRunsNodeAndStaysHealthy(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(updateState{Current: appVersion, ProcessID: 7})
 	}))
 	defer server.Close()
-	if !updateHealth(server.URL, appVersion, 7, 2*time.Second) {
+	if !updateHealth(server.URL, "", appVersion, 7, 2*time.Second) {
 		t.Fatal("an update must not roll back because no project is configured")
 	}
 	appCfg.Projects = []Project{{ID: "gone", Path: filepath.Join(dataDir, "missing"), Name: "Gone", Kind: "folder", Enabled: true}}
-	scriptFile, _ = filepath.Abs("tasks-overview.mjs")
+	collectPlans = saved
 	writeAppConfig(configFilePath(dataDir), appCfg)
 	refresh(true)
-	if refreshError != "" || !updateHealth(server.URL, appVersion, 7, 2*time.Second) {
+	if refreshError != "" || !updateHealth(server.URL, "", appVersion, 7, 2*time.Second) {
 		t.Fatal("a missing project folder must be a warning, not an unhealthy update", refreshError)
 	}
 }
@@ -413,7 +419,7 @@ func TestV014RelaunchArgumentsAreNotOverrides(t *testing.T) {
 	os.Remove(configFilePath(dataDir))
 	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
 	os.Args = []string{"agent-ops.exe", "--background", "--addr", addr, "--repos-dir", strings.ToUpper(legacy) + `\`,
-		"--slots-file", filepath.Join(dir, "legacy-slots.json"), "--state-file", legacyDefaults.state, "--script", scriptFile,
+		"--slots-file", filepath.Join(dir, "legacy-slots.json"), "--state-file", legacyDefaults.state, "--script", filepath.Join(dir, "tasks-overview.mjs"),
 		"--data-dir", dataDir, "--profile-dir", dir}
 	config()
 	initSettings()
@@ -487,9 +493,9 @@ func TestReenabledProjectDoesNotReseedHistory(t *testing.T) {
 	}
 }
 
-// The Go app and the collector must resolve projects and the state file in the
-// same order: flag > AGENT_OPS_* environment > config.json > default.
-func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
+// Projects and the state file resolve in this order: flag > AGENT_OPS_*
+// environment > config.json > default.
+func TestSettingsResolveFlagThenEnvironmentThenConfig(t *testing.T) {
 	dir := settingsFixture(t)
 	oldArgs, oldFlags := os.Args, flag.CommandLine
 	t.Cleanup(func() {
@@ -508,24 +514,23 @@ func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 	if err := writeAppConfig(configFilePath(dataDir), cfg); err != nil {
 		t.Fatal(err)
 	}
-	reader, _ := filepath.Abs("plan-reader.mjs")
-	script := `const {resolveSettings}=await import(process.argv[1]);` +
-		`const s=resolveSettings(JSON.parse(process.argv[2]));` +
-		`process.stdout.write(JSON.stringify({projects:s.projects.map(p=>p.id),state:s.stateFile}))`
 	type resolved struct {
-		Projects []string `json:"projects"`
-		State    string   `json:"state"`
+		Projects []string
+		State    string
 	}
 	cases := []struct {
 		name  string
 		env   map[string]string
 		flags map[string]string
+		want  resolved
 	}{
-		{"config", nil, nil},
-		{"environment beats config", map[string]string{"AGENT_OPS_REPOS_DIR": filepath.Dir(envRepos), "AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil},
-		{"environment for one value", map[string]string{"AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil},
+		{"config", nil, nil, resolved{[]string{projectIDFor(configured)}, cfg.StateFile}},
+		{"environment beats config", map[string]string{"AGENT_OPS_REPOS_DIR": filepath.Dir(envRepos), "AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil,
+			resolved{[]string{projectIDFor(filepath.Dir(envRepos))}, filepath.Join(dir, "env-state.json")}},
+		{"environment for one value", map[string]string{"AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil,
+			resolved{[]string{projectIDFor(configured)}, filepath.Join(dir, "env-state.json")}},
 		{"flag beats environment", map[string]string{"AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json"), "AGENT_OPS_REPOS_DIR": filepath.Dir(envRepos)},
-			map[string]string{"state-file": filepath.Join(dir, "flag-state.json"), "repos-dir": configured}},
+			map[string]string{"state-file": filepath.Join(dir, "flag-state.json"), "repos-dir": configured}, resolved{[]string{projectIDFor(configured)}, filepath.Join(dir, "flag-state.json")}},
 	}
 	for _, c := range cases {
 		for _, name := range []string{"AGENT_OPS_REPOS_DIR", "AGENT_OPS_STATE_FILE"} {
@@ -543,22 +548,8 @@ func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 		for _, p := range effectiveProjects() {
 			goSide.Projects = append(goSide.Projects, p.ID)
 		}
-		options, _ := json.Marshal(c.flags)
-		if c.flags == nil {
-			options = []byte("{}")
-		}
-		cmd := exec.Command("node", "--input-type=module", "-e", script, "file:///"+filepath.ToSlash(reader), string(options))
-		cmd.Env = append(os.Environ(), "AGENT_OPS_CONFIG="+configFilePath(dataDir))
-		out, err := cmd.Output()
-		if err != nil {
-			t.Fatal(c.name, err)
-		}
-		var nodeSide resolved
-		if err := json.Unmarshal(out, &nodeSide); err != nil {
-			t.Fatal(c.name, err, string(out))
-		}
-		if strings.Join(goSide.Projects, ",") != strings.Join(nodeSide.Projects, ",") || !strings.EqualFold(goSide.State, nodeSide.State) {
-			t.Fatalf("%s: Go %+v, Node %+v", c.name, goSide, nodeSide)
+		if strings.Join(goSide.Projects, ",") != strings.Join(c.want.Projects, ",") || !strings.EqualFold(goSide.State, c.want.State) {
+			t.Fatalf("%s: got %+v, want %+v", c.name, goSide, c.want)
 		}
 	}
 }

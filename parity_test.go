@@ -5,13 +5,16 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 )
 
-// Project IDs and repository names key every plan, so Go and plan-reader.mjs must
-// compute the same values, including for drive and network-share roots.
+// Project IDs and repository names key every plan, so they must stay what the
+// Node collector of earlier releases computed (internal/plans/testdata/node),
+// including for drive and network-share roots: persisted history uses them.
 func TestGoAndNodeAgreeOnProjectIDsAndRepoNames(t *testing.T) {
 	paths := []string{`D:\`, `d:\Work\Repos\`, `D:\Work\Repos`, `\\server\share`, `\\server\share\`, `\\server\share\team\`, `C:\Dự Án\web`}
-	reader, _ := filepath.Abs("plan-reader.mjs")
+	reader, _ := filepath.Abs(filepath.Join("internal", "plans", "testdata", "node", "plan-reader.mjs"))
 	script := `const {projectIdFor,repoNameOf}=await import(process.argv[1]);` +
 		`process.stdout.write(JSON.stringify(JSON.parse(process.argv[2]).map(p=>[projectIdFor(p),repoNameOf(p)])))`
 	input, _ := json.Marshal(paths)
@@ -24,7 +27,7 @@ func TestGoAndNodeAgreeOnProjectIDsAndRepoNames(t *testing.T) {
 		t.Fatal(err, string(out))
 	}
 	for i, p := range paths {
-		if goSide := [2]string{projectIDFor(p), repoNameOf(p)}; goSide != node[i] {
+		if goSide := [2]string{projectIDFor(p), repoNameOf(p)}; goSide != node[i] || plans.RepoNameOf(p) != node[i][1] {
 			t.Errorf("%s: Go %v, Node %v", p, goSide, node[i])
 		}
 		if repoNameOf(p) == "" {

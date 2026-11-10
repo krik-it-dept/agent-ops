@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -17,6 +18,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 )
 
 var (
@@ -48,7 +51,7 @@ func legacyDefaultDataDir() string {
 // The installed instance owns the Run key and protocol registration; dev, test
 // and smoke instances on other ports or data folders never rewrite them.
 func defaultInstance() bool {
-	return addr == "127.0.0.1:7790" && strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir()))
+	return !explicitAddr && strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir()))
 }
 
 // initSettings loads (or migrates) config.json and resolves the state file: flag > environment > config.json > default under dataDir.
@@ -302,6 +305,28 @@ func stateWarnings(summaries []ProjectSummary) []string {
 			}
 			out = append(out, "Project “"+s.Name+"” "+reason+". Reconnect the drive or update it in Settings.")
 		}
+	}
+	return append(out, planProblemWarnings(planProblems)...)
+}
+
+// maxPlanWarnings bounds the plan problems listed one by one.
+const maxPlanWarnings = 5
+
+// planProblemWarnings turns the collector's diagnostics into warnings, so a
+// plan left out of the board (unreadable, too large) or partly read is not
+// silently missing. Called with mu held.
+func planProblemWarnings(list []plans.Diagnostic) []string {
+	out := []string{}
+	for i, d := range list {
+		if i == maxPlanWarnings {
+			out = append(out, fmt.Sprintf("%d more plan problems; see the diagnostics in the state file.", len(list)-maxPlanWarnings))
+			break
+		}
+		where := d.Repo
+		if d.Plan != "" {
+			where += "/" + d.Plan
+		}
+		out = append(out, "Plan “"+where+"”: "+d.Message)
 	}
 	return out
 }

@@ -24,7 +24,7 @@ Audit date: 2026-11-09. Target: a private, trusted-local Windows x64 desktop too
 
 | Area | Evidence / disposition |
 | --- | --- |
-| Security | Automated request-boundary/CSRF tests; HTTP smoke rejects rebinding Host and foreign Origin; source-path/revision/Windows-lock tests; actual page CSP hash verified |
+| Security | Automated request-boundary/CSRF and session-secret tests; HTTP smoke rejects rebinding Host, foreign Origin, requests without the session secret and forged launch tokens; port fallback and single-instance tests; source-path/revision/Windows-lock tests; actual page CSP hash verified |
 | Build | Windows Go build, module verification and vet; dependency versions locked in go.mod/go.sum; no frontend build dependencies |
 | Tests | 120 JavaScript tests plus Go package tests pass; source code syntax checks pass |
 | Dependencies | govulncheck v1.9.0 reports no known vulnerabilities reachable in the Go application; no npm runtime packages |
