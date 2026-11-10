@@ -124,16 +124,16 @@ func runUpdateCommand(ctx context.Context, name string, args ...string) ([]byte,
 	return out, err
 }
 
-// validUpdateFeed accepts only a plain loopback HTTP origin, for isolated update
-// tests. It does not widen the trust boundary: a local user can already replace
+// validUpdateFeed accepts only a plain http://127.0.0.1:<port> origin, for
+// isolated update tests. "localhost" is refused because the hosts file can
+// point it anywhere. It does not widen the trust boundary: a local user can already replace
 // the installed files directly.
 func validUpdateFeed(feed string) bool {
 	u, err := url.Parse(feed)
 	if err != nil || u.Scheme != "http" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.Port() == "" {
 		return false
 	}
-	h := u.Hostname()
-	return h == "127.0.0.1" || h == "localhost" || h == "::1"
+	return u.Host == "127.0.0.1:"+u.Port()
 }
 
 func trustedDownloadHost(host string) bool {

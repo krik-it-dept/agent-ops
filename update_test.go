@@ -731,7 +731,7 @@ func TestPruneKeepsNewestStagingFoldersOnly(t *testing.T) {
 }
 
 func TestUpdateFeedAndRedirectsStayOnTrustedHosts(t *testing.T) {
-	for feed, ok := range map[string]bool{"http://127.0.0.1:8123": true, "http://localhost:9000/": true, "http://[::1]:9000": true, "https://127.0.0.1:8123": false, "http://example.com:80": false, "http://127.0.0.1": false, "http://u:p@127.0.0.1:1": false, "http://127.0.0.1:1/x": false, "http://127.0.0.1:1?q": false, "": false} {
+	for feed, ok := range map[string]bool{"http://127.0.0.1:8123": true, "http://127.0.0.1:9000/": true, "http://localhost:9000/": false, "http://[::1]:9000": false, "http://127.000.000.001:9000": false, "http://2130706433:9000": false, "http://127.0.0.2:9000": false, "https://127.0.0.1:8123": false, "http://example.com:80": false, "http://127.0.0.1": false, "http://u:p@127.0.0.1:1": false, "http://127.0.0.1:1/x": false, "http://127.0.0.1:1?q": false, "": false} {
 		if validUpdateFeed(feed) != ok {
 			t.Error(feed)
 		}

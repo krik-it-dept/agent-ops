@@ -12,7 +12,7 @@ From v0.2.1 the app needs no GitHub CLI and no credentials:
 
 Releases up to v0.2.0 still use `gh` for their last update, to v0.2.1. The repository is public, so any signed-in `gh` works.
 
-`--update-feed http://127.0.0.1:<port>` replaces both GitHub endpoints with one loopback test server. Only a plain loopback HTTP origin is accepted. It exists for isolated update tests and does not widen the trust boundary: a local user can already replace the installed files.
+`--update-feed http://127.0.0.1:<port>` replaces both GitHub endpoints with one loopback test server. Only the literal origin `http://127.0.0.1:<port>` is accepted (not `localhost`, which the hosts file can redirect, nor `::1`). The flag stays in release builds because the N-1 to N test runs release binaries. It exists for isolated update tests and does not widen the trust boundary: a local user can already replace the installed files.
 
 ## Package manifest
 
