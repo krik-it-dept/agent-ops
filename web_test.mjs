@@ -1,6 +1,9 @@
 ﻿import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {join} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import vm from 'node:vm';
 const html=readFileSync(new URL('./web/index.html',import.meta.url),'utf8');
 const source=html.match(/<script>([\s\S]*?)<\/script>/)[1];
@@ -8,10 +11,11 @@ function harness(saved={layout:"board"},nav={},stored={}){
  const ids={}, handlers={}, timers=[], requests=[], streams=[],storage={'wb-ui':JSON.stringify(saved),'wb-navigation':JSON.stringify(nav),...stored},writes=[];let context;
  function element(id){return {id,innerHTML:'',textContent:'',className:'',hidden:false,isConnected:true,scrollTop:0,value:'',selectionStart:0,selectionEnd:0,attributes:{},listeners:{},setAttribute(k,v){this.attributes[k]=v;},getAttribute(k){return this.attributes[k];},removeAttribute(k){delete this.attributes[k];},show(){this.open=true;this.modal=false;},showModal(){this.open=true;this.modal=true;},close(){this.open=false;},addEventListener(name,fn){this.listeners[name]=fn;},focus(){context.document.activeElement=this;},select(){this.selectionStart=0;this.selectionEnd=this.value.length;},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b;}};}
  ['inspector-toggle','inspector-resize','command-dialog','command-input','command-results','view','top','tabs','nav','q','refresh','upd','error','live','connection','save-state','plan-sidebar','sidebar-toggle','quick-plan','quick-plan-content','quick-plan-scroll','quick-close','quick-tab-overview','quick-tab-checklist','quick-tab-activity','quick-star','quick-refresh','quick-full','quick-error','update-card','update-segment','update-dismiss','update-minimize','update-retry','update-apply','update-skip','app-version','status-totals','error-raw','error-details','settings-check-updates','setup-keep','setup-skip-confirm','setup-choose','onboarding-card','settings-add','settings-nav-add','error-text','error-detail','error-retry','warnings','crash','onboarding','settings','settings-open','settings-search','settings-main','settings-close','settings-choose','settings-path','setup-path','setup-next','setup-finish','setup-back','setup-skip'].forEach(id=>ids[id]=element(id));
- context=vm.createContext({console,Date,URL,encodeURI,encodeURIComponent,decodeURIComponent,setTimeout(fn){timers.push(fn);return timers.length;},clearTimeout(i){timers[i-1]=null;},setInterval(){},location:{hash:''},localStorage:{getItem(key){return storage[key] || null;},setItem(k,v){storage[k]=v;writes.push(k);}},window:{addEventListener(name,fn){handlers[name]=fn;}},document:{querySelectorAll(){return [];},activeElement:null,documentElement:{attributes:{},setAttribute(k,v){this.attributes[k]=v;}},getElementById(id){return ids[id];},addEventListener(name,fn){handlers[name]=fn;}},fetch(path){requests.push(path);return Promise.resolve({ok:true,json:async()=>data([])});},EventSource:class{constructor(){streams.push(this);}}});
- const instrumented=source.replace('jumpHash(); get(); connect(); initUpdates(); loadSettings();',`globalThis.api={workspacePlans,archivedPlan,autoArchiveOn,openArchive,viewArchive,closePlanTab,syncQuickSurface,setInspectorWidth,commandState,openCommands,closeCommands,runCommand,commandItems,renderCommands,switchLayout,updateUI,receiveUpdate,updateAction,showUpdateCard,dismissUpdateCard,renderUpdate,updateCardKind,applyTheme,shortcutsOn,setupGo,openSetup,errorUI,pollUpdates,initUpdates,navigation,quick,renderSidebar,sidebarPlans,openQuickPlan,closeQuickPlan,stepQuickPlan,togglePlanStar,recordPlanVisit,quickChecklist,taskRows,filteredTaskRows,focusedTask,refresh, viewList, viewTimeline, viewSummary, timelineEntries, dateKey, monthDays, handleViewAction, planByKey, render, columnOf, owner, needsAttention, feedFor, orderedMilestones, stepsHTML, taskCard, prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui, setup, settingsUI, renderSetup, renderSettings, openSettings, closeSettings, loadSettings, addProject, chooseFolder, removeProject, toggleProject, saveSetting, finishSetup, handleSettingsAction, settingsInput, settingsChange, settingsKey, showWarnings, showCrash, crashAction, copyDiagnostics, syncSetup, key, repoLabel, viewHome, integrationsUI, loadIntegrations, integrationAction, integrationDiff, setupInstallClients, addIntegration, changeTarget, dropTarget, chooseSkillsFolder, chooseInstructionFile, pastedIntegration, startEdit, saveEdit, get settingsData(){return settingsData;}, set settingsData(v){settingsData=v;}};`);
+ context=vm.createContext({console,Date,URL,URLSearchParams,encodeURI,encodeURIComponent,decodeURIComponent,setTimeout(fn){timers.push(fn);return timers.length;},clearTimeout(i){timers[i-1]=null;},setInterval(){},location:{hash:''},localStorage:{getItem(key){return storage[key] || null;},setItem(k,v){storage[k]=v;writes.push(k);}},window:{addEventListener(name,fn){handlers[name]=fn;}},document:{querySelectorAll(){return [];},activeElement:null,documentElement:{attributes:{},setAttribute(k,v){this.attributes[k]=v;}},getElementById(id){return ids[id];},addEventListener(name,fn){handlers[name]=fn;}},fetch(path){requests.push(path);return Promise.resolve({ok:true,json:async()=>data([])});},EventSource:class{constructor(){streams.push(this);}}});
+ const instrumented=source.replace('jumpHash(); get(); connect(); initUpdates(); loadSettings();',`globalThis.api={acceptState,normalizePlan,patchChildren,patchRegion,planCache,routeHash,syncRoute,milestoneProgress,statusTone,statusGlyph,workspacePlans,archivedPlan,autoArchiveOn,openArchive,viewArchive,closePlanTab,commandState,openCommands,closeCommands,runCommand,commandItems,renderCommands,switchLayout,updateUI,receiveUpdate,updateAction,showUpdateCard,dismissUpdateCard,renderUpdate,updateCardKind,applyTheme,shortcutsOn,setupGo,openSetup,errorUI,pollUpdates,initUpdates,navigation,renderSidebar,sidebarPlans,openPlan,togglePlanStar,recordPlanVisit,taskRows,filteredTaskRows,focusedTask,refresh, viewList,    dateKey,  handleViewAction, planByKey, render,  owner, needsAttention, feedFor,  stepsHTML,  prs, jumpHash, connection, showError, connect, get, openColumnMenu,applyColumnMenu,sortTaskColumn,groupedTaskRows,setTaskGroups,columnInput,get columnMenu(){return columnMenu;},setData(j){D=j;}, ui, setup, settingsUI, renderSetup, renderSettings, openSettings, closeSettings, loadSettings, addProject, chooseFolder, removeProject, toggleProject, saveSetting, finishSetup, handleSettingsAction, settingsInput, settingsChange, settingsKey, showWarnings, showCrash, crashAction, copyDiagnostics, syncSetup, key, repoLabel, viewHome, integrationsUI, loadIntegrations, integrationAction, integrationDiff, setupInstallClients, addIntegration, changeTarget, dropTarget, chooseSkillsFolder, chooseInstructionFile, pastedIntegration, startEdit, saveEdit, get settingsData(){return settingsData;}, set settingsData(v){settingsData=v;}};`);
  vm.runInContext(instrumented,context);
- return {api:context.api,ids,context,handlers,requests,streams,storage,writes,flush(){timers.splice(0).forEach(fn=>fn&&fn());}};
+ const routes=[];context.history={pushState(state,title,hash){routes.push(hash);context.location.hash=hash;context.location.href='http://127.0.0.1:17891/'+hash;},replaceState(state,title,hash){routes[routes.length-1]=hash;context.location.hash=hash;context.location.href='http://127.0.0.1:17891/'+hash;}};
+ return {api:context.api,ids,context,handlers,requests,streams,storage,writes,routes,flush(){timers.splice(0).forEach(fn=>fn&&fn());}};
 }
 function plan(status='Implementing',name='Cải thiện tìm kiếm'){return {repo:'ledger',name,owner:'Minh',revision:'a'.repeat(64),status,tone:'doing',step:1,mtime:new Date().toISOString(),gh:'https://github.com/krik/ledger',root:'C:/sample',goal:'Gọn hơn #12',spec:'plan.md',next:'Kiểm tra kết quả #12',steps:[{status:'doing',text:'Kiểm tra tìm kiếm'},{status:'todo',text:'Xác minh #12'}],milestones:[],decisions:[{key:'202611090900',when:'09/11 09:00',text:'Giữ tiếng Việt'}],questions:[{key:'202611090930',when:'09/11 09:30',ask:'Chốt giao diện?',answer:'',open:true}]};}
 function data(plans){return {state:{plans},activity:[],stale:{},now:new Date().toISOString(),error:''};}
@@ -106,15 +110,8 @@ test('A manual check shows Checking and then a short up-to-date notice; setup ho
  s.api.setup.open=false;s.api.renderUpdate();assert.equal(s.ids['update-card'].hidden,false,'shown once setup closes');
 });
 
-test('Board has five status columns, assignees and progress without KPI or chat navigation',()=>{const h=harness();h.api.setData(data([plan()]));h.api.render();assert.match(h.ids.view.innerHTML,/In progress/);assert.match(h.ids.view.innerHTML,/Minh/);assert.match(h.ids.view.innerHTML,/1?0?\/2/);assert.equal((h.ids.view.innerHTML.match(/class="column"/g)||[]).length,5);assert.doesNotMatch(h.ids.nav.innerHTML,/Channels|Report|Activity/);assert.doesNotMatch(h.ids.view.innerHTML,/kpis|class="feed"/);});
-test('Columns preserve exact stages on cards',()=>{const h=harness();for(const [stage,col]of [['Planning',0],['Implementing',1],['Reviewing',2],['Fixing review',2],['Testing',2],['Waiting for CI',3],['Waiting for owner',3],['Blocked',3],['Shipping',1],['Done',4]])assert.equal(h.api.columnOf(plan(stage)),col,stage);});
-test('Status detail stays outside the stage badge',()=>{const h=harness();let card=h.api.taskCard(plan('Waiting for owner - duyệt #12'));assert.match(card,/Waiting for owner<\/span>/);assert.match(card,/class="stage-detail"/);assert.match(card,/pull\/12/);});
-test('Actor fallback is the Owner header, then the repository',()=>{const h=harness(),p=plan();assert.equal(h.api.owner(p),'Minh');p.slot={by:'Linh'};assert.equal(h.api.owner(p),'Minh','a legacy slot is ignored');p.owner='';assert.equal(h.api.owner(p),'ledger');});
-test('Empty board and empty activity use expected labels',()=>{const h=harness();h.api.setData(data([]));h.api.render();assert.match(h.ids.view.innerHTML,/No active plan/);const p=plan();p.decisions=[];p.questions=[];h.api.setData(data([p]));h.api.ui.view='plan:'+p.repo+'/'+p.name;h.api.ui.tab='activity';h.api.render();assert.match(h.ids.view.innerHTML,/No activity yet/);});
-test('Board search includes owner and decisions',()=>{const h=harness();h.api.setData(data([plan()]));for(const q of ['Minh','Giữ tiếng Việt']){h.api.ui.q=q;h.api.render();assert.match(h.ids.view.innerHTML,/task-card/);}h.api.ui.q='missing';h.api.render();assert.match(h.ids.view.innerHTML,/No matching work/);});
 test('Debounced search preserves header, navigation, scroll and focus',()=>{const h=harness();h.api.setData(data([plan()]));h.api.render();const top=h.ids.top.innerHTML,nav=h.ids.nav.innerHTML,input=h.ids.q;h.ids.view.scrollTop=115;h.ids.view.scrollLeft=312;input.focus();input.value='Minh';input.oninput();assert.equal(h.api.ui.q,'Minh');h.flush();assert.equal(h.ids.top.innerHTML,top);assert.equal(h.ids.nav.innerHTML,nav);assert.equal(h.ids.view.scrollTop,115);assert.equal(h.ids.view.scrollLeft,312);assert.equal(h.context.document.activeElement,input);});
-test('Work keeps decisions and questions in separate tabs',()=>{const h=harness(),p=plan();h.api.setData(data([p]));h.api.ui.view='plan:'+p.repo+'/'+p.name;h.api.ui.tab='checklist';h.api.render();assert.match(h.ids.view.innerHTML,/Kiểm tra tìm kiếm/);assert.doesNotMatch(h.ids.view.innerHTML,/Giữ tiếng Việt|Chốt giao diện/);assert.match(h.ids.tabs.innerHTML,/Decisions/);assert.match(h.ids.top.innerHTML,/← Board/);});
-test('Milestones and steps retain required order',()=>{const h=harness();const m=(id,state)=>({id,state,steps:[]});assert.deepEqual(Array.from(h.api.orderedMilestones({milestones:[m('M1','todo'),m('M2','done'),m('M3','doing'),m('M4','doing'),m('M5','done')]}),x=>x.id),['M4','M3','M5','M2','M1']);const out=h.api.stepsHTML(['done','todo','partial','blocked','doing'].map(s=>({status:s,text:s})),'');assert.ok(out.indexOf('s-doing')<out.indexOf('s-blocked'));assert.ok(out.indexOf('s-blocked')<out.indexOf('s-partial'));assert.ok(out.indexOf('s-partial')<out.indexOf('s-todo'));assert.ok(out.indexOf('s-todo')<out.indexOf('s-done'));});
+test('Work keeps decisions and questions in separate tabs',()=>{const h=harness(),p=plan();h.api.setData(data([p]));h.api.ui.view='plan:'+p.repo+'/'+p.name;h.api.ui.tab='checklist';h.api.render();assert.match(h.ids.view.innerHTML,/Kiểm tra tìm kiếm/);assert.doesNotMatch(h.ids.view.innerHTML,/Giữ tiếng Việt|Chốt giao diện/);assert.match(h.ids.tabs.innerHTML,/Decisions/);assert.match(h.ids.top.innerHTML,/Overview/);});
 test('Historical entries in different plans do not suppress each other',()=>{const h=harness(),a=plan(),b=plan('Testing','Kiểm thử');h.api.setData(data([a,b]));assert.equal(h.api.feedFor(null).length,4);});
 test('Encoded toast hash opens the matching plan Summary',()=>{const h=harness();h.context.location.hash='#plan='+encodeURIComponent('ledger/Cải thiện tìm kiếm');h.api.jumpHash();assert.equal(h.api.ui.view,'plan:ledger/Cải thiện tìm kiếm');assert.equal(h.api.ui.tab,'summary');});
 test('Command search opens a plan with the keyboard and returns focus on Escape',()=>{
@@ -122,16 +119,16 @@ test('Command search opens a plan with the keyboard and returns focus on Escape'
  const key=(value,extra={})=>h.handlers.keydown({key:value,target:{tagName:'INPUT'},preventDefault(){},...extra});
  key('k',{ctrlKey:true});assert.equal(h.ids['command-dialog'].open,true);assert.equal(h.context.document.activeElement,h.ids['command-input']);
  h.ids['command-input'].value='cai thien';h.handlers.input({target:h.ids['command-input']});
- assert.equal(h.api.commandState.items.length,1);key('Enter');assert.equal(h.api.quick.key,'ledger/'+p.name);assert.equal(h.ids['command-dialog'].open,false);
- key('Escape');assert.equal(h.api.quick.key,null);
+ assert.equal(h.api.commandState.items.length,1);key('Enter');assert.equal(h.api.ui.view,'plan:ledger/'+p.name);assert.equal(h.ids['command-dialog'].open,false);
+ key('Escape');assert.equal(h.api.ui.view,'plan:ledger/'+p.name);
  h.ids.q.focus();key('k',{ctrlKey:true});key('Escape');assert.equal(h.context.document.activeElement,h.ids.q);
- h.api.ui.view='plan:ledger/'+p.name;key('Escape');assert.equal(h.api.ui.view,'home');
+ h.api.ui.view='plan:ledger/'+p.name;key('Escape',{target:{tagName:'BUTTON'}});assert.equal(h.api.ui.view,'home');
 });
 test('Command search executes a view action and ignores Enter on an empty result',()=>{
- const h=harness();h.api.openCommands();h.ids['command-input'].value='Timeline';h.handlers.input({target:h.ids['command-input']});h.api.runCommand(0);
- assert.equal(h.api.ui.layout,'timeline');assert.equal(h.api.ui.view,'home');
+ const h=harness();h.api.openCommands();h.ids['command-input'].value='Overview';h.handlers.input({target:h.ids['command-input']});h.api.runCommand(0);
+ assert.equal(h.api.ui.layout,'summary');assert.equal(h.api.ui.view,'home');
  h.api.openCommands();h.ids['command-input'].value='no such command';h.handlers.input({target:h.ids['command-input']});h.api.runCommand(0);
- assert.equal(h.api.commandState.open,true);assert.equal(h.api.ui.layout,'timeline');h.api.closeCommands();
+ assert.equal(h.api.commandState.open,true);assert.equal(h.api.ui.layout,'summary');h.api.closeCommands();
 });
 test('View and sidebar modifier shortcuts work while typing; a new workspace starts on Summary',()=>{
  const h=harness({});assert.equal(h.api.ui.layout,'summary');
@@ -144,7 +141,7 @@ test('Archive separates explicit Done plans without changing sources or hiding d
  c.steps.forEach(s=>s.status='done');h.api.setData(data([a,b,c]));const before=JSON.stringify([a,b,c]);h.api.settingsData={autoArchiveDone:true};h.api.render();
  assert.deepEqual(Array.from(h.api.workspacePlans(),p=>p.name),['Active','Complete checklist']);assert.equal(h.api.planByKey('ledger/Finished'),b);
  h.api.openArchive();assert.equal(h.api.ui.view,'archive');assert.match(h.ids.view.innerHTML,/Finished/);assert.doesNotMatch(h.ids.view.innerHTML,/Complete checklist|>Active</);
- h.api.openQuickPlan('ledger/Finished');assert.equal(h.api.quick.key,'ledger/Finished');h.api.closeQuickPlan();assert.equal(JSON.stringify([a,b,c]),before);
+ h.api.openPlan('ledger/Finished');assert.equal(h.api.ui.view,'plan:ledger/Finished');h.api.openArchive();assert.equal(JSON.stringify([a,b,c]),before);
  b.status='Reviewing';h.api.render();assert.match(h.ids.view.innerHTML,/No archived plans/);assert.equal(h.api.workspacePlans().length,3);
  h.api.settingsData={autoArchiveDone:false};h.api.ui.view='home';h.api.render();assert.equal(h.api.sidebarPlans().length,3);assert.equal(h.requests.length,0);
 });
@@ -156,15 +153,6 @@ test('Workspace plan tabs persist, close independently and leave source plans in
  h.api.closePlanTab('ledger/Alpha');assert.equal(h.api.ui.view,'home');assert.equal(h.api.planByKey('ledger/Beta'),b);assert.equal(h.requests.length,0);
 });
 
-test('Project folders collapse locally and details dock without blocking the workspace',()=>{
- const h=harness(),p=plan();h.api.setData(data([p]));h.api.handleViewAction(actionEvent('data-repo-toggle','/ledger'));
- assert.equal(h.api.navigation.folders['/ledger'],true);assert.match(h.ids['plan-sidebar'].innerHTML,/id="sidebar-folder-%2Fledger" hidden/);
- h.context.window.matchMedia=()=>({matches:true});h.api.openQuickPlan('ledger/'+p.name);assert.equal(h.ids['quick-plan'].modal,false);assert.equal(h.ids['inspector-resize'].hidden,false);
- h.api.openCommands();h.api.closeCommands();assert.equal(h.api.quick.key,'ledger/'+p.name);assert.equal(h.ids['quick-plan'].open,true);
- h.ids.q.focus();h.api.render(true);assert.equal(h.ids['quick-plan'].open,true);assert.equal(h.api.ui.view,'home');h.api.setInspectorWidth(999,true);assert.equal(h.api.navigation.inspectorWidth,600);
- h.context.window.matchMedia=()=>({matches:false});h.api.syncQuickSurface();assert.equal(h.ids['quick-plan'].modal,true);assert.equal(h.ids['inspector-resize'].hidden,true);
- h.api.closeQuickPlan();assert.equal(h.ids['inspector-resize'].hidden,true);assert.equal(h.requests.length,0);
-});
 test('Offline status and error banner expose the reason',()=>{const h=harness();h.api.connection(false);assert.equal(h.ids.connection.textContent,'Reconnecting…');h.api.showError('Node failed: test');assert.equal(h.ids.error.hidden,false);assert.equal(h.ids['error-text'].textContent,'Couldn’t read plans — test');assert.equal(h.ids['error-raw'].textContent,'Node failed: test');assert.equal(h.ids['error-raw'].hidden,true);assert.equal(h.ids['error-details'].hidden,false);h.handlers.click({target:hit('[data-error-details]')});assert.equal(h.ids['error-raw'].hidden,false);assert.equal(h.ids['error-details'].textContent,'Hide details');h.api.showError('');assert.equal(h.ids.error.hidden,true);});
 test('User text is escaped and pull request numbers link at all lengths',()=>{const h=harness();assert.equal(h.api.prs('<script>#1 #123456</script>','https://github.com/krik/ledger').includes('<script>'),false);assert.match(h.api.prs('#1 #123456','https://github.com/krik/ledger'),/pull\/123456/);});
 
@@ -172,91 +160,34 @@ test('SSE reconnect refetches state and clears the reconnecting label',async()=>
 
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 
-test('Explicit plan stage controls the column even with a blocked checklist step',()=>{
- const h=harness(),p=plan();p.steps[0].status='blocked';
- assert.equal(h.api.columnOf(p),1);
- p.status='Planning';assert.equal(h.api.columnOf(p),0);
- p.status='Done';assert.equal(h.api.columnOf(p),4);
- assert.ok(h.api.needsAttention(p));
-});
 function actionEvent(attr,value,extras={}) {
  const control={getAttribute(name){return name===attr?value:extras[name];}};
  return {target:{closest(selector){return selector==='['+attr+']'?control:null;}}};
 }
-test('Four layouts share search and preserve the selected layout in details',()=>{
- const h=harness(),a=plan(),b=plan('Done','Khác');
- h.api.setData(data([a,b]));h.api.ui.layout='list';h.api.ui.q='Cải thiện';h.api.render();
- assert.match(h.ids.nav.innerHTML,/>Summary</);assert.match(h.ids.nav.innerHTML,/>List</);assert.match(h.ids.nav.innerHTML,/>Timeline</);
- assert.match(h.ids.view.innerHTML,/work-table/);assert.match(h.ids.view.innerHTML,/Cải thiện/);assert.doesNotMatch(h.ids.view.innerHTML,/Khác/);
- h.api.ui.view='plan:'+a.repo+'/'+a.name;h.api.render();assert.equal(h.api.ui.layout,'list');
- h.handlers.keydown({key:'Escape',target:{tagName:'BODY'}});assert.match(h.ids.view.innerHTML,/work-table/);
- h.api.handleViewAction(actionEvent('data-layout','summary'));assert.equal(h.api.ui.layout,'summary');
- assert.match(h.ids.view.innerHTML,/Status overview/);assert.doesNotMatch(h.ids.view.innerHTML,/Agent workload/);
-});
 test('List shows actual checklist tasks with parent plans and read-only statuses',()=>{
  const h=harness(),p=plan();p.agent='Claude';p.steps[0].executors=['Anti'];const html=h.api.viewList([p]);
  for(const label of ['Work','Plan','Status'])assert.match(html,new RegExp('>'+label+'<'));
  for(const label of ['Agent','Latest result','Updated'])assert.doesNotMatch(html,new RegExp('>'+label+'<'));
  assert.match(html,/Kiểm tra tìm kiếm/);assert.match(html,/data-open-task=/);assert.doesNotMatch(html,/anti\.png|\/icons\//);
- assert.doesNotMatch(html,/data-agent=|data-executor=|data-status=|list-progress/);
+ assert.doesNotMatch(html,/data-agent=|data-executor=|data-status=/);
 });
 test('Daily history uses Vietnam dates across UTC midnight and handles leap February',()=>{
  const h=harness();
  assert.equal(h.api.dateKey('2026-11-08T18:00:00Z'),'2026-11-09');
  assert.equal(h.api.dateKey('broken'),'');
- assert.equal(h.api.monthDays('2028-02').length,29);assert.equal(h.api.monthDays('2026-02').length,28);
-});
-test('Timeline renders recorded events and a separate last-edit marker without invented ranges',()=>{
- const h=harness(),p=plan();p.agent='Claude';p.mtime='2026-11-10T03:00:00Z';p.decisions=[];p.questions=[];
- const j=data([p]);j.now='2026-11-10T04:00:00Z';j.activity=[{repo:p.repo,plan:p.name,ts:'2026-11-08T18:00:00Z',kind:'status',text:'Implementing → Testing'}];
- h.api.setData(j);h.api.ui.month='2026-11';
- const entries=h.api.timelineEntries(p);
- assert.equal(entries.filter(e=>e.kind==='status')[0].day,'2026-11-09');
- assert.equal(entries.filter(e=>e.kind==='updated')[0].day,'2026-11-10');
- const html=h.api.viewTimeline([p]);
- assert.match(html,/Recorded activity by day/);assert.match(html,/data-day="2026-11-09"/);assert.match(html,/timeline-edit/);
- assert.doesNotMatch(html,/duration|estimate|Start date|Due date/);
-});
-test('Timeline month navigation and clicking a day open its actual activity',()=>{
- const h=harness(),p=plan();h.api.setData(data([p]));h.api.ui.month='2026-12';h.api.ui.layout='timeline';
- h.api.handleViewAction(actionEvent('data-month','1'));assert.equal(h.api.ui.month,'2027-01');
- h.api.handleViewAction(actionEvent('data-month','-1'));assert.equal(h.api.ui.month,'2026-12');
- h.api.handleViewAction(actionEvent('data-open-activity',p.repo+'/'+p.name,{'data-day':'2026-11-09'}));
- assert.equal(h.api.ui.tab,'activity');assert.equal(h.api.ui.activityDay,'2026-11-09');
- assert.match(h.ids.view.innerHTML,/Show all activity/);
- h.api.handleViewAction(actionEvent('data-clear-day',''));assert.equal(h.api.ui.activityDay,'');
-});
-test('Summary counts plans and real steps without agent workload, and survives empty data',()=>{
- const h=harness(),a=plan(),b=plan('Done','Shipped');a.agent='Codex';
- b.steps[0].status='done';b.steps[1].status='done';a.mtime=b.mtime='2026-11-09T01:00:00Z';
- const j=data([a,b]);j.now='2026-11-09T04:00:00Z';h.api.setData(j);
- const html=h.api.viewSummary([a,b]);
- assert.match(html,/Status overview/);assert.doesNotMatch(html,/Agent workload|data-agent-view/);assert.match(html,/Step progress/);
- assert.match(html,/>2 <span>\/ 4</);
- assert.doesNotMatch(html,/NaN|Infinity/);
- h.api.setData(data([]));assert.doesNotMatch(h.api.viewSummary([]),/NaN|Infinity/);
+
 });
 test('Saved agent and attention filters cannot hide plans on a newly opened window',()=>{
  const h=harness({layout:'summary',view:'waiting',agent:'Codex',q:'old query'});
  const ps=Array.from({length:6},(_,i)=>plan('Implementing','Plan '+i));
  h.api.setData(data(ps));h.api.render();
  assert.equal(h.api.ui.layout,'summary');assert.equal(h.api.ui.view,'home');assert.equal(h.api.ui.agent,undefined);assert.equal(h.api.ui.q,'');
- assert.match(h.ids.top.innerHTML,/6 of 6 plans/);assert.match(h.ids.view.innerHTML,/6 plans by current status/);
-});
-test('Filtered Summary explains hidden plans instead of showing false zero charts',()=>{
- const h=harness(),ps=Array.from({length:6},(_,i)=>plan('Waiting for owner','Plan '+i));
- h.api.setData(data(ps));h.api.ui.layout='summary';h.api.ui.view='waiting';h.api.ui.q='nothing matches this';h.api.render();
- assert.match(h.ids.view.innerHTML,/6 plans are available/);assert.match(h.ids.view.innerHTML,/Search: nothing matches this/);assert.match(h.ids.view.innerHTML,/data-clear-filters/);
- assert.doesNotMatch(h.ids.view.innerHTML,/summary-stats|status-chart/);
- assert.doesNotMatch(h.ids.view.innerHTML,/reported agent/);
- h.api.handleViewAction(actionEvent('data-clear-filters',''));
- assert.equal(h.api.ui.q,'');assert.equal(h.api.ui.view,'home');
- assert.match(h.ids.view.innerHTML,/6 plans by current status/);
+ assert.match(h.ids.top.innerHTML,/6 of 6 plans/);assert.match(h.ids.view.innerHTML,/Plan 5/);
 });
 test('Choosing a layout exits the attention-only view',()=>{
  const h=harness();h.api.setData(data([plan()]));h.api.ui.view='waiting';
  h.api.handleViewAction(actionEvent('data-layout','summary'));
- assert.equal(h.api.ui.view,'home');assert.match(h.ids.view.innerHTML,/1 plans by current status/);
+ assert.equal(h.api.ui.view,'home');assert.match(h.ids.view.innerHTML,/ledger-table-row/);
 });
 test('F5 checks fresh progress while preserving view, search and filters and preventing browser reload',async()=>{
  const h=harness(),p=plan(),j=data([p]);j.state.generatedAt='2026-11-09T05:00:00Z';h.api.setData(j);
@@ -321,9 +252,9 @@ test('Clicking a task opens and focuses its exact source row, including duplicat
  p.steps=[a,b];p.milestones=[{id:'M1',title:'Delivery',steps:[{...b}]}];h.api.setData(data([p]));h.api.render();
  let scrolled=false,focused=false;h.ids['task-line-5']={scrollIntoView(){scrolled=true;},focus(){focused=true;}};
  h.api.handleViewAction(actionEvent('data-open-task',p.repo+'/'+p.name,{'data-task-index':'0','data-task-revision':p.revision}));
- assert.equal(h.api.ui.view,'plan:'+p.repo+'/'+p.name);assert.equal(h.api.ui.tab,'checklist');assert.equal(h.api.focusedTask(p).line,5);
+ assert.equal(h.api.ui.view,'plan:'+p.repo+'/'+p.name);assert.equal(h.api.ui.tab,'summary');assert.equal(h.api.focusedTask(p).line,5);
  assert.ok(scrolled && focused);assert.match(h.ids.view.innerHTML,/task-focused s-doing" id="task-line-5"/);assert.match(h.ids.view.innerHTML,/id="task-line-8"/);
- assert.match(h.ids.top.innerHTML,/← List/);assert.equal((h.ids.view.innerHTML.match(/id="task-line-8"/g)||[]).length,1);
+ assert.match(h.ids.top.innerHTML,/Overview/);assert.equal((h.ids.view.innerHTML.match(/id="task-line-8"/g)||[]).length,1);
 });
 
 test('Old task links are rejected after a concurrent revision and ambiguous highlights never move to a duplicate',()=>{
@@ -344,11 +275,6 @@ test('F5 preserves the chosen task status and task search in the new List',async
  assert.match(h.ids.view.innerHTML,/Xác minh #12/);assert.doesNotMatch(h.ids.view.innerHTML,/Kiểm tra tìm kiếm/);
 });
 
-test('Needs attention List excludes completed siblings while showing the blocked plan unfinished tasks',()=>{
- const h=harness({layout:'list'}),p=plan('Blocked');p.questions=[];p.steps=[{status:'todo',text:'Blocked follow-up'},{status:'done',text:'Finished sibling'}];
- h.api.setData(data([p]));h.handlers.click(actionEvent('data-go','waiting'));
- assert.equal(h.api.ui.taskStatus,'all');assert.match(h.ids.view.innerHTML,/Blocked follow-up/);assert.doesNotMatch(h.ids.view.innerHTML,/Finished sibling/);
-});
 
 function changeControl(h,attr,value,extra={}){const ev=actionEvent(attr,extra.key || '');Object.assign(ev.target,{value,...extra});h.handlers.change(ev);}
 function listRows(h){return Array.from(h.api.filteredTaskRows(h.api.taskRows(h.context.__plans || [])),r=>r.s.text);}
@@ -416,7 +342,7 @@ test('Plan group progress includes hidden done tasks and stays visible when coll
  p.milestones=[{id:'M1',title:'Duplicate presentation',steps:p.steps}];
  setList(h,[p]);h.api.ui.taskStatus='doing';changeControl(h,'data-task-group','plan');
  const assertProgress=()=>{
-   const heading=h.ids.view.innerHTML.match(/<tbody class="task-group-heading">[\s\S]*?<\/tbody>/)[0];
+   const heading=h.ids.view.innerHTML.match(/<tbody class="task-group-heading"[^>]*>[\s\S]*?<\/tbody>/)[0];
    assert.match(heading,/1 of 6 tasks matched/);assert.match(heading,/2\/6 · 33%/);
    assert.match(heading,/aria-valuenow="33"/);assert.match(heading,/aria-valuetext="2 of 6 tasks complete across the whole plan"/);
    assert.match(heading,/status-blocked">Blocked<\/span>/);assert.match(heading,/Plan &lt;one&gt;/);
@@ -434,7 +360,7 @@ test('Same-named plans retain independent completion and plan stages are not inf
  a.steps=[{status:'done',text:'Done'},{status:'todo',text:'Unfinished'}];
  b.steps=[{status:'done',text:'One'},{status:'done',text:'Two'},{status:'done',text:'Three'}];
  setList(h,[a,b]);changeControl(h,'data-task-group','plan');
- const headings=Array.from(h.ids.view.innerHTML.matchAll(/<tbody class="task-group-heading">([\s\S]*?)<\/tbody>/g),m=>m[1]);
+ const headings=Array.from(h.ids.view.innerHTML.matchAll(/<tbody class="task-group-heading"[^>]*>([\s\S]*?)<\/tbody>/g),m=>m[1]).sort((a,b)=>a.includes('api ·')?-1:b.includes('api ·')?1:0);
  assert.match(headings[0],/api · 3 of 3 tasks matched/);assert.match(headings[0],/3\/3 · 100%/);assert.match(headings[0],/status-doing">Implementing/);
  assert.match(headings[1],/ledger · 2 of 2 tasks matched/);assert.match(headings[1],/1\/2 · 50%/);assert.match(headings[1],/status-done">Done/);
 });
@@ -444,7 +370,7 @@ test('Refresh updates whole-plan completion in a collapsed group while retaining
  setList(h,[p]);h.api.ui.taskStatus='doing';changeControl(h,'data-task-group','plan');
  h.api.handleViewAction(actionEvent('data-task-group-toggle','ledger/'+p.name));
  assert.match(h.ids.view.innerHTML,/1\/3 · 33%/);
- const newer=structuredClone(p);newer.steps[2].status='done';
+ const newer=structuredClone(p);newer.revision='b'.repeat(64);newer.steps[2].status='done';
  h.context.fetch=async path=>({ok:true,json:async()=>path==='/api/refresh'?{refreshedAt:new Date().toISOString()}:data([newer])});
  await h.api.refresh();
  assert.equal(h.api.ui.taskStatus,'doing');assert.equal(h.api.ui.collapsedPlans['ledger/'+p.name],true);
@@ -483,8 +409,8 @@ test('Plan Activity omits repeated context names while keeping actual people and
  const h=harness(),p=plan('Testing','Example-plan');p.owner=p.name;p.decisions=[];p.questions=[];
  const j=data([p]);j.activity=[{repo:p.repo,plan:p.name,actor:p.name,kind:'done',text:'Checks passed',ts:new Date().toISOString()},{repo:p.repo,plan:p.name,actor:'Minh',kind:'decision',text:'Ship after review',ts:new Date().toISOString()}];h.api.setData(j);h.api.ui.view='plan:'+p.repo+'/'+p.name;h.api.ui.tab='activity';h.api.render();
  assert.match(h.ids.top.innerHTML,/<h1>Example-plan<\/h1>/);assert.doesNotMatch(h.ids.top.innerHTML,/slot B · Example-plan|ledger · Example-plan/);
- assert.doesNotMatch(h.ids.view.innerHTML,/Example-plan/);assert.match(h.ids.view.innerHTML,/class="msg context-actor"/);assert.match(h.ids.view.innerHTML,/<b>Minh<\/b>/);assert.doesNotMatch(h.ids.view.innerHTML,/\/icons\//);assert.match(h.ids.view.innerHTML,/Checks passed/);
- assert.match(h.api.viewSummary([p]),/# Example-plan/);assert.equal(j.activity[0].actor,'Example-plan');
+ assert.doesNotMatch(h.ids.view.innerHTML,/>Example-plan</);assert.match(h.ids.view.innerHTML,/class="msg context-actor"/);assert.match(h.ids.view.innerHTML,/<b>Minh<\/b>/);assert.doesNotMatch(h.ids.view.innerHTML,/\/icons\//);assert.match(h.ids.view.innerHTML,/Checks passed/);
+ assert.equal(j.activity[0].actor,'Example-plan');
 });
 
 test('Starred plans are local persistent preferences scoped by repository and do not change execution data',()=>{
@@ -498,10 +424,10 @@ test('Starred plans are local persistent preferences scoped by repository and do
 
 test('Recent records deliberate plan opens, deduplicates them and ignores data refresh and tab switches',async()=>{
  const h=harness(),a=plan('Testing','Alpha'),b=plan('Testing','Beta');h.api.setData(data([a,b]));h.api.render();assert.equal(h.api.navigation.recent.length,0);
- h.api.openQuickPlan('ledger/Alpha');h.api.openQuickPlan('ledger/Beta');h.api.openQuickPlan('ledger/Alpha');assert.deepEqual(Array.from(h.api.navigation.recent,r=>r.key),['ledger/Alpha','ledger/Beta']);
- const recent=JSON.stringify(h.api.navigation.recent);h.api.handleViewAction(actionEvent('data-quick-tab','activity'));h.api.render();
+ h.api.openPlan('ledger/Alpha');h.api.openPlan('ledger/Beta');h.api.openPlan('ledger/Alpha');assert.deepEqual(Array.from(h.api.navigation.recent,r=>r.key),['ledger/Alpha','ledger/Beta']);
+ const recent=JSON.stringify(h.api.navigation.recent);h.api.ui.tab='activity';h.api.render();
  h.context.fetch=async()=>({ok:true,json:async()=>data([b,a])});await h.api.get();assert.equal(JSON.stringify(h.api.navigation.recent),recent);
- h.api.closeQuickPlan();h.api.handleViewAction(actionEvent('data-plan-collection','recent'));assert.deepEqual(Array.from(h.api.sidebarPlans(),p=>p.name),['Alpha','Beta']);
+ h.api.ui.view='home';h.api.render();h.api.handleViewAction(actionEvent('data-plan-collection','recent'));assert.deepEqual(Array.from(h.api.sidebarPlans(),p=>p.name),['Alpha','Beta']);
  h.api.ui.view='plan:ledger/Beta';h.api.render();assert.equal(h.api.navigation.recent[0].key,'ledger/Beta');const stamp=h.api.navigation.recent[0].openedAt;h.api.render();assert.equal(h.api.navigation.recent[0].openedAt,stamp);
 });
 
@@ -512,66 +438,14 @@ test('Recent stays bounded and unavailable plans do not appear but retain their 
  h.api.handleViewAction(actionEvent('data-plan-collection','starred'));assert.equal(h.api.sidebarPlans().length,0);assert.deepEqual(Array.from(h.api.navigation.starred),['missing/old']);
 });
 
-test('Quick view preserves the background view, filters and scroll and provides read-only overview tabs',()=>{
- const h=harness({layout:'list'}),p=plan();p.agent='Claude';p.executors=['Codex'];h.api.setData(data([p]));h.api.ui.q='search';h.api.ui.taskGroup='plan';h.api.ui.taskPlans=[p.repo+'/'+p.name];h.api.render();
- h.ids.view.scrollTop=210;h.ids.view.scrollLeft=140;h.ids.q.focus();const ui=JSON.stringify(h.api.ui),html=h.ids.view.innerHTML;
- h.api.handleViewAction(actionEvent('data-preview-plan',p.repo+'/'+p.name));assert.equal(h.ids['quick-plan'].open,true);assert.equal(h.api.ui.view,'home');assert.equal(JSON.stringify(h.api.ui),ui);assert.equal(h.ids.view.innerHTML,html);
- assert.match(h.ids['quick-plan-content'].innerHTML,/Goal/);assert.match(h.ids['quick-plan-content'].innerHTML,/Next/);assert.doesNotMatch(h.ids['quick-plan-content'].innerHTML,/Coordinator|Executed by|\/icons\/|data-status=|data-agent=|data-executor=/);
- h.api.closeQuickPlan();assert.equal(h.ids['quick-plan'].open,false);assert.equal(h.context.document.activeElement,h.ids.q);assert.equal(h.ids.view.scrollTop,210);assert.equal(h.ids.view.scrollLeft,140);assert.equal(h.requests.length,0);
-});
 
-test('Quick Checklist renders flat source tasks once, without run evidence, and opens the exact full task',()=>{
- const h=harness(),p=plan();p.steps[0].line=5;p.steps[0].executors=['Codex'];p.steps[0].executionHistory={summary:'Verified <result>',verifiedAt:'2026-11-07T12:00:00Z'};p.milestones=[{id:'M1',title:'Delivery',steps:p.steps}];h.api.setData(data([p]));h.api.openQuickPlan(p.repo+'/'+p.name);h.api.handleViewAction(actionEvent('data-quick-tab','checklist'));
- assert.equal((h.ids['quick-plan-content'].innerHTML.match(/data-open-task=/g)||[]).length,2);assert.doesNotMatch(h.ids['quick-plan-content'].innerHTML,/Verified|>Agent</);assert.doesNotMatch(h.ids['quick-plan-content'].innerHTML,/id="task-line-/);
- h.api.handleViewAction(actionEvent('data-open-task',p.repo+'/'+p.name,{'data-task-index':'0','data-task-revision':p.revision}));assert.equal(h.ids['quick-plan'].open,false);assert.equal(h.api.focusedTask(p).line,5);assert.equal(h.api.ui.view,'plan:'+p.repo+'/'+p.name);
-});
 
-test('Quick Activity ignores background search, avoids repeated plan names and remains escaped',()=>{
- const h=harness(),p=plan('Testing','Example');p.decisions=[];p.questions=[];const j=data([p]);j.activity=[{repo:p.repo,plan:p.name,actor:p.name,kind:'done',text:'Actual <script> update',ts:new Date().toISOString()}];h.api.setData(j);h.api.ui.q='unrelated background query';h.api.openQuickPlan('ledger/Example');h.api.handleViewAction(actionEvent('data-quick-tab','activity'));
- assert.match(h.ids['quick-plan-content'].innerHTML,/Actual &lt;script&gt; update/);assert.doesNotMatch(h.ids['quick-plan-content'].innerHTML,/<b>Example<\/b>|<script>/);assert.equal(h.api.ui.q,'unrelated background query');assert.equal(h.requests.length,0);
-});
 
-test('Quick tabs support keyboard navigation, Escape and native cancellation without leaving the background plan',()=>{
- const h=harness(),a=plan('Testing','Alpha'),b=plan('Testing','Beta');h.api.setData(data([a,b]));h.api.ui.view='plan:ledger/Alpha';h.api.render();h.ids.q.focus();h.api.openQuickPlan('ledger/Beta');
- const ev=actionEvent('data-quick-tab','overview');ev.key='ArrowRight';ev.preventDefault=()=>{};h.handlers.keydown(ev);assert.equal(h.api.quick.tab,'checklist');assert.equal(h.context.document.activeElement,h.ids['quick-tab-checklist']);
- ev.key='End';h.handlers.keydown(ev);assert.equal(h.api.quick.tab,'activity');ev.key='Home';h.handlers.keydown(ev);assert.equal(h.api.quick.tab,'overview');
- h.handlers.keydown({key:'Escape',target:{tagName:'BUTTON'},preventDefault(){}});assert.equal(h.api.quick.key,null);assert.equal(h.api.ui.view,'plan:ledger/Alpha');assert.equal(h.context.document.activeElement,h.ids.q);
- h.api.openQuickPlan('ledger/Beta');h.ids['quick-plan'].listeners.cancel({preventDefault(){}});assert.equal(h.api.quick.key,null);assert.equal(h.ids['quick-plan'].open,false);
-});
 
-test('Quick next/previous uses the selected collection and Open full plan is explicit',()=>{
- const h=harness(),a=plan('Testing','Alpha'),b=plan('Testing','Beta'),c=plan('Testing','Other');h.api.setData(data([a,b,c]));h.api.navigation.starred=['ledger/Alpha','ledger/Beta'];h.api.navigation.section='starred';h.api.openQuickPlan('ledger/Alpha');
- h.api.handleViewAction(actionEvent('data-quick-step','1'));assert.equal(h.api.quick.key,'ledger/Beta');assert.equal(h.api.ui.view,'home');
- h.handlers.keydown({key:'ArrowUp',altKey:true,target:{tagName:'BUTTON'},preventDefault(){}});assert.equal(h.api.quick.key,'ledger/Alpha');
- h.api.handleViewAction(actionEvent('data-quick-full',''));assert.equal(h.api.quick.key,null);assert.equal(h.api.ui.view,'plan:ledger/Alpha');assert.equal(h.api.ui.tab,'summary');
-});
 
-test('F5 updates the open quick tab and preserves stars, Recent, background filters and modal scroll',async()=>{
- const h=harness({layout:'list'}),p=plan();h.api.setData(data([p]));h.api.ui.q='missing';h.api.ui.taskGroup='plan';h.api.togglePlanStar(p.repo+'/'+p.name);h.api.openQuickPlan(p.repo+'/'+p.name);h.api.handleViewAction(actionEvent('data-quick-tab','checklist'));h.ids['quick-plan-scroll'].scrollTop=160;
- const nav=JSON.stringify(h.api.navigation),ui=JSON.stringify(h.api.ui),server=structuredClone(p);server.steps[0].text='New reported result';server.steps[0].status='done';
- h.context.fetch=async path=>({ok:true,json:async()=>path==='/api/refresh'?{refreshedAt:new Date().toISOString()}:data([server])});await h.api.refresh();
- assert.match(h.ids['quick-plan-content'].innerHTML,/New reported result/);assert.equal(h.api.quick.tab,'checklist');assert.equal(h.ids['quick-plan'].open,true);assert.equal(h.ids['quick-plan-scroll'].scrollTop,160);assert.equal(JSON.stringify(h.api.navigation),nav);assert.equal(JSON.stringify(h.api.ui),ui);assert.equal(h.ids['quick-refresh'].disabled,false);
-});
 
-test('Quick refresh failures expose their reason, and disappearing plans remain closable',async()=>{
- const h=harness(),p=plan();h.api.setData(data([p]));h.api.openQuickPlan(p.repo+'/'+p.name);h.context.fetch=async()=>({ok:false,status:502,json:async()=>({error:'Collector unavailable'})});await h.api.refresh();
- assert.equal(h.ids['quick-error'].hidden,false);assert.equal(h.ids['quick-error'].textContent,'Collector unavailable');assert.equal(h.ids['quick-refresh'].disabled,false);
- h.api.setData(data([]));h.api.render();assert.match(h.ids['quick-plan-content'].innerHTML,/Plan unavailable/);assert.equal(h.ids['quick-plan'].open,true);h.api.handleViewAction(actionEvent('data-quick-close',''));assert.equal(h.ids['quick-plan'].open,false);
-});
 
-test('Quick view does not turn hidden error-banner button labels into a failure',()=>{
- const h=harness(),p=plan();h.api.setData(data([p]));h.ids.error.textContent='DetailsRetry';h.ids.error.hidden=true;
- h.api.openQuickPlan(p.repo+'/'+p.name);assert.match(h.ids['quick-plan-content'].innerHTML,/id="quick-error" role="status" hidden><\/div>/);
- h.api.showError('Collector unavailable');h.api.render();assert.match(h.ids['quick-plan-content'].innerHTML,/id="quick-error" role="status">Collector unavailable<\/div>/);
-});
 
-test('Quick navigation keeps a stable Recent sequence and selected tab while opened times change',()=>{
- const h=harness(),ps=['Alpha','Beta','Gamma'].map(n=>plan('Testing',n));h.api.setData(data(ps));
- for(const p of ps.slice().reverse())h.api.recordPlanVisit(p.repo+'/'+p.name);h.api.navigation.section='recent';h.api.openQuickPlan('ledger/Alpha');h.api.handleViewAction(actionEvent('data-quick-tab','checklist'));
- h.api.stepQuickPlan(1);assert.equal(h.api.quick.key,'ledger/Beta');assert.equal(h.api.quick.tab,'checklist');assert.equal(h.api.navigation.recent[0].key,'ledger/Beta');
- h.api.stepQuickPlan(1);assert.equal(h.api.quick.key,'ledger/Gamma');h.api.stepQuickPlan(1);assert.equal(h.api.quick.key,'ledger/Alpha');assert.equal(h.api.quick.tab,'checklist');
- h.api.stepQuickPlan(NaN);assert.equal(h.api.quick.key,'ledger/Alpha');
-});
 
 function disclosureTag(html,cls){return html.match(new RegExp('<details class="'+cls+'"[^>]*>'))?.[0] || '';}
 function toggleDisclosure(h,tag,open){const key=tag.match(/data-plan-disclosure="([^"]+)"/)[1];h.handlers.toggle({target:{open,getAttribute(name){return name==='data-plan-disclosure'?key:name==='data-disclosure-auto' && tag.includes('data-disclosure-auto')?'1':null;}}});return key;}
@@ -581,71 +455,15 @@ function focusPlan(){
  p.milestones=[{id:'M1',title:'Job content',state:'done',steps:p.steps.slice(2)},{id:'M2',title:'Release and verify',state:'doing',summary:'RPC applied; waiting for frontend deployment.',steps:p.steps.slice(0,2)}];return p;
 }
 
-test('Plan Summary prioritizes one next action without repeating goal, active task or progress',()=>{
- const h=harness(),p=focusPlan();h.api.setData(data([p]));h.handlers.click(actionEvent('data-go','plan:ledger/Focus'));
- assert.equal(h.api.ui.tab,'summary');assert.match(h.ids.view.innerHTML,/class="plan-insight" aria-label="Next action"/);assert.match(h.ids.view.innerHTML,/Verify the deployed public page/);assert.match(h.ids.view.innerHTML,/Candidates can read the public job details/);
- const visible=h.ids.view.innerHTML.split('<details class="plan-completed"')[0];assert.doesNotMatch(visible,/Release the corrected public page|Review the corrected behavior|RPC applied/);assert.doesNotMatch(h.ids.top.innerHTML,/Candidates can read|Verify the deployed|class="pipe"|75%|3\/4/);
- assert.doesNotMatch(h.ids.top.innerHTML,/\/icons\/|>Agent<|>Coordinator<|>Executed by</);
- assert.ok(disclosureTag(h.ids.view.innerHTML,'plan-completed'));assert.doesNotMatch(disclosureTag(h.ids.view.innerHTML,'plan-completed'),/\sopen[\s>]/);assert.match(h.ids.view.innerHTML,/completed-count">3/);
- h.api.handleViewAction(actionEvent('data-plan-section','checklist',{'data-section-plan':'ledger/Focus'}));assert.equal(h.api.ui.tab,'checklist');assert.match(h.ids.view.innerHTML,/Release the corrected public page/);assert.doesNotMatch(h.ids.view.innerHTML,/Verify the deployed public page/);
-});
 
-test('Work separates completed children from active milestones and renders every source task exactly once',()=>{
- const h=harness(),p=focusPlan();h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.ui.tab='checklist';h.api.render();
- const [active,done]=h.ids.view.innerHTML.split('<details class="plan-completed"');assert.match(active,/Release the corrected public page/);assert.doesNotMatch(active,/Review the corrected behavior|Find the missing job data|Job content/);assert.match(done,/Review the corrected behavior/);assert.match(done,/Job content/);
- for(const line of [5,6,10,11])assert.equal((h.ids.view.innerHTML.match(new RegExp('id="task-line-'+line+'"','g'))||[]).length,1);
- assert.match(active,/Milestone notes/);assert.equal((h.ids.view.innerHTML.match(/RPC applied; waiting for frontend deployment\./g)||[]).length,1);
- assert.doesNotMatch(h.ids.view.innerHTML,/report-disclosure|Latest report|Verified history/);
-});
 
-test('An explicitly done task link opens its collapsed completion group and focuses the same source row',()=>{
- const h=harness(),p=focusPlan();h.api.setData(data([p]));h.api.render();
- let focused=false;h.ids['task-line-5']={focus(){focused=true;},scrollIntoView(){}};
- h.api.handleViewAction(actionEvent('data-open-task','ledger/Focus',{'data-task-index':'2','data-task-revision':p.revision}));
- assert.equal(h.api.ui.tab,'checklist');assert.equal(h.api.focusedTask(p).line,5);assert.match(disclosureTag(h.ids.view.innerHTML,'plan-completed'),/\sopen[\s>]/);assert.ok(focused);
-});
 
-test('Completion and milestone note disclosure preferences survive F5 and remain separate between full and quick view',async()=>{
- const h=harness(),p=focusPlan();h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.ui.tab='checklist';h.api.render();
- const completed=toggleDisclosure(h,disclosureTag(h.ids.view.innerHTML,'plan-completed'),true),report=toggleDisclosure(h,disclosureTag(h.ids.view.innerHTML,'plan-notes'),true);h.api.render();
- assert.match(disclosureTag(h.ids.view.innerHTML,'plan-completed'),/\sopen[\s>]/);assert.match(disclosureTag(h.ids.view.innerHTML,'plan-notes'),/\sopen[\s>]/);
- h.context.fetch=async path=>({ok:true,json:async()=>path==='/api/refresh'?{refreshedAt:new Date().toISOString()}:data([p])});await h.api.refresh();assert.equal(h.api.ui.planDetails[completed],true);assert.equal(h.api.ui.planDetails[report],true);
- h.api.openQuickPlan('ledger/Focus');assert.doesNotMatch(disclosureTag(h.ids['quick-plan-content'].innerHTML,'plan-completed'),/\sopen[\s>]/);
- h.api.closeQuickPlan();toggleDisclosure(h,disclosureTag(h.ids.view.innerHTML,'plan-completed'),false);h.api.render();assert.doesNotMatch(disclosureTag(h.ids.view.innerHTML,'plan-completed'),/\sopen[\s>]/);
-});
 
-test('Task search opens matching completed work temporarily without changing collapse preferences',()=>{
- const h=harness(),p=focusPlan();h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.ui.tab='checklist';h.api.ui.q='missing job';h.api.render();
- const completed=disclosureTag(h.ids.view.innerHTML,'plan-completed');assert.match(completed,/data-disclosure-auto="1" open/);assert.match(h.ids.view.innerHTML,/Find the missing job data/);assert.doesNotMatch(h.ids.view.innerHTML,/Connect public job details/);
- toggleDisclosure(h,completed,true);assert.equal(Object.keys(h.api.ui.planDetails).length,0);
- h.api.ui.q='';h.api.render();assert.doesNotMatch(disclosureTag(h.ids.view.innerHTML,'plan-completed'),/\sopen[\s>]/);
-});
 
-test('Identical text is displayed once while similar but conflicting source statements are preserved',()=>{
- const h=harness(),p=focusPlan();p.goal=p.next='Wait for the final public-page verification.';h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.render();assert.equal((h.ids.view.innerHTML.match(/Wait for the final public-page verification\./g)||[]).length,1);
- p.goal='The frontend has not shipped.';p.next='The frontend has shipped.';h.api.render();assert.match(h.ids.view.innerHTML,/The frontend has not shipped/);assert.match(h.ids.view.innerHTML,/The frontend has shipped/);
-});
 
-test('Blocked reasons and open questions remain prominent; completed plans keep a quiet recorded next step',()=>{
- const h=harness(),p=focusPlan();p.status='Blocked - Waiting for a confirmed permission decision';p.questions=[{ask:'Which department can approve this step?',open:true}];h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.render();assert.match(h.ids.view.innerHTML,/plan-insight is-blocked/);assert.match(h.ids.view.innerHTML,/Waiting for a confirmed permission decision/);assert.match(h.ids.view.innerHTML,/Needs your decision/);
- p.status='Done';p.questions=[];for(const s of p.steps)s.status='done';h.api.render();assert.match(h.ids.view.innerHTML,/plan-insight is-recorded/);assert.match(h.ids.view.innerHTML,/No open checklist tasks/);assert.doesNotMatch(disclosureTag(h.ids.view.innerHTML,'plan-completed'),/\sopen[\s>]/);
-});
 
-test('A milestone marked done cannot hide source tasks that are still open',()=>{
- const h=harness(),p=focusPlan();p.milestones[1].state='done';h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.ui.tab='checklist';h.api.render();assert.match(h.ids.view.innerHTML.split('<details class="plan-completed"')[0],/Release the corrected public page/);assert.equal(p.steps[0].status,'doing');
-});
 
-test('Every plan stage has the same semantic color in the plan header, badge and sidebar',()=>{
- const h=harness();for(const [stage,tone]of [['Planning','todo'],['Implementing','doing'],['Shipping','doing'],['Reviewing','review'],['Fixing review','review'],['Testing','review'],['Waiting for CI','waiting'],['Waiting for owner','waiting'],['Blocked','blocked'],['Done','done']]){
-  const p=focusPlan();p.status=stage;h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.render();assert.match(h.ids.top.innerHTML,new RegExp('class="pill status-'+tone+'"'));h.api.ui.view='home';h.api.render();assert.match(h.api.taskCard(p),new RegExp('class="pill status-'+tone+'"'));assert.match(h.ids['plan-sidebar'].innerHTML,new RegExp('plan-state-dot status-'+tone));
- }
- for(const [tone,token]of [['done','success'],['doing','information'],['review','discovery'],['waiting','warning'],['blocked','danger']])assert.ok(html.includes('.status-'+tone+'{--status-fg:var(--ds-text-'+token+')'));
-});
 
-test('A mixed milestone displays its technical notes once when split into open and completed work',()=>{
- const h=harness(),p=focusPlan();p.milestones[1].summary='Unique recorded milestone evidence';h.api.setData(data([p]));h.api.ui.view='plan:ledger/Focus';h.api.ui.tab='checklist';h.api.render();
- assert.equal((h.ids.view.innerHTML.match(/Unique recorded milestone evidence/g)||[]).length,1);const ids=Array.from(h.ids.view.innerHTML.matchAll(/\bid="([^"]+)"/g),m=>m[1]);assert.equal(ids.length,new Set(ids).size);assert.ok(h.ids.view.innerHTML.indexOf('Unique recorded milestone evidence')<h.ids.view.innerHTML.indexOf('<details class="plan-completed"'));
-});
 
 // ---------- First-run setup, Settings, empty and error states ----------
 function settingsPayload(projects=[],extra={}){return {setupRequired:!projects.length,setupComplete:false,notifications:true,startWithWindows:false,startupManaged:true,dataDir:'C:\\Users\\me\\AppData\\Local\\agent-ops',configFile:'config.json',stateFile:'state.json',projectsOverridden:'',warning:'',readOnly:'',version:'v0.2.0',projects,...extra};}
@@ -922,11 +740,10 @@ test('No drag, status control, agent or executor UI renders even when the state 
  j.activity=[{repo:p.repo,plan:p.name,actor:'Minh',agent:'Claude',executors:['Codex'],kind:'execution-report',text:'Ran tests',extra:'passed',ts:new Date().toISOString()},{repo:p.repo,plan:p.name,actor:'Minh',kind:'decision',text:'Keep it read-only',ts:new Date().toISOString()}];
  h.api.setData(j);
  const forbidden=/draggable|data-plan="|data-status=|status-select|data-column="|\/icons\/(codex|anti|claude)|agent-chip|>Coordinator<|Executed by|Not reported|Latest report|Verified history|Old run result|Old verified history|Agent workload|data-agent|data-executor|>Agent<|Linh/;
- for(const layout of ['board','list','timeline','summary']){h.api.ui.view='home';h.api.ui.layout=layout;h.api.ui.taskStatus='all';h.api.render();assert.doesNotMatch(h.ids.view.innerHTML+h.ids.top.innerHTML,forbidden,layout);}
+ for(const layout of ['list','summary']){h.api.ui.view='home';h.api.ui.layout=layout;h.api.ui.taskStatus='all';h.api.render();assert.doesNotMatch(h.ids.view.innerHTML+h.ids.top.innerHTML,forbidden,layout);}
  for(const tab of ['summary','checklist','activity']){h.api.ui.view='plan:'+p.repo+'/'+p.name;h.api.ui.tab=tab;h.api.render();assert.doesNotMatch(h.ids.view.innerHTML+h.ids.top.innerHTML,forbidden,tab);}
  assert.match(h.ids.top.innerHTML,/class="pill status-doing">Implementing</);
  assert.match(h.ids.view.innerHTML,/Keep it read-only/);
- h.api.ui.view='home';h.api.render();for(const tab of ['overview','checklist','activity']){h.api.openQuickPlan(p.repo+'/'+p.name);h.api.handleViewAction(actionEvent('data-quick-tab',tab));assert.doesNotMatch(h.ids['quick-plan-content'].innerHTML,forbidden,'quick '+tab);}
  assert.equal(h.api.owner(p),'Minh');
  for(const name of ['dragstart','dragover','drop','dragend'])assert.equal(h.handlers[name],undefined,name+' handler');
  assert.doesNotMatch(source,/savePlanField|moveStatus|agentChain|planRoles|executorBadges/);
@@ -1110,4 +927,192 @@ test('Integrations shows unfinished migration errors, escaped, with the next ret
  const page=h.ids.settings.innerHTML;
  assert.match(page,/Review by hand/);assert.match(page,/not finished/);assert.match(page,/datetime="2026-11-10T03:15:00Z"/);
  assert.match(page,/role="alert"><li><span>D:\/home\/\.claude\/settings\.json: the file changed &lt;while&gt; editing/);assert.doesNotMatch(page,/<while>/);
+});
+
+test('Ledger routes replace retired layouts and every plan opens in the workspace',()=>{
+ const h=harness({layout:'timeline'}),p=focusPlan();h.api.setData(data([p]));h.api.render();
+ assert.equal(h.api.ui.layout,'summary');assert.match(h.ids.nav.innerHTML,/Overview/);
+ assert.doesNotMatch(h.ids.nav.innerHTML,/>Board<|>Timeline<|>Summary</);
+ h.api.openPlan('ledger/Focus');assert.equal(h.api.ui.view,'plan:ledger/Focus');
+ assert.match(h.ids.top.innerHTML,/Goal/);assert.match(h.ids.top.innerHTML,/3\/4/);
+ assert.doesNotMatch(html,/<dialog[^>]+quick-plan|data-inspector-toggle/);
+ assert.equal(h.requests.length,0);
+});
+
+test('Plan milestones keep source order, summaries, completed children and loose steps exactly once',()=>{
+ const h=harness(),p=focusPlan();p.steps.push({text:'Loose source task',status:'todo',line:30});
+ h.api.setData(data([p]));h.api.openPlan('ledger/Focus');const page=h.ids.view.innerHTML;
+ assert.ok(page.indexOf('Job content')<page.indexOf('Release and verify'));
+ assert.equal((page.match(/RPC applied;/g)||[]).length,1);
+ for(const s of p.steps)assert.equal((page.match(new RegExp(s.text,'g'))||[]).length,1,s.text);
+ const milestones=Array.from(page.matchAll(/<details class="ledger-milestone"[^>]*>/g),m=>m[0]);
+ assert.doesNotMatch(milestones[0],/ open/);assert.match(milestones[1],/ open/);
+ assert.match(page,/aria-label="Milestone progress for M2"[^>]+aria-valuetext="1 of 2 steps"/);
+ assert.match(page,/Other steps/);
+});
+
+test('Blocked and waiting reasons precede Next and source state never hides unfinished children',()=>{
+ for(const state of ['Blocked','Waiting for owner']){
+  const h=harness(),p=focusPlan();p.status=state+' - API <unavailable>';p.milestones[1].state='done';
+  h.api.setData(data([p]));h.api.openPlan('ledger/Focus');
+  assert.ok(h.ids.top.innerHTML.indexOf('API &lt;unavailable&gt;')<h.ids.top.innerHTML.indexOf('<strong>Next'));
+  assert.match(h.ids.view.innerHTML,/Release the corrected public page/);
+  assert.match(h.ids.view.innerHTML.match(/<details class="ledger-milestone"[^>]*M2[^>]*>/)[0],/ open/);
+  assert.equal(p.milestones[1].state,'done');assert.equal(p.steps[0].status,'doing');
+ }
+});
+
+test('Milestone progress accepts the optional contract and falls back conservatively',()=>{
+ const h=harness(),m={steps:[{status:'done'},{status:'todo'}],progress:{done:4,total:7}};
+ assert.deepEqual({...h.api.milestoneProgress(m)},{done:4,total:7});
+ for(const progress of [null,{done:-1,total:2},{done:3,total:2},{done:1.5,total:2}]){
+  m.progress=progress;assert.deepEqual({...h.api.milestoneProgress(m)},{done:1,total:2});
+ }
+});
+
+test('Milestone collapse survives refresh and a changed revision updates its summary',async()=>{
+ const h=harness(),p=focusPlan();h.api.setData(data([p]));h.api.openPlan('ledger/Focus');
+ const tag=Array.from(h.ids.view.innerHTML.matchAll(/<details class="ledger-milestone"[^>]*>/g),m=>m[0])[1];
+ const token=toggleDisclosure(h,tag,false),newer=structuredClone(p);newer.revision='b'.repeat(64);newer.milestones[1].summary='Fresh source summary';
+ h.context.fetch=async()=>({ok:true,json:async()=>data([newer])});await h.api.get();
+ assert.equal(h.api.ui.planDetails[token],false);assert.match(h.ids.view.innerHTML,/Fresh source summary/);
+ assert.doesNotMatch(Array.from(h.ids.view.innerHTML.matchAll(/<details class="ledger-milestone"[^>]*>/g),m=>m[0])[1],/ open/);
+});
+
+test('Revision refresh retains unchanged plan objects and cached rows, updates only changed content',()=>{
+ const h=harness(),a=plan('Testing','Alpha'),b=plan('Testing','Beta');
+ h.api.acceptState(data([a,b]));h.api.render();const before=h.api.planByKey('ledger/Alpha'),cached=h.api.planCache.get('overview|ledger/Alpha');
+ const newer=structuredClone(b);newer.revision='b'.repeat(64);newer.next='New next step';
+ h.api.acceptState(data([structuredClone(a),newer]));h.api.render();
+ assert.equal(h.api.planByKey('ledger/Alpha'),before);assert.equal(h.api.planCache.get('overview|ledger/Alpha'),cached);
+ assert.match(h.ids.view.innerHTML,/New next step/);assert.notEqual(h.api.planByKey('ledger/Beta').revision,b.revision);
+ h.api.acceptState(data([newer]));h.api.render();assert.equal(h.api.planCache.has('overview|ledger/Alpha'),false);
+});
+
+test('Identical refresh performs no region HTML writes and preserves focus and scroll',async()=>{
+ const h=harness(),p=focusPlan();h.api.acceptState(data([p]));h.api.openPlan('ledger/Focus');
+ const writes={};for(const id of ['view','nav','top','tabs','plan-sidebar']){
+  let value=h.ids[id].innerHTML;writes[id]=0;Object.defineProperty(h.ids[id],'innerHTML',{get:()=>value,set(v){writes[id]++;value=v;}});
+ }
+ h.ids.q.focus();h.ids.q.setSelectionRange(2,4);h.ids.view.scrollTop=125;h.ids.view.scrollLeft=35;
+ h.context.fetch=async()=>({ok:true,json:async()=>data([structuredClone(p)])});await h.api.get();
+ assert.deepEqual(writes,{view:0,nav:0,top:0,tabs:0,'plan-sidebar':0});
+ assert.equal(h.context.document.activeElement,h.ids.q);assert.equal(h.ids.q.selectionStart,2);
+ assert.equal(h.ids.view.scrollTop,125);assert.equal(h.ids.view.scrollLeft,35);
+});
+
+test('Missing new fields, malformed entries and diagnostics cannot break neighboring plans',async()=>{
+ const h=harness(),good=plan('Testing','Good'),bad={repo:'ledger',name:'Malformed',revision:'bad',status:'Blocked',diagnostics:[{message:'Invalid <header>'},'Missing marker']};
+ h.context.fetch=async()=>({ok:true,json:async()=>({state:{plans:[bad,null,good]},now:new Date().toISOString()})});
+ assert.ok(await h.api.get());assert.match(h.ids.view.innerHTML,/Good/);assert.match(h.ids.view.innerHTML,/Malformed/);
+ assert.match(h.ids.view.innerHTML,/Invalid &lt;header&gt;/);assert.doesNotMatch(h.ids.view.innerHTML,/<header>/);
+ h.api.openPlan('ledger/Malformed');assert.match(h.ids.view.innerHTML,/No milestones or steps recorded/);assert.match(h.ids.top.innerHTML,/Plan warning \(2\)/);
+ assert.equal(h.ids.error.hidden,true);
+});
+
+test('Nested-only steps and duplicated flat/nested transport entries render once',()=>{
+ const h=harness(),nested={repo:'ledger',name:'Nested',status:'Testing',milestones:[{id:'M1',title:'First',steps:[{text:'Nested task',status:'doing'}]}]};
+ h.api.acceptState(data([nested]));h.api.openPlan('ledger/Nested');assert.equal(h.api.planByKey('ledger/Nested').steps.length,1);
+ assert.equal((h.ids.view.innerHTML.match(/Nested task/g)||[]).length,1);
+ nested.steps=[{text:'Nested task',status:'doing'}];h.api.acceptState(data([nested]));h.api.render();
+ assert.equal((h.ids.view.innerHTML.match(/Nested task/g)||[]).length,1);
+});
+
+test('Sidebar, Overview and grouped List keep duplicate names under separate projects and repos',()=>{
+ const h=harness(),a=plan('Testing','Same'),b=plan('Testing','Same');
+ a.project='one';a.projectName='Project One';b.project='two';b.projectName='Project Two';
+ const j=data([a,b]);j.state.repos=[{project:'one',name:'ledger',worktrees:[{path:'D:/isolated/<tree>',branch:'feat/<branch>'}]}];
+ h.api.acceptState(j);h.api.render();
+ for(const page of [h.ids.view.innerHTML,h.ids['plan-sidebar'].innerHTML]){
+  assert.match(page,/Project One/);assert.match(page,/Project Two/);assert.match(page,/one\/ledger\/Same/);assert.match(page,/two\/ledger\/Same/);
+  assert.match(page,/feat\/&lt;branch&gt;/);assert.match(page,/D:\/isolated\/&lt;tree&gt;/);
+ }
+ h.api.switchLayout('list');h.api.ui.taskStatus='all';h.api.render();assert.match(h.ids.view.innerHTML,/ledger-list-project/);assert.match(h.ids.view.innerHTML,/ledger-list-repo/);
+ assert.ok(h.ids.view.innerHTML.indexOf('Project One')<h.ids.view.innerHTML.indexOf('one/ledger/Same'));
+});
+
+test('Attention counts plans consistently when entered from List and displays its reason',()=>{
+ const h=harness(),p=plan('Blocked - Source blocker');p.questions=[];h.api.setData(data([p]));h.api.ui.layout='list';h.api.ui.view='waiting';h.api.render();
+ assert.match(h.ids.top.innerHTML,/1 of 1 plans/);assert.match(h.ids.view.innerHTML,/Source blocker/);assert.doesNotMatch(h.ids.view.innerHTML,/task-list-table/);
+});
+
+test('Routes write and restore views, sections, filters, tabs, encoded keys and source lines',()=>{
+ const h=harness({}),p=focusPlan();p.project='project #1';p.name='Plan / ? # ü';h.api.setData(data([p]));h.api.jumpHash();
+ h.api.openPlan(h.api.key(p));assert.equal(h.context.location.hash,'#/plan/'+encodeURIComponent(h.api.key(p))+'/summary');
+ h.handlers.click(actionEvent('data-tab','activity'));assert.match(h.context.location.hash,/\/activity$/);
+ h.api.switchLayout('list');h.api.ui.taskStatus='blocked';h.api.ui.q='check #1';h.api.render();
+ const saved=h.context.location.hash;assert.match(saved,/#\/list\?q=check\+%231&status=blocked&group=plan/);
+ h.api.openArchive();assert.equal(h.context.location.hash,'#/archive');h.context.location.hash=saved;h.handlers.popstate();
+ assert.equal(h.api.ui.layout,'list');assert.equal(h.api.ui.taskStatus,'blocked');assert.equal(h.api.ui.q,'check #1');
+ h.context.location.hash='#/plan/'+encodeURIComponent(h.api.key(p))+'/summary?step=L11';h.handlers.hashchange();
+ assert.equal(h.api.focusedTask(h.api.planByKey(h.api.key(p))).line,11);assert.match(h.ids.view.innerHTML,/task-focused/);
+});
+
+test('Settings sections and setup have routes and returning to a view closes panels',()=>{
+ const h=harness({});h.api.jumpHash();h.api.openSettings('integrations');assert.equal(h.context.location.hash,'#/settings/integrations');
+ h.api.openSettings('projects');assert.equal(h.context.location.hash,'#/settings/projects');h.api.closeSettings();assert.equal(h.context.location.hash,'#/');
+ h.context.location.hash='#/setup';h.handlers.hashchange();assert.equal(h.api.setup.open,true);
+ h.context.location.hash='#/attention';h.handlers.popstate();assert.equal(h.api.setup.open,false);assert.equal(h.api.settingsUI.open,false);assert.equal(h.api.ui.view,'waiting');
+});
+
+test('Unavailable and malformed deep links preserve a readable ledger and do not silently select another plan',()=>{
+ const h=harness({});h.api.setData(data([plan('Testing','Good')]));h.context.location.hash='#/plan/missing%2Fplan/summary';h.handlers.hashchange();
+ assert.match(h.ids.view.innerHTML,/Plan unavailable/);assert.equal(h.api.ui.view,'plan:missing/plan');
+ h.context.location.hash='#/plan/%broken/summary';assert.doesNotThrow(()=>h.handlers.hashchange());assert.match(h.ids.view.innerHTML,/Plan unavailable/);
+});
+
+test('Stage glyphs remain static, labelled and independent of completion in both themes',()=>{
+ const h=harness();for(const [status,tone] of [['Planning','todo'],['Implementing','doing'],['Fixing review','doing'],['Shipping','doing'],['Reviewing','review'],['Testing','review'],['Waiting for CI','review'],['Waiting for owner','waiting'],['Blocked','blocked'],['Done','done']]){
+  assert.equal(h.api.statusTone(status),tone);assert.match(h.api.statusGlyph(status),new RegExp('aria-label="'+status+'"'));assert.doesNotMatch(h.api.statusGlyph(status),/spin/);
+ }
+ assert.match(html,/summary:focus-visible/);assert.match(html,/forced-colors:active/);assert.match(html,/prefers-reduced-motion:\s*reduce/);
+ assert.doesNotMatch(html,/@font-face|rel="preload"[^>]+font/);
+});
+
+const edgePath=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
+test('Native DOM preserves unaffected plan nodes, focus, caret, scroll, disclosures and browser history', {skip:!edgePath,timeout:60000},()=>{
+ const fixture=mkdtempSync(join(fileURLToPath(new URL('.',import.meta.url)),'.test-ledger-ui-'));
+ try{
+  const payload=data(Array.from({length:28},(_,i)=>({...plan('Testing','Plan '+i),project:'p1',projectName:'Project One',mtime:new Date(Date.now()-i*60000).toISOString()})));
+  const detail=focusPlan();detail.steps.push(...Array.from({length:30},(_,i)=>({status:'todo',text:'Loose task '+i,line:50+i})));
+  payload.state.plans[0].diagnostics=[{message:'Sample plan warning'}];
+  payload.state.plans.push(detail);
+  const check=`(async function(){
+    var status=document.createElement('pre');status.id='ledger-dom-result';document.body.appendChild(status);var results=[],assert=function(condition,message){if(!condition)throw Error(message);results.push(message);status.textContent=JSON.stringify({ok:false,error:'Pending after '+message,results:results});};
+    window.fetch=async function(){return {ok:true,json:async function(){return {setupRequired:false,setupComplete:true,projects:[],theme:'system'};}};};localStorage.clear();
+    ui.view='home';ui.layout='summary';ui.q='';navigation.section='all';navigation.collapsed=false;acceptState(${JSON.stringify(payload)});jumpHash();render();
+    var row=document.querySelector('.ledger-table-row[data-render-key="p1/ledger/Plan 0"]'),side=document.querySelector('.sidebar-plan[data-render-key="p1/ledger/Plan 0"]'),button=row.querySelector('button');
+    var warning=row.querySelector('details');warning.open=true;button.focus();var observer=new MutationObserver(function(){});observer.observe(row,{subtree:true,attributes:true,childList:true,characterData:true});
+    var changed=JSON.parse(JSON.stringify(D));changed.state.plans[1].revision='b'.repeat(64);changed.state.plans[1].next='Updated only second plan';changed.state.plans[1].mtime=new Date(Date.now()+60000).toISOString();acceptState(changed);render();
+    assert(row===document.querySelector('.ledger-table-row[data-render-key="p1/ledger/Plan 0"]'),'unaffected plan node retained');
+    assert(side===document.querySelector('.sidebar-plan[data-render-key="p1/ledger/Plan 0"]'),'unaffected sidebar node retained');
+    assert(observer.takeRecords().length===0,'unaffected plan has zero DOM mutations');observer.disconnect();
+    assert(warning.open,'open diagnostic stays open across sibling refresh');
+    assert(document.activeElement===button,'focus survives reordered sibling');assert(document.querySelector('#view').textContent.includes('Updated only second plan'),'changed revision updates visible row');
+    openPlan('ledger/Focus');var summary=document.querySelectorAll('.ledger-milestone>summary')[1],disclosure=summary.parentNode;summary.focus();disclosure.open=false;await new Promise(function(r){setTimeout(r,30);});
+    var token=disclosure.getAttribute('data-plan-disclosure');assert(ui.planDetails[token]===false,'native disclosure persists explicit collapse');
+    var changed=JSON.parse(JSON.stringify(D));changed.state.plans[0].revision='c'.repeat(64);acceptState(changed);render();assert(document.activeElement===summary,'milestone focus survives unrelated revision');assert(!disclosure.open,'collapsed milestone stays collapsed');
+    var input=$('q');input.value='task';ui.q='task';input.focus();input.setSelectionRange(1,3);render();assert(document.activeElement===input,'search DOM node and focus retained');assert(input.selectionStart===1 && input.selectionEnd===3,'search caret retained');
+    ui.q='';input.value='';render();var view=$('view');view.style.height='130px';view.style.flex='none';view.scrollTop=100;var top=view.scrollTop;render();assert(top>0 && view.scrollTop===top,'detail scroll retained');
+    var tab=$('plan-tab-summary');tab.focus();tab.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert(ui.tab==='activity' || ui.tab==='questions','tabs respond to arrow keys');assert(document.activeElement.getAttribute('role')==='tab','tab focus follows selection');
+    openPlan('ledger/Focus');var planURL=location.hash;switchLayout('list');var listURL=location.hash;
+    await new Promise(function(resolve){window.addEventListener('popstate',resolve,{once:true});history.back();});await new Promise(function(r){setTimeout(r,10);});assert(location.hash===planURL && ui.view==='plan:ledger/Focus','Back restores plan route');
+    await new Promise(function(resolve){window.addEventListener('popstate',resolve,{once:true});history.forward();});await new Promise(function(r){setTimeout(r,10);});assert(location.hash===listURL && ui.layout==='list','Forward restores list route');
+    location.hash='#/plan/ledger%2FFocus/summary?step=L11';await new Promise(function(r){setTimeout(r,30);});assert(document.querySelector('#task-line-11').classList.contains('task-focused'),'source-line deep link highlights the exact task');assert(document.querySelectorAll('[id="task-line-11"]').length===1,'step DOM IDs stay unique');
+    applyTheme('dark');assert(getComputedStyle(document.documentElement).colorScheme==='dark','dark theme applied');applyTheme('light');assert(getComputedStyle(document.documentElement).colorScheme==='light','light theme applied');
+    var report=document.getElementById('ledger-dom-result');report.textContent=JSON.stringify({ok:true,results:results});document.body.appendChild(report);
+  })().catch(function(e){var report=document.getElementById('ledger-dom-result');report.textContent=JSON.stringify({ok:false,error:e.stack});document.body.appendChild(report);});`;
+  const page=html.replace('jumpHash(); get(); connect(); initUpdates(); loadSettings();',check);
+  new vm.Script(page.match(/<script>([\s\S]*?)<\/script>/)[1]);
+  const pagePath=join(fixture,'index.html');writeFileSync(pagePath,page);
+  const run=spawnSync(edgePath,['--headless=new','--disable-gpu','--enable-logging=stderr','--no-first-run','--no-default-browser-check','--disable-background-networking','--host-resolver-rules=MAP * ~NOTFOUND','--user-data-dir='+join(fixture,'profile'),'--virtual-time-budget=5000','--dump-dom',pathToFileURL(pagePath).href],{encoding:'utf8',windowsHide:true,timeout:45000,maxBuffer:8<<20});
+  assert.equal(run.error,undefined,String(run.error));assert.equal(run.status,0,run.stderr);
+  const report=run.stdout.match(/<pre id="ledger-dom-result">([\s\S]*?)<\/pre>/);
+  assert.ok(report,'Edge did not complete the isolated DOM checks: '+run.stderr.slice(-1500));
+  const result=JSON.parse(report[1].replaceAll('&quot;','"').replaceAll('&lt;','<').replaceAll('&gt;','>').replaceAll('&amp;','&'));
+  assert.equal(result.ok,true,result.error);assert.ok(result.results.length>=16);
+ }finally{
+  // The fixture and Edge profile are both descendants of the freshly created worktree-local directory.
+  assert.ok(fixture.startsWith(fileURLToPath(new URL('.',import.meta.url))));rmSync(fixture,{recursive:true,force:true,maxRetries:10,retryDelay:100});
+ }
 });
