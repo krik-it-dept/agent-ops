@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
+
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 )
 
 func TestRefreshReadsLatestAndPreservesLastGoodStateOnFailure(t *testing.T) {
@@ -31,9 +34,11 @@ func TestRefreshReadsLatestAndPreservesLastGoodStateOnFailure(t *testing.T) {
 		t.Fatal("refresh accepts GET", w.Code)
 	}
 	previous := append([]byte{}, rawState...)
-	scriptFile = filepath.Join(dataDir, "missing-collector.mjs")
+	saved := collectPlans
+	t.Cleanup(func() { collectPlans = saved })
+	collectPlans = func(context.Context, plans.Options) (*plans.Overview, error) { return nil, errors.New("drive offline") }
 	w = request(http.MethodPost)
-	if w.Code != 502 || !bytes.Contains(w.Body.Bytes(), []byte("Node failed")) {
+	if w.Code != 502 || !bytes.Contains(w.Body.Bytes(), []byte("Could not read plans: drive offline")) {
 		t.Fatal("refresh reported false success", w.Code, w.Body)
 	}
 	if !bytes.Equal(previous, rawState) {

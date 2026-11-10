@@ -643,10 +643,10 @@ func TestOldProductNameOnlyInMigrationCode(t *testing.T) {
 func parseArgs(t *testing.T, args ...string) {
 	t.Helper()
 	oldFlags, oldArgs := flag.CommandLine, os.Args
-	saved := []any{reposDir, stateFile, scriptFile, addr, dataDir, background, activation, profileDir, disableUpdateChecks, printVersion, applyUpdateFile, updateFeed, migrateMode, migrateRuntime, dataDirGiven, ignoredSlotsFile, explicitRepos, explicitState, legacyLaunch}
+	saved := []any{reposDir, stateFile, ignoredScript, addr, dataDir, background, activation, profileDir, disableUpdateChecks, printVersion, applyUpdateFile, updateFeed, migrateMode, migrateRuntime, dataDirGiven, ignoredSlotsFile, explicitRepos, explicitState, legacyLaunch}
 	t.Cleanup(func() {
 		flag.CommandLine, os.Args = oldFlags, oldArgs
-		reposDir, stateFile, scriptFile, addr = saved[0].(string), saved[1].(string), saved[2].(string), saved[3].(string)
+		reposDir, stateFile, ignoredScript, addr = saved[0].(string), saved[1].(string), saved[2].(string), saved[3].(string)
 		dataDir, background, activation, profileDir = saved[4].(string), saved[5].(bool), saved[6].(string), saved[7].(string)
 		disableUpdateChecks, printVersion, applyUpdateFile, updateFeed = saved[8].(bool), saved[9].(bool), saved[10].(string), saved[11].(string)
 		migrateMode, migrateRuntime, dataDirGiven, ignoredSlotsFile = saved[12].(bool), saved[13].(string), saved[14].(bool), saved[15].(string)

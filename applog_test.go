@@ -167,7 +167,7 @@ func TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths(t *testing.T) {
 		secrets = append(secrets, user)
 	}
 	cases := []struct{ kind, reason, want string }{
-		{refreshKindCollector, "Node failed: could not read plans (exit status 1). Plan text: confidential roadmap", "Plan refresh: failing: collector failed"},
+		{refreshKindCollector, "Could not read plans: open plan.md. Plan text: confidential roadmap", "Plan refresh: failing: collector failed"},
 		{refreshKindProjectFailed + " (2)", "Could not read project “Secret Client” (" + secretPath + "): confidential roadmap", "Plan refresh: failing: project unreadable (2)"},
 		{refreshKindStateFolder, "Cannot create the state folder " + secretPath + ": Access is denied.", "Plan refresh: failing: state folder"},
 		{"", "Secret Client failed in " + secretPath, "Plan refresh: failing: unknown"},
@@ -177,7 +177,7 @@ func TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths(t *testing.T) {
 		refreshError, refreshErrorKind = c.reason, c.kind
 		mu.Unlock()
 		text := diagnosticsText()
-		for _, want := range []string{"Version: " + appVersion, "OS: Windows", "Node.js: v24.0.0", "Projects: 1 configured, 1 enabled, 1 folders", c.want, "Updates: error, error reported", "Last crash: " + appVersion + " panic at ", "(1 total)"} {
+		for _, want := range []string{"Version: " + appVersion, "OS: Windows", "Node.js (optional): v24.0.0", "Projects: 1 configured, 1 enabled, 1 folders", c.want, "Updates: error, error reported", "Last crash: " + appVersion + " panic at ", "(1 total)"} {
 			if !strings.Contains(text, want) {
 				t.Fatal("missing", want, "\n", text)
 			}

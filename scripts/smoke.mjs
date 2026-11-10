@@ -19,23 +19,24 @@ try {
   const listed=[];
   function list(dir){for(const entry of readdirSync(dir,{withFileTypes:true})){const file=join(dir,entry.name);if(entry.isDirectory())list(file);else listed.push(file.slice(pkg.length+1).replaceAll('\\','/'));}}
   list(pkg);
-  // Exactly the v0.3.0 file set: the app, the collector, two stubs, the migration shim and the installer.
-  assert.deepEqual(listed.sort(),['agent-ops.exe','tasks-overview.mjs','task-sync.mjs','task-report.mjs','plan-reader.mjs','NOTICE.md','INSTALL.md','scripts/install.ps1','integrations/install-task-reporting.mjs'].sort());
+  // Exactly the file set: the app (with the plan collector), two Node stubs for old commands and the installer. No Node collector.
+  assert.deepEqual(listed.sort(),['agent-ops.exe','task-sync.mjs','task-report.mjs','NOTICE.md','INSTALL.md','scripts/install.ps1'].sort());
   // The manifest asset describes the package exactly: every file, its size and digest.
   const manifest=JSON.parse(readFileSync(join(root,'dist','agent-ops-windows-amd64.manifest.json'),'utf8'));
   assert.equal(manifest.format,1);assert.match(manifest.version,/^v\d+\.\d+\.\d+(-dev\.[0-9a-f]+)?$/);
-  assert.deepEqual(manifest.remove.sort(),['agent-attribution.mjs','execution-reports.mjs','execution-roles.mjs','historical-executions.mjs','skills/task-plan/SKILL.md']);
+  assert.deepEqual(manifest.remove.sort(),['agent-attribution.mjs','execution-reports.mjs','execution-roles.mjs','historical-executions.mjs','integrations/install-task-reporting.mjs','plan-reader.mjs','skills/task-plan/SKILL.md','tasks-overview.mjs']);
   assert.deepEqual(manifest.files.map(f=>f.path).sort(),listed.slice().sort());
   for(const f of manifest.files){const body=readFileSync(join(pkg,f.path));assert.equal(f.size,body.length,f.path);assert.equal(f.sha256,createHash('sha256').update(body).digest('hex'),f.path);}
   const reported=spawnSync('node',['-e',"process.stdout.write(require('node:child_process').execFileSync(process.argv[1],['--version'],{encoding:'utf8',windowsHide:true}))",join(pkg,'agent-ops.exe')],{encoding:'utf8',windowsHide:true}).stdout.trim();
   assert.equal(reported,manifest.version,'the manifest names the packaged version');
   const runtime=join(fixture,'installed runtime'),profile=join(fixture,'profile');
-  // An earlier install: a retired module, a run history registry and owner instructions.
-  put(join(runtime,'execution-reports.mjs'),'retired module');put(join(runtime,'agent-attributions.json'),'{"old":"history"}');
+  // An earlier install: retired modules (also the Node collector), a run history registry and owner instructions.
+  put(join(runtime,'execution-reports.mjs'),'retired module');put(join(runtime,'tasks-overview.mjs'),'retired collector');put(join(runtime,'integrations','install-task-reporting.mjs'),'retired shim');put(join(runtime,'agent-attributions.json'),'{"old":"history"}');
   put(join(profile,'.codex','AGENTS.md'),'# Existing instructions\nPreserve this.\n');
   const installer=[...psArgs,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch'];
   run('powershell.exe',installer);run('powershell.exe',installer);
-  assert.ok(!existsSync(join(runtime,'execution-reports.mjs')),'retired module removed');
+  for(const name of ['execution-reports.mjs','tasks-overview.mjs','integrations/install-task-reporting.mjs'])assert.ok(!existsSync(join(runtime,name)),'retired module removed: '+name);
+  assert.ok(!existsSync(join(runtime,'integrations')),'empty retired folder removed');
   assert.ok(!existsSync(join(runtime,'agent-attributions.json')),'old run history deleted');
   assert.ok(readFileSync(join(runtime,'task-sync.mjs'),'utf8').includes('no longer records runs'),'task-sync is the stub');
   assert.equal(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),'# Existing instructions\nPreserve this.\n','owner instructions untouched');
@@ -57,7 +58,7 @@ try {
   const server=createServer();await new Promise((res,rej)=>{server.once('error',rej);server.listen(0,'127.0.0.1',res);});
   const port=server.address().port;await new Promise(res=>server.close(res));
   const base='http://127.0.0.1:'+port;
-  app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--state-file',state,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',join(fixture,'data')],{windowsHide:true,stdio:'ignore',env:{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''}});
+  app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--state-file',state,'--data-dir',join(fixture,'data')],{windowsHide:true,stdio:'ignore',env:{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''}});
   let response;
   for(let i=0;i<100;i++){
     try{response=await fetch(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)break;}catch{/* Retry only while the isolated process is starting. */}
@@ -67,6 +68,10 @@ try {
   assert.ok(response?.ok,'Isolated app did not start');
   const stateResponse=await response.json();assert.equal(stateResponse.error,'');assert.equal(stateResponse.state.plans.length,1);
   for(const key of ['agent','executors','executionReports','slot'])assert.equal(key in stateResponse.state.plans[0],false,key);
+  // The in-process collector: no Node, per-milestone progress, repositories and diagnostics, nothing written into the repository.
+  assert.deepEqual(stateResponse.state.plans[0].milestones[0].progress,{done:0,total:1});
+  assert.deepEqual(stateResponse.state.diagnostics,[]);assert.equal(stateResponse.state.repos[0].name,'sample');assert.deepEqual(stateResponse.state.repos[0].worktrees,[]);
+  assert.ok(!existsSync(join(repos,'sample','.tasks','tong-hop.md')),'no generated index in the repository');
   const page=await fetch(base),html=await page.text();assert.equal(page.status,200);assert.ok(html.includes('<title>Agent Ops</title>'));
   const script=html.match(/<script>([\s\S]*?)<\/script>/)[1].replaceAll('\r\n','\n').replaceAll('\r','\n');
   const digest=createHash('sha256').update(script).digest('base64');
@@ -95,7 +100,7 @@ try {
   const freshPort=freshServer.address().port;await new Promise(res=>freshServer.close(res));
   const fresh='http://127.0.0.1:'+freshPort,freshData=join(fixture,'fresh-data');
   const cleanEnv={...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''};
-  firstRun=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+freshPort,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',freshData],{windowsHide:true,stdio:'ignore',env:cleanEnv});
+  firstRun=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+freshPort,'--data-dir',freshData],{windowsHide:true,stdio:'ignore',env:cleanEnv});
   let freshState;
   for(let i=0;i<100;i++){
     try{const r=await fetch(fresh+'/api/state',{signal:AbortSignal.timeout(1000)});if(r.ok){freshState=await r.json();break;}}catch{/* Retry only while the isolated process is starting. */}

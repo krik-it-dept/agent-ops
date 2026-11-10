@@ -47,7 +47,8 @@ func diagnosticsText() string {
 	}
 	line("OS", osVersion+" "+runtime.GOARCH)
 	line("Go", runtime.Version())
-	line("Node.js", nodeVersion())
+	// Node.js is optional: only the old task-sync/task-report stubs use it.
+	line("Node.js (optional)", nodeVersion())
 	line("Started", processStarted.Format(time.RFC3339)+" (pid "+fmt.Sprint(os.Getpid())+")")
 	line("Generated", time.Now().Format(time.RFC3339))
 	line("Default instance", yesNo(defaultInstance()))

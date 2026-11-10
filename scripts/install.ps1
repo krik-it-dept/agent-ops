@@ -15,12 +15,14 @@ $RuntimeDir = [IO.Path]::GetFullPath($RuntimeDir)
 $sourceExe = Join-Path $packageRoot 'agent-ops.exe'
 if (!(Test-Path -LiteralPath $sourceExe)) { throw 'Run this installer from an extracted release package.' }
 if ($RuntimeDir -eq [IO.Path]::GetFullPath($packageRoot)) { throw 'Choose a runtime directory separate from the extracted package.' }
-if (!(Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node.js 24 is required before installing Agent Ops.' }
 New-Item -ItemType Directory -Force -Path $RuntimeDir | Out-Null
 $backup = Join-Path $RuntimeDir ('backups\' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N'))
-$files = @('agent-ops.exe','tasks-overview.mjs','plan-reader.mjs','task-sync.mjs','task-report.mjs','NOTICE.md','INSTALL.md','integrations/install-task-reporting.mjs')
+# Node.js is not required: the plan collector runs inside agent-ops.exe. The two
+# .mjs stubs only answer task-sync/task-report commands that sessions of earlier
+# releases run with Node.
+$files = @('agent-ops.exe','task-sync.mjs','task-report.mjs','NOTICE.md','INSTALL.md')
 # Program files of earlier releases that this version no longer uses.
-$retired = @('execution-roles.mjs','execution-reports.mjs','historical-executions.mjs','agent-attribution.mjs','skills/task-plan/SKILL.md')
+$retired = @('execution-roles.mjs','execution-reports.mjs','historical-executions.mjs','agent-attribution.mjs','skills/task-plan/SKILL.md','tasks-overview.mjs','plan-reader.mjs','integrations/install-task-reporting.mjs')
 foreach ($name in $files) {
     $sourceFile = Join-Path $packageRoot $name
     if (!(Test-Path -LiteralPath $sourceFile)) { throw "Incomplete release: $name" }
@@ -64,9 +66,15 @@ if (!$SkipMigration -and $RuntimeDir -ne $defaultRuntime -and !$PSBoundParameter
 if (!$SkipMigration) {
     # Removes the retired run reporting from this profile's AI clients and deletes old
     # run history, with backups. It installs nothing: the task-plan skill is offered in
-    # the app (Settings > Integrations).
-    & node (Join-Path $RuntimeDir 'integrations/install-task-reporting.mjs') --home $ProfileDir --runtime-dir $RuntimeDir
-    if ($LASTEXITCODE -ne 0) { throw 'Runtime copied, but the migration of earlier releases failed. Backups remain available; no success is claimed.' }
+    # the app (Settings > Integrations). agent-ops.exe is a GUI program, so it is
+    # started and awaited explicitly and its JSON result is read from a file.
+    $quote = { param([string]$value) '"' + ($value -replace '(\*)$', '$1$1') + '"' }
+    $migrationArgs = @('--migrate', '--profile-dir', (& $quote ([IO.Path]::GetFullPath($ProfileDir))), '--runtime-dir', (& $quote $RuntimeDir)) -join ' '
+    $migrationOut = Join-Path $backup 'migration-output.json'
+    New-Item -ItemType Directory -Force -Path $backup | Out-Null
+    $migration = Start-Process -FilePath (Join-Path $RuntimeDir 'agent-ops.exe') -ArgumentList $migrationArgs -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $migrationOut
+    if (Test-Path -LiteralPath $migrationOut) { Get-Content -LiteralPath $migrationOut -Raw | Write-Output }
+    if ($migration.ExitCode -ne 0) { throw 'Runtime copied, but the migration of earlier releases failed. Backups remain available; no success is claimed.' }
 }
 Write-Output "Installed: $(Join-Path $RuntimeDir 'agent-ops.exe')"
 Write-Output "Previous files, when present: $backup"

@@ -1,6 +1,6 @@
 // Agent Ops: a tray app that shows the owner's task plans (.tasks/*.md in each repo) as a
-// Jira-style board. It watches the plan files, regenerates the state with tasks-overview.mjs,
-// derives an activity feed from what changed, serves the UI on 127.0.0.1 and opens it in an Edge
+// Jira-style board. It watches the plan files, reads them with the in-process collector
+// (internal/plans), derives an activity feed from what changed, serves the UI on 127.0.0.1 and opens it in an Edge
 // app window. No model calls, no tokens.
 package main
 
@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	"crypto/sha256"
 	"embed"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -38,9 +38,11 @@ var (
 	addr = "127.0.0.1:7790"
 	// reposDir is set only by --repos-dir or AGENT_OPS_REPOS_DIR and then replaces the
 	// configured projects for this run. stateFile falls back to config.json.
-	reposDir   string
-	stateFile  string
-	scriptFile = defaultCollector()
+	reposDir  string
+	stateFile string
+	// --script and AGENT_OPS_SCRIPT named the Node collector of earlier releases;
+	// they are still accepted from old relaunch arguments and ignored.
+	ignoredScript string
 	// --slots-file is still accepted from earlier releases' relaunch arguments and
 	// ignored: worktree slots are retired.
 	ignoredSlotsFile string
@@ -66,7 +68,7 @@ var iconFiles embed.FS
 //go:embed web/fonts/*
 var fontFiles embed.FS
 
-// ---------- state from tasks-overview.mjs ----------
+// ---------- state from the plan collector ----------
 
 type Step struct {
 	Line      int    `json:"line"`
@@ -156,18 +158,6 @@ var (
 	dataDirGiven        bool
 )
 
-func defaultCollector() string {
-	exe, _ := os.Executable()
-	home, _ := os.UserHomeDir()
-	candidates := []string{filepath.Join(filepath.Dir(exe), "tasks-overview.mjs"), filepath.Join(home, legacyRuntimeRel, "tasks-overview.mjs")}
-	for _, file := range candidates {
-		if _, err := os.Stat(file); err == nil {
-			return file
-		}
-	}
-	return candidates[0]
-}
-
 func config() {
 	env := func(name, fallback string) string {
 		if v := os.Getenv(name); v != "" {
@@ -178,7 +168,7 @@ func config() {
 	flag.StringVar(&reposDir, "repos-dir", "", "Folder of repositories; replaces the configured projects for this run")
 	flag.StringVar(&ignoredSlotsFile, "slots-file", "", "Ignored; accepted from earlier releases")
 	flag.StringVar(&stateFile, "state-file", "", `Generated state JSON file (default <data-dir>\state\tong-hop-chung.json)`)
-	flag.StringVar(&scriptFile, "script", env("AGENT_OPS_SCRIPT", scriptFile), "Overview Node script")
+	flag.StringVar(&ignoredScript, "script", "", "Ignored; accepted from earlier releases")
 	flag.StringVar(&addr, "addr", env("AGENT_OPS_ADDR", addr), "Loopback listen address")
 	flag.StringVar(&dataDir, "data-dir", defaultDataDir(), "Persistence directory")
 	flag.BoolVar(&background, "background", false, "Start tray without opening a window")
@@ -206,7 +196,7 @@ func config() {
 	}
 	// Restarting from a staging helper must preserve the resolved configuration,
 	// including when the original launch used relative paths.
-	for _, value := range []*string{&reposDir, &stateFile, &scriptFile, &dataDir, &profileDir} {
+	for _, value := range []*string{&reposDir, &stateFile, &dataDir, &profileDir} {
 		if *value == "" {
 			continue
 		}
@@ -244,7 +234,7 @@ func samePath(a, b string) bool {
 // values given by flag or environment are passed on; everything else comes from
 // config.json, so a restart never pins the current config into flags.
 func launchArgs() []string {
-	args := []string{"--background", "--addr", addr, "--script", scriptFile, "--data-dir", dataDir, "--profile-dir", profileDir}
+	args := []string{"--background", "--addr", addr, "--data-dir", dataDir, "--profile-dir", profileDir}
 	if explicitRepos {
 		args = append(args, "--repos-dir", reposDir)
 	}
@@ -414,55 +404,15 @@ func planKey(p Plan) string {
 	return p.Repo + "/" + p.Name
 }
 
-// collectorCommand runs tasks-overview.mjs. AGENT_OPS_CONFIG points every Node
-// helper at the same config.json; explicit overrides are passed as flags.
-func collectorCommand(ctx context.Context) *exec.Cmd {
-	args := []string{scriptFile, "--state-file", stateFile}
-	overrides := map[string]string{"AGENT_OPS_CONFIG": configFilePath(dataDir), "AGENT_OPS_STATE_FILE": stateFile, "AGENT_OPS_REPOS_DIR": ""}
-	if reposDir != "" {
-		args = append(args, "--repos-dir", reposDir)
-		overrides["AGENT_OPS_REPOS_DIR"] = reposDir
-	}
-	cmd := hidden(exec.CommandContext(ctx, "node", args...))
-	for _, v := range os.Environ() {
-		k, _, _ := strings.Cut(v, "=")
-		if _, ok := overrides[strings.ToUpper(k)]; !ok {
-			cmd.Env = append(cmd.Env, v)
-		}
-	}
-	for k, v := range overrides {
-		if v != "" {
-			cmd.Env = append(cmd.Env, k+"="+v)
-		}
-	}
-	return cmd
-}
-
 // Fixed refresh failure categories. Diagnostics and the log record only these,
 // never the reason text, which can quote plan files, project names or paths.
 const (
 	refreshKindStateFolder   = "state folder"
-	refreshKindNodeMissing   = "node missing"
 	refreshKindTimeout       = "timeout"
 	refreshKindCollector     = "collector failed"
-	refreshKindStateRead     = "state unreadable"
 	refreshKindStateInvalid  = "state invalid"
 	refreshKindProjectFailed = "project unreadable"
 )
-
-func collectorFailure(err error, output []byte) (kind, reason string) {
-	if errors.Is(err, exec.ErrNotFound) {
-		return refreshKindNodeMissing, "Node.js was not found. Install Node.js 24, then restart Agent Ops."
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return refreshKindTimeout, "Reading plans took longer than 30 seconds and was stopped. Retry, or disable a large project in Settings."
-	}
-	reason = strings.TrimSpace(string(output))
-	if len(reason) > 400 {
-		reason = reason[:400]
-	}
-	return refreshKindCollector, strings.TrimSpace(fmt.Sprintf("Node failed: could not read plans (%v). %s", err, reason))
-}
 
 var (
 	// Projects whose plans were part of the last successful refresh. Plans of a
@@ -475,6 +425,8 @@ var (
 	seenProjects map[string]bool
 	// Per-project results of the last collector run.
 	projectStates []ProjectState
+	// Diagnostics count of the last refresh, logged when it changes.
+	lastDiagnostics int
 )
 
 func refresh(first bool) {
@@ -490,23 +442,18 @@ func refresh(first bool) {
 		st = State{Plans: []Plan{}, Projects: []ProjectState{}}
 		raw = []byte(`{"generatedAt":"` + time.Now().UTC().Format(time.RFC3339) + `","projects":[],"plans":[]}`)
 	} else {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
 		if err := os.MkdirAll(filepath.Dir(stateFile), 0o755); err != nil {
 			setRefreshError(refreshKindStateFolder, "Cannot create the state folder "+filepath.Dir(stateFile)+": "+err.Error())
 			return
 		}
-		output, err := collectorCommand(ctx).CombinedOutput()
+		overview, err := runCollector()
 		if err != nil {
-			if ctx.Err() != nil {
-				err = ctx.Err()
-			}
-			setRefreshError(collectorFailure(err, output))
+			setRefreshError(collectorFailure(err))
 			return
 		}
-		raw, err = os.ReadFile(stateFile)
+		raw, err = json.Marshal(overview)
 		if err != nil {
-			setRefreshError(refreshKindStateRead, "Read state: "+err.Error())
+			setRefreshError(refreshKindStateInvalid, "Invalid state JSON: "+err.Error())
 			return
 		}
 		if err := json.Unmarshal(raw, &st); err != nil {
@@ -530,6 +477,14 @@ func refresh(first bool) {
 		if failed > 0 {
 			setRefreshError(fmt.Sprintf("%s (%d)", refreshKindProjectFailed, failed), "Could not read project “"+first.Name+"” ("+first.Path+"): "+first.Message)
 			return
+		}
+		// The state file is a copy for other tools; the app serves its own copy.
+		if err := safeio.WriteFile(stateFile, raw, 0o644); err != nil {
+			logWarn("could not write the state file", "error", err.Error())
+		}
+		if n := len(overview.Diagnostics); n != lastDiagnostics {
+			lastDiagnostics = n
+			logInfo("plans read with problems", "diagnostics", n)
 		}
 	}
 	readable := map[string]bool{}
@@ -992,6 +947,9 @@ const (
 	maxSeenProjects  = 256
 )
 
+// persisted holds the digest of each store as last written, with mu held.
+var persisted = map[string][32]byte{}
+
 // loadPersisted reads the stores of the previous run. Each read tolerates a
 // missing, partial or corrupt file: that store starts empty, and the rest load.
 func loadPersisted() {
@@ -1053,9 +1011,17 @@ func persist(fresh []Event) {
 		if err != nil {
 			return
 		}
-		if err := safeio.WriteFile(filepath.Join(dataDir, name), b, 0o644); err != nil {
-			logWarn("could not save "+name, "error", err.Error())
+		file := filepath.Join(dataDir, name)
+		// Most refreshes change only some stores; an unchanged one is not rewritten.
+		sum := sha256.Sum256(b)
+		if persisted[file] == sum {
+			return
 		}
+		if err := safeio.WriteFile(file, b, 0o644); err != nil {
+			logWarn("could not save "+name, "error", err.Error())
+			return
+		}
+		persisted[file] = sum
 	}
 	write("snapshot.json", prev)
 	write("stale.json", staleSeen)

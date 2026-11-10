@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"os"
 	"path/filepath"
@@ -9,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/krik-it-dept/agent-ops/internal/plans"
 )
 
 func isolated(t *testing.T) string {
@@ -33,10 +37,10 @@ func one(p Plan) map[string]Plan { return map[string]Plan{planKey(p): p} }
 func stateFixture(t *testing.T) string {
 	t.Helper()
 	root := isolated(t)
-	oldRepos, oldPrev, oldState, oldScript, oldData := reposDir, prev, stateFile, scriptFile, dataDir
+	oldRepos, oldPrev, oldState, oldData := reposDir, prev, stateFile, dataDir
 	oldRaw, oldEvents, oldError, oldStale := rawState, events, refreshError, staleSeen
 	t.Cleanup(func() {
-		reposDir, prev, stateFile, scriptFile, dataDir = oldRepos, oldPrev, oldState, oldScript, oldData
+		reposDir, prev, stateFile, dataDir = oldRepos, oldPrev, oldState, oldData
 		rawState, events, refreshError, staleSeen = oldRaw, oldEvents, oldError, oldStale
 	})
 	reposDir = root
@@ -51,7 +55,6 @@ func stateFixture(t *testing.T) string {
 	dataDir = filepath.Join(root, "app-data")
 	os.MkdirAll(dataDir, 0700)
 	stateFile = filepath.Join(dataDir, "state.json")
-	scriptFile, _ = filepath.Abs("tasks-overview.mjs")
 	rawState, prev, events, refreshError, staleSeen = nil, nil, nil, "", map[string]time.Time{}
 	return file
 }
@@ -185,56 +188,55 @@ func TestActivation(t *testing.T) {
 func TestConfigOverrides(t *testing.T) {
 	dir := isolated(t)
 	oldArgs, oldFlags := os.Args, flag.CommandLine
-	oldRepos, oldState, oldScript, oldAddr, oldData, oldBackground, oldActivation := reposDir, stateFile, scriptFile, addr, dataDir, background, activation
+	oldRepos, oldState, oldAddr, oldData, oldBackground, oldActivation := reposDir, stateFile, addr, dataDir, background, activation
 	t.Cleanup(func() {
 		os.Args = oldArgs
 		flag.CommandLine = oldFlags
-		reposDir, stateFile, scriptFile, addr, dataDir, background, activation = oldRepos, oldState, oldScript, oldAddr, oldData, oldBackground, oldActivation
+		reposDir, stateFile, addr, dataDir, background, activation = oldRepos, oldState, oldAddr, oldData, oldBackground, oldActivation
 	})
-	for k, v := range map[string]string{"AGENT_OPS_REPOS_DIR": dir, "AGENT_OPS_STATE_FILE": filepath.Join(dir, "state.json"), "AGENT_OPS_SCRIPT": filepath.Join(dir, "script.mjs"), "AGENT_OPS_ADDR": "127.0.0.1:17990"} {
+	for k, v := range map[string]string{"AGENT_OPS_REPOS_DIR": dir, "AGENT_OPS_STATE_FILE": filepath.Join(dir, "state.json"), "AGENT_OPS_ADDR": "127.0.0.1:17990"} {
 		t.Setenv(k, v)
 	}
 	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
 	os.Args = []string{"test", "--background", "--data-dir", dir, "--addr", "127.0.0.1:17991"}
 	config()
-	if reposDir != dir || stateFile != filepath.Join(dir, "state.json") || scriptFile != filepath.Join(dir, "script.mjs") || addr != "127.0.0.1:17991" || !background || dataDir != dir {
+	if reposDir != dir || stateFile != filepath.Join(dir, "state.json") || addr != "127.0.0.1:17991" || !background || dataDir != dir {
 		t.Fatal("overrides not applied")
 	}
 }
 func TestRefreshLastGoodAndPersistence(t *testing.T) {
-	dir := isolated(t)
-	oldRepos, oldState, oldScript, oldData := reposDir, stateFile, scriptFile, dataDir
-	t.Cleanup(func() {
-		reposDir, stateFile, scriptFile, dataDir = oldRepos, oldState, oldScript, oldData
-		prev = nil
-		events = nil
-		rawState = nil
-		refreshError = ""
-		staleSeen = map[string]time.Time{}
-	})
-	reposDir, stateFile, scriptFile, dataDir = dir, filepath.Join(dir, "generated.json"), filepath.Join(dir, "script.mjs"), dir
-	// The fake script verifies that flag values actually reach the subprocess environment.
-	script := `import fs from 'node:fs'; if(process.env.AGENT_OPS_REPOS_DIR!==` + strconvQuote(dir) + `)process.exit(9); fs.writeFileSync(process.env.AGENT_OPS_STATE_FILE, JSON.stringify({plans:[]}));`
-	os.WriteFile(scriptFile, []byte(script), 0600)
-	prev = nil
-	events = nil
-	rawState = nil
+	stateFixture(t)
+	saved := collectPlans
+	t.Cleanup(func() { collectPlans = saved })
 	refresh(true)
-	if refreshError != "" || string(rawState) != "{\"plans\":[]}" {
+	if refreshError != "" || !strings.Contains(string(rawState), `"name":"plan"`) {
 		t.Fatalf("refresh: %s %s", refreshError, rawState)
 	}
+	if b, err := os.ReadFile(stateFile); err != nil || string(b) != string(rawState) {
+		t.Fatal("the state file is not the served state", err)
+	}
 	good := string(rawState)
-	os.WriteFile(scriptFile, []byte(`process.stderr.write('deliberate failure'); process.exit(7)`), 0600)
+	collectPlans = func(context.Context, plans.Options) (*plans.Overview, error) {
+		return nil, errors.New("deliberate failure")
+	}
 	refresh(true)
 	if !strings.Contains(refreshError, "deliberate failure") || string(rawState) != good {
 		t.Fatal(refreshError, string(rawState))
 	}
-	os.WriteFile(scriptFile, []byte(`import fs from 'node:fs'; fs.writeFileSync(process.env.AGENT_OPS_STATE_FILE, '{broken')`), 0600)
+	collectPlans = func(ctx context.Context, o plans.Options) (*plans.Overview, error) {
+		overview, err := saved(ctx, o)
+		overview.Plans = append(overview.Plans, overview.Plans...)
+		return overview, err
+	}
 	refresh(true)
-	if !strings.Contains(refreshError, "Invalid state JSON") || string(rawState) != good {
+	if !strings.Contains(refreshError, "duplicate plan") || string(rawState) != good {
 		t.Fatal(refreshError)
 	}
-	os.WriteFile(scriptFile, []byte(`import fs from 'node:fs'; fs.writeFileSync(process.env.AGENT_OPS_STATE_FILE, '{}')`), 0600)
+	collectPlans = func(ctx context.Context, o plans.Options) (*plans.Overview, error) {
+		overview, err := saved(ctx, o)
+		overview.Plans = nil
+		return overview, err
+	}
 	refresh(true)
 	if !strings.Contains(refreshError, "plans must be an array") || string(rawState) != good {
 		t.Fatal(refreshError)
@@ -244,6 +246,40 @@ func TestRefreshLastGoodAndPersistence(t *testing.T) {
 	loadPersisted()
 	if string(rawState) != good || prev == nil {
 		t.Fatal("last good state not persisted")
+	}
+}
+
+// A collection that hangs (an offline network drive) times out, and the next
+// refresh does not start a second one while it still runs.
+func TestRefreshTimesOutAHungCollector(t *testing.T) {
+	stateFixture(t)
+	saved := collectPlans
+	t.Cleanup(func() { collectPlans = saved })
+	release := make(chan struct{})
+	calls := 0
+	collectPlans = func(context.Context, plans.Options) (*plans.Overview, error) {
+		calls++
+		<-release
+		return nil, errors.New("late")
+	}
+	start := time.Now()
+	overview, err := runCollectorWithin(100 * time.Millisecond)
+	if overview != nil || !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 5*time.Second {
+		t.Fatal(overview, err)
+	}
+	if kind, _ := collectorFailure(err); kind != refreshKindTimeout {
+		t.Fatal(kind)
+	}
+	if _, err := runCollectorWithin(100 * time.Millisecond); !errors.Is(err, errCollectorBusy) || calls != 1 {
+		t.Fatal("a second collection started behind a hung one", err, calls)
+	}
+	close(release)
+	for i := 0; i < 100 && collectorBusy.Load(); i++ {
+		time.Sleep(10 * time.Millisecond)
+	}
+	collectPlans = saved
+	if _, err := runCollectorWithin(10 * time.Second); err != nil {
+		t.Fatal("the collector did not recover", err)
 	}
 }
 func strconvQuote(s string) string { b, _ := json.Marshal(s); return string(b) }

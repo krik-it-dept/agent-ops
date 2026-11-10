@@ -1,6 +1,6 @@
 # Install Agent Ops
 
-Requires Windows x64, Microsoft Edge and Node.js 24. No model/API account is needed for the dashboard or F5.
+Requires Windows x64 and Microsoft Edge. Node.js is not required (releases up to v0.3.x needed it for the plan collector). No model/API account is needed for the dashboard or F5.
 
 1. Quit a running Agent Ops from its tray menu.
 2. Extract the release ZIP to a temporary folder. Verify its SHA-256 against the adjacent checksum:

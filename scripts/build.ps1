@@ -6,11 +6,14 @@ param([string]$OutputDir,[string]$Version)
 $repoRoot = Split-Path $PSScriptRoot -Parent
 # Program files of earlier releases that the in-app update deletes from the runtime
 # folder (package manifest "remove"); JSON data is never removed this way. The run
-# reporting modules are retired and the task-plan skill is embedded in the exe.
-$removedFiles = @('execution-roles.mjs','execution-reports.mjs','historical-executions.mjs','agent-attribution.mjs','skills/task-plan/SKILL.md')
-# The package: the app, the plan collector, two stubs for commands of earlier
-# releases, the migration shim the installer runs, and the installer.
-$packageFiles = @('agent-ops.exe','tasks-overview.mjs','plan-reader.mjs','task-sync.mjs','task-report.mjs','NOTICE.md','INSTALL.md','integrations/install-task-reporting.mjs','scripts/install.ps1')
+# reporting modules are retired, the task-plan skill is embedded in the exe, and
+# the plan collector runs inside the exe, so the Node collector and the Node
+# migration shim are gone too.
+$removedFiles = @('execution-roles.mjs','execution-reports.mjs','historical-executions.mjs','agent-attribution.mjs','skills/task-plan/SKILL.md','tasks-overview.mjs','plan-reader.mjs','integrations/install-task-reporting.mjs')
+# The package: the app (with the plan collector), the installer, and two no-op
+# stubs for task-sync/task-report commands that sessions of earlier releases
+# still run with Node. The app never runs them and needs no Node.
+$packageFiles = @('agent-ops.exe','task-sync.mjs','task-report.mjs','NOTICE.md','INSTALL.md','scripts/install.ps1')
 $stablePattern = '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 if (!$Version) {
     $Version = (Get-Content -LiteralPath (Join-Path $repoRoot 'VERSION') -Raw).Trim()
