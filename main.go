@@ -30,6 +30,8 @@ import (
 	"unicode/utf8"
 
 	"fyne.io/systray"
+
+	"github.com/krik-it-dept/agent-ops/internal/safeio"
 )
 
 var (
@@ -540,7 +542,9 @@ func refresh(first bool) {
 	rawState = raw
 	refreshError, refreshErrorKind = "", ""
 	projectStates = st.Projects
-	_ = os.WriteFile(filepath.Join(dataDir, "state.json"), raw, 0o644)
+	if err := safeio.WriteFile(filepath.Join(dataDir, "state.json"), raw, 0o644); err != nil {
+		logWarn("could not save state.json", "error", err.Error())
+	}
 	cur := map[string]Plan{}
 	for _, p := range st.Plans {
 		cur[planKey(p)] = p
@@ -561,9 +565,9 @@ func refresh(first bool) {
 			}
 		}
 		fresh = diff(before, changed)
-		quiet = seed(added)
+		quiet = withoutLogged(seed(added))
 	} else {
-		quiet = seed(cur)
+		quiet = withoutLogged(seed(cur))
 	}
 	if seenProjects == nil {
 		seenProjects = map[string]bool{}
@@ -979,21 +983,38 @@ func checkStale() {
 
 // ---------- persistence ----------
 
+// Bounds of the persisted stores. activity.jsonl is compacted to the last
+// maxEvents events once it grows past activityMaxBytes; a start reads at most
+// that much of it. seen-projects.json keeps every configured project and at
+// most maxSeenProjects others.
+const (
+	activityMaxBytes = 4 << 20
+	maxSeenProjects  = 256
+)
+
+// loadPersisted reads the stores of the previous run. Each read tolerates a
+// missing, partial or corrupt file: that store starts empty, and the rest load.
 func loadPersisted() {
-	if b, err := os.ReadFile(filepath.Join(dataDir, "state.json")); err == nil {
+	if b, err := safeio.ReadFile(filepath.Join(dataDir, "state.json")); err == nil {
 		var st State
 		if json.Unmarshal(b, &st) == nil && validateState(st) == nil {
 			rawState = b
 		}
 	}
-	if b, err := os.ReadFile(filepath.Join(dataDir, "snapshot.json")); err == nil {
-		_ = json.Unmarshal(b, &prev)
+	if b, err := safeio.ReadFile(filepath.Join(dataDir, "snapshot.json")); err == nil {
+		var snapshot map[string]Plan
+		if json.Unmarshal(b, &snapshot) == nil {
+			prev = snapshot
+		} else {
+			logWarn("snapshot.json is unreadable; plan changes since the last run are not announced", "bytes", len(b))
+		}
 	}
 	_ = upgradeActivityFile(knownProjects())
-	if b, err := os.ReadFile(filepath.Join(dataDir, "activity.jsonl")); err == nil {
+	if b, err := safeio.ReadTail(filepath.Join(dataDir, "activity.jsonl"), activityMaxBytes); err == nil {
 		for _, line := range bytes.Split(b, []byte("\n")) {
 			var e Event
-			if json.Unmarshal(line, &e) == nil {
+			// A line cut by a crash mid-append is skipped.
+			if len(bytes.TrimSpace(line)) > 0 && json.Unmarshal(line, &e) == nil && !e.TS.IsZero() {
 				events = append(events, e)
 			}
 		}
@@ -1001,41 +1022,132 @@ func loadPersisted() {
 			events = events[len(events)-maxEvents:]
 		}
 	}
-	if b, err := os.ReadFile(filepath.Join(dataDir, "stale.json")); err == nil {
-		_ = json.Unmarshal(b, &staleSeen)
+	if b, err := safeio.ReadFile(filepath.Join(dataDir, "stale.json")); err == nil {
+		var seen map[string]time.Time
+		if json.Unmarshal(b, &seen) == nil {
+			staleSeen = seen
+		}
 	}
 	if staleSeen == nil {
 		staleSeen = map[string]time.Time{}
 	}
 	seenProjects = map[string]bool{}
-	if b, err := os.ReadFile(filepath.Join(dataDir, "seen-projects.json")); err == nil {
-		_ = json.Unmarshal(b, &seenProjects)
+	if b, err := safeio.ReadFile(filepath.Join(dataDir, "seen-projects.json")); err == nil {
+		var seen map[string]bool
+		if json.Unmarshal(b, &seen) == nil && seen != nil {
+			seenProjects = seen
+		}
 	}
 	mapLegacyKeys(knownProjects())
 }
 
+// persist writes the stores, with mu held. Each JSON store is replaced
+// atomically; activity.jsonl is appended and compacted when it grows too large.
 func persist(fresh []Event) {
-	if b, err := json.Marshal(prev); err == nil {
-		_ = os.WriteFile(filepath.Join(dataDir, "snapshot.json"), b, 0o644)
+	// A --repos-dir run reads another project; it never prunes the configured ones.
+	if reposDir == "" {
+		pruneStores(knownProjects())
 	}
-	if b, err := json.Marshal(staleSeen); err == nil {
-		_ = os.WriteFile(filepath.Join(dataDir, "stale.json"), b, 0o644)
+	write := func(name string, v any) {
+		b, err := json.Marshal(v)
+		if err != nil {
+			return
+		}
+		if err := safeio.WriteFile(filepath.Join(dataDir, name), b, 0o644); err != nil {
+			logWarn("could not save "+name, "error", err.Error())
+		}
 	}
-	if b, err := json.Marshal(seenProjects); err == nil && seenProjects != nil {
-		_ = os.WriteFile(filepath.Join(dataDir, "seen-projects.json"), b, 0o644)
+	write("snapshot.json", prev)
+	write("stale.json", staleSeen)
+	if seenProjects != nil {
+		write("seen-projects.json", seenProjects)
 	}
 	if len(fresh) == 0 {
 		return
 	}
-	f, err := os.OpenFile(filepath.Join(dataDir, "activity.jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	file := filepath.Join(dataDir, "activity.jsonl")
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
+		logWarn("could not append to activity.jsonl", "error", err.Error())
 		return
 	}
-	defer f.Close()
+	var buf bytes.Buffer
 	for _, e := range fresh {
 		b, _ := json.Marshal(e)
-		f.Write(append(b, '\n'))
+		buf.Write(append(b, '\n'))
 	}
+	// One write per batch, so a crash cuts at most the last line.
+	_, err = f.Write(buf.Bytes())
+	info, statErr := f.Stat()
+	f.Close()
+	if err != nil {
+		logWarn("could not append to activity.jsonl", "error", err.Error())
+	}
+	if statErr == nil && info.Size() > activityMaxBytes {
+		compactActivity(file)
+	}
+}
+
+// compactActivity rewrites activity.jsonl with the events kept in memory (the
+// newest maxEvents), with mu held.
+func compactActivity(file string) {
+	var buf bytes.Buffer
+	for _, e := range events {
+		b, _ := json.Marshal(e)
+		buf.Write(append(b, '\n'))
+	}
+	if err := safeio.WriteFile(file, buf.Bytes(), 0o644); err != nil {
+		logWarn("could not compact activity.jsonl", "error", err.Error())
+		return
+	}
+	logInfo("activity.jsonl compacted", "events", len(events), "bytes", buf.Len())
+}
+
+// pruneStores drops stale-plan entries of projects that are no longer
+// configured and bounds the seen-project list, with mu held.
+func pruneStores(projects []Project) {
+	known := map[string]bool{}
+	for _, p := range projects {
+		known[p.ID] = true
+	}
+	for k := range staleSeen {
+		project, rest, _ := strings.Cut(k, "/")
+		if strings.Contains(rest, "/") && !known[project] {
+			delete(staleSeen, k)
+		}
+	}
+	if len(seenProjects) > maxSeenProjects {
+		for id := range seenProjects {
+			if len(seenProjects) <= maxSeenProjects {
+				break
+			}
+			if !known[id] {
+				delete(seenProjects, id)
+			}
+		}
+	}
+}
+
+// withoutLogged drops seeded events the activity log already holds, so a lost
+// snapshot or a project that returns does not repeat its history.
+func withoutLogged(seeded []Event) []Event {
+	if len(seeded) == 0 {
+		return seeded
+	}
+	key := func(e Event) string {
+		return e.TS.UTC().Format(time.RFC3339Nano) + "\x00" + eventKey(e) + "\x00" + e.Kind + "\x00" + e.Text
+	}
+	logged := map[string]bool{}
+	for _, e := range events {
+		logged[key(e)] = true
+	}
+	out := seeded[:0:0]
+	for _, e := range seeded {
+		if !logged[key(e)] {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // ---------- HTTP ----------
