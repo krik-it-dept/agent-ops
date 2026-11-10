@@ -12,7 +12,7 @@ Run `go run ./cmd/icon` from the repository root to regenerate the PNG and ICO
 assets under `web/icons`. SVG is the source of truth; `icon.go` rasterizes its
 rounded rectangles and round three-point polyline with 8x supersampling using
 only the Go standard library. Keep artwork within that documented SVG subset.
-The old owner-supplied `source.png` is retained as historical artwork only.
+The earlier owner-supplied cobalt robot `source.png` is no longer in the tree; it remains in git history.
 
 Use `go run ./cmd/icon -preview-dir <directory>` to also render each variant at
 256, 32 and 16px on white and #0a0a0a backgrounds. The executable embeds the tile

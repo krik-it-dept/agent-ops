@@ -1,6 +1,6 @@
 # Asset provenance
 
-- Agent Ops ledger app artwork: original SVG artwork created for this project in `internal/appicon/source-{light,dark,tile}.svg`; reproducibly rasterized with Go. Historical owner-supplied cobalt robot preserved in `internal/appicon/source.png`.
+- Agent Ops ledger app artwork: original SVG artwork created for this project in `internal/appicon/source-{light,dark,tile}.svg`; reproducibly rasterized with Go. The earlier owner-supplied cobalt robot artwork is no longer in the tree and remains in git history.
 - Codex/OpenAI mark: installed OpenAI Codex desktop package.
 - Claude mark: https://claude.com/icon.svg
 - Antigravity mark: https://antigravity.google/press
