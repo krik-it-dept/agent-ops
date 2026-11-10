@@ -82,8 +82,8 @@ try {
     assert.equal(gone.status,404,path+' is retired');
   }
   const integrations=await (await fetch(base+'/api/integrations')).json();
-  assert.deepEqual(integrations.clients.map(c=>c.id),['claude','codex','gemini']);assert.equal(integrations.skillVersion,2);
-  assert.ok(integrations.clients.every(c=>c.skill.path.startsWith(profile)),'integrations use the isolated profile');
+  assert.deepEqual(integrations.targets,[],'no folder is added without the owner');assert.equal(integrations.skillVersion,2);
+  assert.ok(integrations.suggestions.length>0 && integrations.suggestions.every(s=>s.skillDir.startsWith(profile)),'suggestions come from the isolated profile only');
   const refresh=await fetch(base+'/api/refresh',{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base}});
   assert.equal(refresh.status,200);assert.ok((await refresh.json()).refreshedAt);
   const controller=new AbortController(),stream=await fetch(base+'/events',{signal:controller.signal});

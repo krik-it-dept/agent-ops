@@ -25,12 +25,16 @@ the package.
   history and lists text you wrote that still uses the old name. Text outside
   the managed markers is never edited.
 - The task-plan skill is static (plan format and location, Orca mapping) and
-  built into the app. **Settings > Integrations** detects Claude Code, Codex
-  and Antigravity / Gemini, installs or updates the skill when you choose, shows
-  a diff of local changes with **Keep mine** and **Replace**, removes it, and
-  can add an optional one-line reminder to each client's instruction file.
-  First-run setup offers the same as an optional step. Updates never write AI
-  client files; a newer skill shows as **Update available**.
+  built into the app. **Settings > Integrations** is a list of skills folders
+  you choose: add one with the folder picker or a pasted path, or from the
+  folders found on this computer (Claude Code, Codex, Antigravity / Gemini and
+  Orca profiles are only suggested, never added on their own). Per folder you
+  can install or update the skill, view a diff of local changes with **Keep
+  mine** and **Replace**, remove the skill, edit the path, turn the folder off
+  or take it off the list, and add an optional one-line reminder to its
+  instruction file. First-run setup lists the same suggestions, unchecked.
+  The migration seeds the list from the skill folders it finds. Updates never
+  write AI client files; a newer skill shows as **Update available**.
 - Renamed to Agent Ops everywhere: data folder `%LOCALAPPDATA%\AgentOps`
   (settings are copied once from the old folder), the `agent-ops:` protocol,
   the **Agent Ops** startup entry (the old protocol and startup entry are

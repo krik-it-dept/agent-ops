@@ -234,7 +234,7 @@ else process.exit(2);
     assert.ok(existsSync(join(migration.backup,'data'))&&existsSync(join(migration.backup,'profile','.claude','settings.json')),'history and client files backed up');
     assert.ok(!existsSync(join(profile,'.agents','workboard-integrations.json')),'old integration record carried into config.json and deleted');
     const config=JSON.parse(readFileSync(join(dataDir,'config.json'),'utf8'));
-    assert.ok(config.integrations,'integration records in config.json');
+    assert.ok(Array.isArray(config.integrations)&&config.integrations.some(t=>t.skillDir===dirname(dirname(claudeSkill))&&t.sha256&&t.source==='detected')&&config.integrations.some(t=>t.skillDir===dirname(dirname(skill))&&!t.sha256),'the folder list is seeded from the skill folders found; the edited one stays Modified locally');
     if(redirect){
       assert.equal(config.stateFile,stateFile,'config.json copied from the previous default data folder');
       assert.ok(!existsSync(join(oldData,'state'))&&!existsSync(join(oldData,'activity.jsonl')),'the previous data folder\'s run data deleted');

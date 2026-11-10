@@ -25,14 +25,14 @@ Earlier releases recorded agent runs and installed reporting hooks and instructi
 - Claude hooks that run `task-sync.mjs --claude-hook` (the shape the earlier installer wrote) are removed from `~\.claude\settings.json`, from `CLAUDE_CONFIG_DIR` and from every Orca Claude profile (`%APPDATA%\orca\claude-profiles\*\home\settings.json`). Other hooks and settings stay as they were.
 - The managed reporting blocks (between their start and end markers) are removed from `~\.claude\CLAUDE.md`, `~\.codex\AGENTS.md` and `~\.gemini\GEMINI.md`. Text outside the markers is never edited (only the blank line that separated a block appended at the end of a file goes with it); a block you edited is kept and listed.
 - A `task-plan` SKILL.md still identical to a skill an earlier installer wrote is replaced with the new skill; an edited copy is kept and shown as **Modified locally** in Settings > Integrations.
-- The run history is deleted after the new version is running: execution reports (`workboard-executions` next to the state file), the history registries in the install folder, and the old data folder's activity, snapshots and generated state. The old integration record `~\.agents\workboard-integrations.json` is carried into `config.json` and deleted.
+- The run history is deleted after the new version is running: execution reports (`workboard-executions` next to the state file), the history registries in the install folder, and the old data folder's activity, snapshots and generated state. The old integration record `~\.agents\workboard-integrations.json` is carried into the folder list in `config.json` (seeded from the skill folders the migration finds) and deleted.
 - Lines you wrote that still mention the old product name are listed in **Settings > Integrations** as a checklist to edit by hand.
 
 `task-sync.mjs` and `task-report.mjs` remain as stubs, so a session or hook that still calls them keeps working: they do nothing and exit 0; `task-report.mjs --run-cli ... -- <CLI> <arguments>` runs the CLI unchanged.
 
 ## First run and settings
 
-On first launch Agent Ops opens a short setup: add one or more project folders, optionally connect AI clients (install the task-plan skill; nothing is pre-selected unless the client is installed), then choose startup, notification and appearance preferences. **Set up later** skips it, even before a project is added; the board then shows **Add a project to start**. A project is either a Git repository or a folder whose direct subfolders are repositories. Agent Ops reads `.tasks/*.md` in each repository's main checkout. Change projects and integrations later in **Settings** (gear in the header, or **Settings…** in the tray menu).
+On first launch Agent Ops opens a short setup: add one or more project folders, optionally connect AI clients (check the skills folders found on this computer to install the task-plan skill there; nothing is checked for you), then choose startup, notification and appearance preferences. **Set up later** skips it, even before a project is added; the board then shows **Add a project to start**. A project is either a Git repository or a folder whose direct subfolders are repositories. Agent Ops reads `.tasks/*.md` in each repository's main checkout. Change projects and integrations later in **Settings** (gear in the header, or **Settings…** in the tray menu).
 
 Settings are stored in `<data-dir>/config.json`, which the collector also reads (through `AGENT_OPS_CONFIG` or the default data folder). A corrupt `config.json` is renamed to `config.json.corrupt-<time>` and reported, never silently replaced.
 
@@ -45,7 +45,7 @@ Precedence for each value is flag, then environment variable, then `config.json`
 | `--script` | `AGENT_OPS_SCRIPT` | Collector beside the executable |
 | `--addr` | `AGENT_OPS_ADDR` | `127.0.0.1:7790` |
 | `--data-dir` | — | `%LOCALAPPDATA%/AgentOps` (the folder of earlier releases is mapped to it) |
-| `--profile-dir` | — | Current user profile; the AI client files Settings > Integrations manages |
+| `--profile-dir` | — | Current user profile; where Settings > Integrations looks for folders to suggest |
 | `--no-update-check` | — | Off; disable automatic checks, retain manual checks |
 
 `--slots-file` is still accepted from earlier releases' restart arguments and ignored.

@@ -13,7 +13,7 @@ A local Windows work ledger for a tech lead. It reads the Markdown plans that Co
 - Board and day-by-day history of plan changes.
 - A plan Summary with the recorded goal, next action, blockers and open decisions first.
 - Starred and recent plans and a quick view. Navigation preferences survive refresh.
-- **Settings > Integrations**: install the task-plan skill into Claude Code, Codex and Antigravity / Gemini when you choose to, with a hash check, a diff of local changes and an optional one-line reminder in each client's instruction file.
+- **Settings > Integrations**: a list of skills folders you choose (native folder picker, pasted path, or a suggestion found on this computer). Per folder: install the task-plan skill with a hash check, a diff of local changes, edit, turn off or remove, and an optional one-line reminder in an instruction file you name.
 - In-app release checks, escaped release notes, skip/dismiss and a verified Update and restart action. See [in-app updates](docs/in-app-updates.md).
 
 F5 and Refresh run the local Node collector. They do not call a model or consume AI tokens.
