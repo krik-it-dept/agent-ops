@@ -162,7 +162,7 @@ else process.exit(2);
     const repos=join(dir,'repos'),plan=join(repos,'sample','.tasks','check.md'),source='Agent: Codex\nStatus: Testing\nGoal: Isolated update verification\nNext: Verify update\n\n## M1: Work\n- [doing] Verify the app\n';put(plan,source);
     const stateFile=join(dir,'output','tong-hop-chung.json');mkdirSync(dirname(stateFile),{recursive:true});
     // With its default data folder v0.2.x would adopt the first release's fixed folders
-    // (D:\1_PROJECTS) when it has no config.json; a seeded config and explicit temp
+    // (legacyDefaults in config.go) when it has no config.json; a seeded config and explicit temp
     // state and slots files keep it on temp files.
     if(redirect)put(join(oldData,'config.json'),JSON.stringify({version:1,setupComplete:true,notifications:false,shortcuts:true,stateFile,projects:[]}));
     const port=await freePort(),base='http://127.0.0.1:'+port;
