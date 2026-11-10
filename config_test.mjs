@@ -5,7 +5,7 @@ import {join,dirname,relative} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {resolveSettings,projectIdFor,locatePlan,readConfig} from './plan-reader.mjs';
+import {resolveSettings,projectIdFor,readConfig,defaultDataDir} from './plan-reader.mjs';
 
 const here=dirname(fileURLToPath(import.meta.url));
 const put=(file,text)=>{mkdirSync(dirname(file),{recursive:true});writeFileSync(file,text);};
@@ -20,7 +20,7 @@ function fixture(){
   put(config,JSON.stringify({version:1,setupComplete:true,notifications:true,projects:[project('work',join(root,'work'),'folder'),project('oss',join(root,'oss','web'),'repo'),project('gone',join(root,'missing'),'folder'),project('off',join(root,'off'),'folder',false)]}));
   return {root,config};
 }
-const env=(extra)=>({...process.env,KRIK_REPOS_DIR:'',KRIK_STATE_FILE:'',KRIK_SLOTS_FILE:'',KRIK_TASKS_OUT_DIR:'',KRIK_AGENT_MAP:'missing-map.json',KRIK_HISTORY_MAP:'missing-history.json',KRIK_EXECUTION_DIR:'',...extra});
+const env=(extra)=>({...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',...extra});
 
 test('Collector reads enabled projects from AGENT_OPS_CONFIG and keeps same-named repositories apart',()=>{
   const {root,config}=fixture();
@@ -32,6 +32,13 @@ test('Collector reads enabled projects from AGENT_OPS_CONFIG and keeps same-name
     assert.deepEqual(Object.fromEntries(state.projects.map(p=>[p.id,p.status])),{work:'ok',oss:'ok',gone:'missing'});
     assert.equal(state.projects.find(p=>p.id==='work').plans,1);
     assert.ok(!state.projects.some(p=>p.id==='off'),'disabled projects are not read');
+    // A ledger: no run, executor, agent or slot data, even for plans with old headers and comments.
+    assert.equal('slots' in state,false);
+    for(const plan of state.plans){
+      for(const key of ['agent','agentSource','executors','executorSource','declaredExecutors','historicalExecutors','executionReports','executionUpdatedAt','slot'])assert.equal(key in plan,false,key);
+      for(const step of plan.steps)assert.deepEqual(Object.keys(step).sort(),['index','line','milestone','status','text']);
+    }
+    assert.equal(state.plans[0].steps[0].text,'Step');
   }finally{rmSync(root,{recursive:true,force:true});}
 });
 
@@ -41,31 +48,19 @@ test('Precedence is flag, then environment, then config, then default (same as t
     const viaConfig=resolveSettings({},env({AGENT_OPS_CONFIG:config}));
     assert.deepEqual(viaConfig.projects.map(p=>p.id),['work','oss','gone']);
     assert.equal(viaConfig.stateFile,join(root,'data','state','tong-hop-chung.json'));
-    const viaEnv=resolveSettings({},env({AGENT_OPS_CONFIG:config,KRIK_REPOS_DIR:join(root,'oss'),KRIK_STATE_FILE:join(root,'env.json'),KRIK_SLOTS_FILE:join(root,'slots.json')}));
+    const viaEnv=resolveSettings({},env({AGENT_OPS_CONFIG:config,AGENT_OPS_REPOS_DIR:join(root,'oss'),AGENT_OPS_STATE_FILE:join(root,'env.json')}));
     assert.deepEqual(viaEnv.projects.map(p=>p.id),[projectIdFor(join(root,'oss'))]);
-    assert.equal(viaEnv.stateFile,join(root,'env.json'));assert.equal(viaEnv.slotsFile,join(root,'slots.json'));
+    assert.equal(viaEnv.stateFile,join(root,'env.json'));assert.equal('slotsFile' in viaEnv,false);
     const viaFlag=resolveSettings({'repos-dir':join(root,'work'),'state-file':join(root,'flag.json')},env({AGENT_OPS_CONFIG:config}));
     assert.deepEqual(viaFlag.projects.map(p=>[p.id,p.kind]),[[projectIdFor(join(root,'work')),'folder']]);
     assert.equal(viaFlag.stateFile,join(root,'flag.json'));
-    const legacy=resolveSettings({},env({AGENT_OPS_CONFIG:join(root,'none','config.json'),KRIK_REPOS_DIR:join(root,'work'),KRIK_STATE_FILE:join(root,'legacy.json')}));
-    assert.equal(legacy.projects[0].path,join(root,'work'));assert.equal(legacy.stateFile,join(root,'legacy.json'));
+    const noConfig=resolveSettings({},env({AGENT_OPS_CONFIG:join(root,'none','config.json'),AGENT_OPS_REPOS_DIR:join(root,'work'),AGENT_OPS_STATE_FILE:join(root,'other.json')}));
+    assert.equal(noConfig.projects[0].path,join(root,'work'));assert.equal(noConfig.stateFile,join(root,'other.json'));
     const empty=resolveSettings({},env({AGENT_OPS_CONFIG:join(root,'none','config.json')}));
-    assert.deepEqual(empty.projects,[]);assert.equal(empty.slotsFile,'');
+    assert.deepEqual(empty.projects,[]);
+    assert.equal(defaultDataDir({LOCALAPPDATA:'C:\Users\me\AppData\Local'}),join('C:\Users\me\AppData\Local','AgentOps'));
     put(join(root,'bad.json'),'{oops');
     assert.throws(()=>readConfig(join(root,'bad.json')),/unreadable/);
-  }finally{rmSync(root,{recursive:true,force:true});}
-});
-
-test('Plans are located inside folder and repository projects only',()=>{
-  const {root,config}=fixture();
-  try{
-    const {projects}=resolveSettings({},env({AGENT_OPS_CONFIG:config}));
-    assert.equal(locatePlan(join(root,'work','web','.tasks','plan.md'),projects).project.id,'work');
-    const repo=locatePlan(join(root,'oss','web','.tasks','plan.md'),projects);
-    assert.equal(repo.project.id,'oss');assert.equal(repo.repo,'web');
-    assert.equal(locatePlan(join(root,'oss','web','.tasks','tong-hop.md'),projects),null);
-    put(join(root,'elsewhere','.tasks','plan.md'),planText);
-    assert.equal(locatePlan(join(root,'elsewhere','.tasks','plan.md'),projects),null);
   }finally{rmSync(root,{recursive:true,force:true});}
 });
 
@@ -98,7 +93,7 @@ test('Collector without any project writes an empty state instead of failing',()
 // The owner's old machine paths may only appear in the Go migration constant and tests.
 test('Shipped files contain no machine-specific D:/1_PROJECTS paths',()=>{
   const legacy=/[A-Za-z]:[\\/]+1_PROJECTS/i,found=[];
-  const shipped=['README.md','INSTALL.md','skills/task-plan/SKILL.md','scripts/install.ps1','integrations/install-task-reporting.mjs','web/index.html'];
+  const shipped=['README.md','INSTALL.md','CHANGELOG.md','skills/task-plan/SKILL.md','scripts/install.ps1','integrations/install-task-reporting.mjs','web/index.html'];
   for(const name of readdirSync(here))if(/\.(mjs|go)$/.test(name) && !/_test\.(mjs|go)$/.test(name))shipped.push(name);
   // Every shipped or build source below these folders, not only a fixed list.
   for(const folder of ['scripts','integrations','cmd','internal','skills','docs']){
@@ -118,29 +113,4 @@ test('Shipped files contain no machine-specific D:/1_PROJECTS paths',()=>{
   }
   assert.deepEqual(found,[]);
   assert.ok(statSync(join(here,'config.go')).isFile());
-});
-
-test('task-sync and task-report resolve projects and state from config.json without flags',async()=>{
-  const {root,config}=fixture();
-  const saved={...process.env};
-  try{
-    Object.assign(process.env,env({AGENT_OPS_CONFIG:config}));
-    const {publishTask}=await import('./task-sync.mjs');
-    const {reportTask}=await import('./task-report.mjs');
-    const plan=join(root,'oss','web','.tasks','plan.md');
-    const receipt=publishTask({agent:'Codex','plan-file':plan});
-    assert.equal(receipt.project,'oss');assert.equal(receipt.stateFile,join(root,'data','state','tong-hop-chung.json'));
-    const started=reportTask({agent:'Codex','plan-file':plan,event:'start','step-line':'6'});
-    assert.equal(started.stateFile,receipt.stateFile);
-    assert.ok(readdirSync(join(root,'data','state','workboard-executions')).some(n=>n===started.id+'.json'));
-    const outside=join(root,'elsewhere','repo','.tasks','plan.md');put(outside,planText);
-    assert.throws(()=>publishTask({agent:'Codex','plan-file':outside}),/configured in Agent Ops/);
-    const none=join(root,'none','config.json');process.env.AGENT_OPS_CONFIG=none;
-    assert.throws(()=>publishTask({agent:'Codex','plan-file':plan}),/No Agent Ops projects are configured/);
-    assert.equal(relative(root,receipt.stateFile).startsWith('data'),true);
-  }finally{
-    for(const k of Object.keys(process.env))if(!(k in saved))delete process.env[k];
-    Object.assign(process.env,saved);
-    rmSync(root,{recursive:true,force:true});
-  }
 });

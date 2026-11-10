@@ -39,7 +39,7 @@ const updateStagesKept = 3
 const githubAPI = "https://api.github.com"
 const githubDownloads = "https://github.com"
 
-var appVersion = "v0.2.3"
+var appVersion = "v0.3.0"
 var appCommit = "development"
 var updates *appUpdater
 var updateRestarting atomic.Bool
@@ -47,10 +47,10 @@ var stableVersion = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[
 var shaPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 var stageName = regexp.MustCompile(`^update-[0-9]+$`)
 
-// legacyRuntimeFiles is the file list compiled into the v0.2.0 updater. That
-// updater rejects a ZIP that differs from it, so every package keeps exactly these
-// files (plus scripts/install.ps1) until all installs have passed this bridge
-// release. M2 replaces removed scripts with stubs while that holds.
+// legacyRuntimeFiles is the file list compiled into the v0.2.0 updater; its
+// handoff (version 1) hashes exactly these files. v0.3.0 packages no longer ship
+// all of them, so a v0.2.0 install cannot take v0.3.0 in the app and is
+// reinstalled once; the helper still reads that handoff format.
 var legacyRuntimeFiles = []string{"agent-ops.exe", "tasks-overview.mjs", "task-sync.mjs", "task-report.mjs", "plan-reader.mjs", "execution-roles.mjs", "execution-reports.mjs", "historical-executions.mjs", "agent-attribution.mjs", "NOTICE.md", "INSTALL.md", "integrations/install-task-reporting.mjs", "skills/task-plan/SKILL.md"}
 
 type releaseAsset struct {

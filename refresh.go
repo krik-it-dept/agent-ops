@@ -5,12 +5,6 @@ import (
 	"net/http"
 )
 
-func handleReadOnlyAgent(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusMethodNotAllowed)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": "Agent identity is read-only. Execution is reported by the executing client."})
-}
-
 func handleRefresh(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
@@ -21,7 +15,7 @@ func handleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	if !trustedLocalWrite(r) {
 		w.WriteHeader(http.StatusForbidden)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Refresh must come from this Workboard."})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Refresh must come from this Agent Ops window."})
 		return
 	}
 	if updateRestarting.Load() {

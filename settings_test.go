@@ -22,36 +22,36 @@ func settingsFixture(t *testing.T) string {
 	t.Helper()
 	dir := isolated(t)
 	old := struct {
-		repos, state, slots, script, data string
-		cfg                               AppConfig
-		warning, readOnly                 string
-		prevPlans                         map[string]Plan
-		ev                                []Event
-		raw                               []byte
-		errText                           string
-		stale                             map[string]time.Time
-		last                              map[string]bool
-		states                            []ProjectState
-		reader                            func() bool
-		writer                            func(bool)
-		managed                           func() bool
-		picker                            func(context.Context) (string, error)
-		opener                            func(string) error
-		legacy                            legacyPaths
-		allowLegacy                       func() bool
-		seen                              map[string]bool
-	}{reposDir, stateFile, slotsFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed, seenProjects}
+		repos, state, script, data string
+		cfg                        AppConfig
+		warning, readOnly          string
+		prevPlans                  map[string]Plan
+		ev                         []Event
+		raw                        []byte
+		errText                    string
+		stale                      map[string]time.Time
+		last                       map[string]bool
+		states                     []ProjectState
+		reader                     func() bool
+		writer                     func(bool)
+		managed                    func() bool
+		picker                     func(context.Context, string) (string, error)
+		opener                     func(string) error
+		legacy                     legacyPaths
+		allowLegacy                func() bool
+		seen                       map[string]bool
+	}{reposDir, stateFile, scriptFile, dataDir, appCfg, configWarning, configReadOnly, prev, events, rawState, refreshError, staleSeen, lastProjects, projectStates, startupReader, startupWriter, startupManaged, pickFolder, openFolder, legacyDefaults, legacyMigrationAllowed, seenProjects}
 	t.Cleanup(func() {
 		seenProjects = old.seen
-		reposDir, stateFile, slotsFile, scriptFile, dataDir = old.repos, old.state, old.slots, old.script, old.data
+		reposDir, stateFile, scriptFile, dataDir = old.repos, old.state, old.script, old.data
 		appCfg, configWarning, configReadOnly = old.cfg, old.warning, old.readOnly
 		prev, events, rawState, refreshError, staleSeen = old.prevPlans, old.ev, old.raw, old.errText, old.stale
 		lastProjects, projectStates = old.last, old.states
 		startupReader, startupWriter, startupManaged, pickFolder, openFolder = old.reader, old.writer, old.managed, old.picker, old.opener
 		legacyDefaults, legacyMigrationAllowed = old.legacy, old.allowLegacy
 	})
-	legacyDefaults = legacyPaths{repos: filepath.Join(dir, "no-legacy-repos"), state: filepath.Join(dir, "legacy-state.json"), slots: filepath.Join(dir, "legacy-slots.json")}
-	reposDir, stateFile, slotsFile = "", "", ""
+	legacyDefaults = legacyPaths{repos: filepath.Join(dir, "no-legacy-repos"), state: filepath.Join(dir, "legacy-state.json")}
+	reposDir, stateFile = "", ""
 	dataDir = filepath.Join(dir, "data")
 	os.MkdirAll(dataDir, 0o700)
 	scriptFile, _ = filepath.Abs("tasks-overview.mjs")
@@ -62,19 +62,16 @@ func settingsFixture(t *testing.T) string {
 	startupReader = func() bool { return startupState }
 	startupWriter = func(on bool) { startupState = on }
 	startupManaged = func() bool { return true }
-	pickFolder = func(context.Context) (string, error) { return "", nil }
+	pickFolder = func(context.Context, string) (string, error) { return "", nil }
 	openFolder = func(string) error { return nil }
-	t.Setenv("KRIK_AGENT_MAP", filepath.Join(dir, "no-agent-map.json"))
-	t.Setenv("KRIK_HISTORY_MAP", filepath.Join(dir, "no-history.json"))
-	t.Setenv("KRIK_EXECUTION_DIR", "")
 	initSettings()
 	return dir
 }
 
-func writePlan(t *testing.T, file, agent string) {
+func writePlan(t *testing.T, file, owner string) {
 	t.Helper()
 	os.MkdirAll(filepath.Dir(file), 0o700)
-	if err := os.WriteFile(file, []byte("Agent: "+agent+"\nStatus: Implementing\nGoal: Ship\n\n## M1: Build\n- [doing] Step\n"), 0o600); err != nil {
+	if err := os.WriteFile(file, []byte("Owner: "+owner+"\nStatus: Implementing\nGoal: Ship\n\n## M1: Build\n- [doing] Step\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -89,7 +86,7 @@ func call(t *testing.T, handler http.HandlerFunc, method, path string, body any)
 		reader = bytes.NewReader(nil)
 	}
 	r := httptest.NewRequest(method, "http://"+addr+path, reader)
-	r.Header.Set("X-Workboard", "1")
+	r.Header.Set("X-Agent-Ops", "1")
 	if body != nil {
 		r.Header.Set("Content-Type", "application/json")
 	}
@@ -107,7 +104,6 @@ func TestInitSettingsPrecedenceFlagEnvConfigDefault(t *testing.T) {
 	cfg := defaultAppConfig()
 	cfg.SetupComplete = true
 	cfg.StateFile = filepath.Join(dir, "config-state.json")
-	cfg.SlotsFile = filepath.Join(dir, "config-slots.json")
 	writeAppConfig(configFilePath(dataDir), cfg)
 	parse := func(args ...string) {
 		flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
@@ -115,32 +111,31 @@ func TestInitSettingsPrecedenceFlagEnvConfigDefault(t *testing.T) {
 		config()
 		initSettings()
 	}
-	t.Setenv("KRIK_STATE_FILE", "")
-	t.Setenv("KRIK_SLOTS_FILE", "")
-	t.Setenv("KRIK_REPOS_DIR", "")
+	t.Setenv("AGENT_OPS_STATE_FILE", "")
+	t.Setenv("AGENT_OPS_REPOS_DIR", "")
 	parse()
-	if stateFile != cfg.StateFile || slotsFile != cfg.SlotsFile || reposDir != "" || explicitState {
-		t.Fatal("config not applied", stateFile, slotsFile)
+	if stateFile != cfg.StateFile || reposDir != "" || explicitState {
+		t.Fatal("config not applied", stateFile)
 	}
-	t.Setenv("KRIK_STATE_FILE", filepath.Join(dir, "env-state.json"))
+	t.Setenv("AGENT_OPS_STATE_FILE", filepath.Join(dir, "env-state.json"))
 	parse()
-	if stateFile != filepath.Join(dir, "env-state.json") || !explicitState || slotsFile != cfg.SlotsFile {
+	if stateFile != filepath.Join(dir, "env-state.json") || !explicitState {
 		t.Fatal("environment must beat config", stateFile)
 	}
 	parse("--state-file", filepath.Join(dir, "flag-state.json"))
 	if stateFile != filepath.Join(dir, "flag-state.json") {
 		t.Fatal("flag must beat environment", stateFile)
 	}
-	t.Setenv("KRIK_STATE_FILE", "")
+	t.Setenv("AGENT_OPS_STATE_FILE", "")
 	os.Remove(configFilePath(dataDir))
 	parse()
-	if stateFile != filepath.Join(dataDir, "state", "tong-hop-chung.json") || slotsFile != "" {
-		t.Fatal("default state must live under the data folder", stateFile, slotsFile)
+	if stateFile != filepath.Join(dataDir, "state", "tong-hop-chung.json") {
+		t.Fatal("default state must live under the data folder", stateFile)
 	}
 	if !setupRequired() {
 		t.Fatal("a fresh profile without a legacy folder must require setup")
 	}
-	t.Setenv("KRIK_REPOS_DIR", dir)
+	t.Setenv("AGENT_OPS_REPOS_DIR", dir)
 	parse()
 	if reposDir != dir || setupRequired() || len(effectiveProjects()) != 1 || effectiveProjects()[0].ID != projectIDFor(dir) {
 		t.Fatal("repos override not applied")
@@ -167,7 +162,7 @@ func TestSameRepoNameInTwoProjectsAndMissingProjectWarning(t *testing.T) {
 	if refreshError != "" {
 		t.Fatal(refreshError)
 	}
-	if prev["work/web/plan"].Agent != "Codex" || prev["oss/web/plan"].Agent != "Claude" || len(prev) != 2 {
+	if prev["work/web/plan"].Owner != "Codex" || prev["oss/web/plan"].Owner != "Claude" || len(prev) != 2 {
 		t.Fatal("same-named repositories collided", len(prev))
 	}
 	w := httptest.NewRecorder()
@@ -183,18 +178,6 @@ func TestSameRepoNameInTwoProjectsAndMissingProjectWarning(t *testing.T) {
 	}
 	if state.Error != "" || state.SetupRequired || len(state.Projects) != 3 || state.Projects[2].Status != "missing" || len(state.Warnings) != 1 || !strings.Contains(state.Warnings[0], "Gone") {
 		t.Fatalf("%+v", state)
-	}
-	// A status change finds the plan in its own project.
-	file := filepath.Join(oss, "web", ".tasks", "plan.md")
-	original, _ := os.ReadFile(file)
-	if err := writePlanStatus(statusChange{Project: "oss", Repo: "web", Plan: "plan", Status: "Testing", Revision: revisionOf(original)}); err != nil {
-		t.Fatal(err)
-	}
-	if updated, _ := os.ReadFile(file); !strings.Contains(string(updated), "Status: Testing") {
-		t.Fatal("status not written to the repo project")
-	}
-	if b, _ := os.ReadFile(filepath.Join(work, "web", ".tasks", "plan.md")); strings.Contains(string(b), "Testing") {
-		t.Fatal("wrote the same-named repository in another project")
 	}
 }
 
@@ -334,10 +317,10 @@ func TestSettingsWritesRequireLocalHeaderAndOverrideIsReadOnly(t *testing.T) {
 		w := httptest.NewRecorder()
 		h(w, r)
 		if w.Code != 403 && w.Code != 405 {
-			t.Fatal("write without X-Workboard accepted", w.Code)
+			t.Fatal("write without X-Agent-Ops accepted", w.Code)
 		}
 		r = httptest.NewRequest("POST", "http://"+addr+"/x", strings.NewReader(`{}`))
-		r.Header.Set("X-Workboard", "1")
+		r.Header.Set("X-Agent-Ops", "1")
 		r.Header.Set("Origin", "https://attacker.example")
 		w = httptest.NewRecorder()
 		h(w, r)
@@ -360,9 +343,22 @@ func TestPickFolderReturnsPathOrCancelledAndOpensOnlyKnownFolders(t *testing.T) 
 	if w, out := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", nil); w.Code != 200 || out["cancelled"] != true {
 		t.Fatal(w.Code, out)
 	}
-	pickFolder = func(context.Context) (string, error) { return `C:\Projects\web`, nil }
+	pickFolder = func(context.Context, string) (string, error) { return `C:\Projects\web`, nil }
 	if w, out := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", nil); w.Code != 200 || out["path"] != `C:\Projects\web` {
 		t.Fatal(w.Code, out)
+	}
+	asked := []string{}
+	pickFolder = func(_ context.Context, purpose string) (string, error) {
+		asked = append(asked, purpose)
+		return `C:\Tools\skills`, nil
+	}
+	for _, purpose := range []string{"skills", "instruction-file"} {
+		if w, out := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", map[string]string{"purpose": purpose}); w.Code != 200 || out["path"] != `C:\Tools\skills` {
+			t.Fatal(purpose, w.Code, out)
+		}
+	}
+	if w, _ := call(t, handlePickFolder, "POST", "/api/settings/pick-folder", map[string]string{"purpose": "anything"}); w.Code != 400 || strings.Join(asked, ",") != "skills,instruction-file" {
+		t.Fatal("unknown dialog purpose", w.Code, asked)
 	}
 	if w, _ := call(t, handlePickFolder, "GET", "/api/settings/pick-folder", nil); w.Code != 405 {
 		t.Fatal("GET opened a dialog")
@@ -381,18 +377,18 @@ func TestLegacyFolderMigratesOnlyIntoTheInstalledDataFolder(t *testing.T) {
 	dir := settingsFixture(t)
 	legacy := filepath.Join(dir, "legacy repos")
 	os.MkdirAll(filepath.Join(legacy, "sample", ".git"), 0o700)
-	legacyDefaults = legacyPaths{repos: legacy, state: filepath.Join(dir, "legacy-state.json"), slots: filepath.Join(dir, "legacy-slots.json")}
+	legacyDefaults = legacyPaths{repos: legacy, state: filepath.Join(dir, "legacy-state.json")}
 	os.Remove(configFilePath(dataDir))
-	stateFile, slotsFile = "", ""
+	stateFile = ""
 	initSettings()
 	if !setupRequired() || len(effectiveProjects()) != 0 || exists(configFilePath(dataDir)) {
 		t.Fatal("an isolated data folder adopted the legacy folder")
 	}
 	legacyMigrationAllowed = func() bool { return true }
-	stateFile, slotsFile = "", ""
+	stateFile = ""
 	initSettings()
-	if setupRequired() || len(effectiveProjects()) != 1 || effectiveProjects()[0].Path != legacy || stateFile != legacyDefaults.state || slotsFile != legacyDefaults.slots {
-		t.Fatal("the installed data folder must migrate the legacy folder and keep its state and slots files", stateFile, slotsFile)
+	if setupRequired() || len(effectiveProjects()) != 1 || effectiveProjects()[0].Path != legacy || stateFile != legacyDefaults.state {
+		t.Fatal("the installed data folder must migrate the legacy folder and keep its state file", stateFile)
 	}
 }
 
@@ -405,20 +401,19 @@ func TestV014RelaunchArgumentsAreNotOverrides(t *testing.T) {
 	t.Cleanup(func() {
 		os.Args, flag.CommandLine, addr, profileDir, background = oldArgs, oldFlags, oldAddr, oldProfile, oldBackground
 		legacyLaunch = legacyPaths{}
-		explicitRepos, explicitState, explicitSlots = false, false, false
+		explicitRepos, explicitState = false, false
 	})
-	t.Setenv("KRIK_STATE_FILE", "")
-	t.Setenv("KRIK_SLOTS_FILE", "")
-	t.Setenv("KRIK_REPOS_DIR", "")
+	t.Setenv("AGENT_OPS_STATE_FILE", "")
+	t.Setenv("AGENT_OPS_REPOS_DIR", "")
 	legacy := filepath.Join(dir, "legacy repos")
 	mkRepo(t, filepath.Join(legacy, "sample"), "plan")
 	// Spelled with a different case and a trailing separator, as Windows allows.
-	legacyDefaults = legacyPaths{repos: legacy, state: filepath.Join(dir, "legacy-state.json"), slots: filepath.Join(dir, "legacy-slots.json")}
+	legacyDefaults = legacyPaths{repos: legacy, state: filepath.Join(dir, "legacy-state.json")}
 	legacyMigrationAllowed = func() bool { return true }
 	os.Remove(configFilePath(dataDir))
 	flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
 	os.Args = []string{"agent-ops.exe", "--background", "--addr", addr, "--repos-dir", strings.ToUpper(legacy) + `\`,
-		"--slots-file", legacyDefaults.slots, "--state-file", legacyDefaults.state, "--script", scriptFile,
+		"--slots-file", filepath.Join(dir, "legacy-slots.json"), "--state-file", legacyDefaults.state, "--script", scriptFile,
 		"--data-dir", dataDir, "--profile-dir", dir}
 	config()
 	initSettings()
@@ -428,8 +423,8 @@ func TestV014RelaunchArgumentsAreNotOverrides(t *testing.T) {
 	if p := effectiveProjects(); len(p) != 1 || !strings.EqualFold(p[0].Path, legacy) {
 		t.Fatal("the legacy folder was not migrated", p)
 	}
-	if stateFile != legacyDefaults.state || slotsFile != legacyDefaults.slots {
-		t.Fatal("migration must keep the legacy state and slots files", stateFile, slotsFile)
+	if stateFile != legacyDefaults.state {
+		t.Fatal("migration must keep the legacy state file", stateFile)
 	}
 	other := mkRepo(t, filepath.Join(dir, "other"), "plan")
 	if w, out := call(t, handleProjects, http.MethodPost, "/api/projects", map[string]string{"path": other}); w.Code != http.StatusOK {
@@ -492,21 +487,20 @@ func TestReenabledProjectDoesNotReseedHistory(t *testing.T) {
 	}
 }
 
-// The Go app and the Node helpers (task-sync, task-report, the collector) must
-// resolve projects, state file and slots file in the same order:
-// flag > KRIK_* environment > config.json > default.
+// The Go app and the collector must resolve projects and the state file in the
+// same order: flag > AGENT_OPS_* environment > config.json > default.
 func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 	dir := settingsFixture(t)
 	oldArgs, oldFlags := os.Args, flag.CommandLine
 	t.Cleanup(func() {
 		os.Args, flag.CommandLine = oldArgs, oldFlags
-		explicitRepos, explicitState, explicitSlots = false, false, false
+		explicitRepos, explicitState = false, false
 	})
 	configured := mkRepo(t, filepath.Join(dir, "configured"), "plan")
 	envRepos := mkRepo(t, filepath.Join(dir, "env-repos", "app"), "plan")
 	cfg := defaultAppConfig()
 	cfg.SetupComplete = true
-	cfg.StateFile, cfg.SlotsFile = filepath.Join(dir, "config-state.json"), filepath.Join(dir, "config-slots.json")
+	cfg.StateFile = filepath.Join(dir, "config-state.json")
 	cfg.Projects = []Project{
 		{ID: projectIDFor(configured), Path: configured, Name: "configured", Kind: "repo", Enabled: true},
 		{ID: "off", Path: filepath.Join(dir, "off"), Name: "off", Kind: "folder", Enabled: false},
@@ -517,11 +511,10 @@ func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 	reader, _ := filepath.Abs("plan-reader.mjs")
 	script := `const {resolveSettings}=await import(process.argv[1]);` +
 		`const s=resolveSettings(JSON.parse(process.argv[2]));` +
-		`process.stdout.write(JSON.stringify({projects:s.projects.map(p=>p.id),state:s.stateFile,slots:s.slotsFile}))`
+		`process.stdout.write(JSON.stringify({projects:s.projects.map(p=>p.id),state:s.stateFile}))`
 	type resolved struct {
 		Projects []string `json:"projects"`
 		State    string   `json:"state"`
-		Slots    string   `json:"slots"`
 	}
 	cases := []struct {
 		name  string
@@ -529,13 +522,13 @@ func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 		flags map[string]string
 	}{
 		{"config", nil, nil},
-		{"environment beats config", map[string]string{"KRIK_REPOS_DIR": filepath.Dir(envRepos), "KRIK_STATE_FILE": filepath.Join(dir, "env-state.json"), "KRIK_SLOTS_FILE": filepath.Join(dir, "env-slots.json")}, nil},
-		{"environment for one value", map[string]string{"KRIK_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil},
-		{"flag beats environment", map[string]string{"KRIK_STATE_FILE": filepath.Join(dir, "env-state.json"), "KRIK_REPOS_DIR": filepath.Dir(envRepos)},
+		{"environment beats config", map[string]string{"AGENT_OPS_REPOS_DIR": filepath.Dir(envRepos), "AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil},
+		{"environment for one value", map[string]string{"AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json")}, nil},
+		{"flag beats environment", map[string]string{"AGENT_OPS_STATE_FILE": filepath.Join(dir, "env-state.json"), "AGENT_OPS_REPOS_DIR": filepath.Dir(envRepos)},
 			map[string]string{"state-file": filepath.Join(dir, "flag-state.json"), "repos-dir": configured}},
 	}
 	for _, c := range cases {
-		for _, name := range []string{"KRIK_REPOS_DIR", "KRIK_STATE_FILE", "KRIK_SLOTS_FILE"} {
+		for _, name := range []string{"AGENT_OPS_REPOS_DIR", "AGENT_OPS_STATE_FILE"} {
 			t.Setenv(name, c.env[name])
 		}
 		args := []string{"test", "--data-dir", dataDir}
@@ -546,7 +539,7 @@ func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 		os.Args = args
 		config()
 		initSettings()
-		goSide := resolved{State: stateFile, Slots: slotsFile}
+		goSide := resolved{State: stateFile}
 		for _, p := range effectiveProjects() {
 			goSide.Projects = append(goSide.Projects, p.ID)
 		}
@@ -564,7 +557,7 @@ func TestGoAndNodeResolveSettingsInTheSameOrder(t *testing.T) {
 		if err := json.Unmarshal(out, &nodeSide); err != nil {
 			t.Fatal(c.name, err, string(out))
 		}
-		if strings.Join(goSide.Projects, ",") != strings.Join(nodeSide.Projects, ",") || !strings.EqualFold(goSide.State, nodeSide.State) || !strings.EqualFold(goSide.Slots, nodeSide.Slots) {
+		if strings.Join(goSide.Projects, ",") != strings.Join(nodeSide.Projects, ",") || !strings.EqualFold(goSide.State, nodeSide.State) {
 			t.Fatalf("%s: Go %+v, Node %+v", c.name, goSide, nodeSide)
 		}
 	}

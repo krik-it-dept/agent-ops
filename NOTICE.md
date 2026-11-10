@@ -6,4 +6,4 @@
 - Antigravity mark: https://antigravity.google/press
 - Interface font: Geist variable WOFF2, bundled from the local Orca source checkout (`src/renderer/src/assets/fonts/Geist-Variable.woff2`). Geist is distributed under the SIL Open Font License 1.1; the license is embedded at `/fonts/OFL.txt` (source: https://github.com/vercel/geist-font/blob/main/OFL.txt). Code/path text uses the operating system monospace stack.
 
-Product names and marks identify the reporting clients. Runtime use does not require network access for icons or fonts. The interface is independently implemented in vanilla CSS/JavaScript, informed by the Orca style guide and surface hierarchy; no Orca application components are copied.
+Product names and marks identify the AI clients in Settings > Integrations. Runtime use does not require network access for icons or fonts. The interface is independently implemented in vanilla CSS/JavaScript, informed by the Orca style guide and surface hierarchy; no Orca application components are copied.

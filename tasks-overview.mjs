@@ -7,7 +7,7 @@
 // Plan sources are read-only; generated repository indexes and overview files are refreshed.
 // Runs on demand or through the app's file watcher. No model, no tokens.
 //
-//   node tasks-overview.mjs [--repos-dir <folder>] [--state-file <file>] [--slots-file <file>]
+//   node tasks-overview.mjs [--repos-dir <folder>] [--state-file <file>]
 //
 // Projects come from Agent Ops config.json (AGENT_OPS_CONFIG, else the default data folder);
 // see resolveSettings in plan-reader.mjs for precedence. A missing project is reported, never fatal.
@@ -16,18 +16,15 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import {resolveSettings,projectRepos} from './plan-reader.mjs';
-import {loadAttributions,historicalAgent} from './agent-attribution.mjs';
-import {executionOf} from './execution-roles.mjs';
-import {readPlan} from './plan-reader.mjs';
-import {loadExecutionReports,applyExecutionReports,reportDirectory} from './execution-reports.mjs';
-import {loadHistoricalExecutions,applyHistoricalExecutions} from './historical-executions.mjs';
+import {resolveSettings,projectRepos,readPlan} from './plan-reader.mjs';
 
 function flags(args){
   const out={};
   for(let i=0;i<args.length;i++){
     const name=args[i].replace(/^--/,'');
-    if(!args[i].startsWith('--') || !['repos-dir','state-file','slots-file'].includes(name) || !args[i+1])throw Error('Usage: node tasks-overview.mjs [--repos-dir <folder>] [--state-file <file>] [--slots-file <file>]');
+    // --slots-file is still accepted from older launchers and ignored: slots are retired.
+    if(!args[i].startsWith('--') || !['repos-dir','state-file','slots-file'].includes(name) || !args[i+1])throw Error('Usage: node tasks-overview.mjs [--repos-dir <folder>] [--state-file <file>]');
+    if(name==='slots-file'){i++;continue;}
     out[name]=args[++i];
   }
   return out;
@@ -38,7 +35,6 @@ const OUT_DIR = dirname(STATE_FILE);
 mkdirSync(OUT_DIR, { recursive: true });
 const STATUSES = ['⬜', '🔄', '✅', '⚠', '❌'];
 const RELOAD_SECONDS = 600;
-const verifiedAgents=loadAttributions();
 
 // Index lines only: skip blanks, headings and the "(chưa có plan …)" placeholder.
 const indexLines = (file) =>
@@ -47,7 +43,7 @@ const indexLines = (file) =>
     .map((l) => l.trim().replace(/^-\s+/, ''))
     .filter((l) => l && !l.startsWith('#') && !/^\(.*\)$/.test(l));
 
-// Plan format (see ~/.claude/CLAUDE.md): "Next:", "Status:", then "- [todo|doing|done|partial|blocked] step ~2h".
+// Plan format (see the task-plan skill): "Next:", "Status:", then "- [todo|doing|done|partial|blocked] step ~2h".
 // The older emoji format ("Tiếp theo:", "Trạng thái:", status emoji at line start) is still read for older plans.
 
 const STAMP_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?\s*:\s*/;
@@ -110,32 +106,6 @@ for (const project of SETTINGS.projects) {
   }
 }
 
-// Worktree slots board (krik-hub): which session holds which slot.
-let slots = {};
-try {
-  if (SETTINGS.slotsFile) slots = JSON.parse(readFileSync(SETTINGS.slotsFile, 'utf8'));
-} catch { /* Slots are optional; absent/unreadable metadata supplies no slot identity. */ }
-const slotOf = (plan) =>
-  Object.entries(slots).find(([, v]) => v && v.task && ((v.by || '').includes(plan) || (v.task || '').includes(plan) || (v.branch || '').includes(plan)));
-// Agent identity comes from explicit metadata or an identifiable assignee, never task prose.
-function canonicalAgent(value) {
-  const text = String(value || '').toLowerCase();
-  const known = [
-    [/\bcodex\b/, 'Codex'],
-    [/\b(?:anti|antigravity)\b/, 'Anti'],
-    [/\bclaude\b/, 'Claude'],
-  ].filter(([pattern]) => pattern.test(text));
-  return known.length === 1 ? known[0][1] : 'Unknown';
-}
-function agentOf(plan, slot) {
-  if (plan.agentLabel) return { agent: canonicalAgent(plan.agentLabel), agentSource: 'Agent header' };
-  if (slot?.agent) return { agent: canonicalAgent(slot.agent), agentSource: 'Slot agent' };
-  if (canonicalAgent(slot?.by) !== 'Unknown') return { agent: canonicalAgent(slot.by), agentSource: 'Slot holder' };
-  if (canonicalAgent(plan.owner) !== 'Unknown') return { agent: canonicalAgent(plan.owner), agentSource: 'Owner header' };
-  const historical=historicalAgent(plan,verifiedAgents);
-  if(historical)return historical;
-  return { agent: 'Unknown', agentSource: 'Not specified' };
-}
 const linkPRs = (html, gh) => (gh ? html.replace(/#(\d+)\b/g, (m, n) => `<a class="pr" href="${gh}/pull/${n}" target="_blank">#${n}</a>`) : html);
 const STALE_MIN = 120;
 const ACTIVE = /^(planning|implementing|reviewing|fixing review|testing)$/i;
@@ -228,7 +198,6 @@ const rows = plans
     const stale = ACTIVE.test(st.text.split(' - ')[0]) && Date.now() - p.mtime.getTime() >= STALE_MIN * 60000;
     if (stale) attention.push({ plan: p.name, text: `Stale: no update for ${ago(p.mtime).replace(' ago', '')} while ${st.text.split(' - ')[0]}`, tone: 'bad' });
     if (/^waiting for owner/i.test(st.text)) waiting.push({ plan: p.name, text: st.text.replace(/^waiting for owner\s*-?\s*/i, '') || 'Waiting for your decision', gh: repoGh(p) });
-    const slot = slotOf(p.name);;
     const key = `${p.project}/${p.repo}/${p.name}`;
     const stepHtml = (x) => {
         const cls = { '✅': 'done', '🔄': 'active', '⬜': 'pending', '⚠': 'warn', '❌': 'bad' }[x.status];
@@ -307,7 +276,7 @@ ${p.decisions.length ? `<p class="sum-line dec"><span>Decisions</span>${p.decisi
   const detail = cut > 0 ? st.text.slice(cut + 3) : '';
   return `<span class="status ${st.tone}">${esc(stage)}</span>${pipe(st.step)}${detail ? `<div class="st-detail" title="${esc(detail)}">${linkPRs(esc(detail), repoGh(p))}</div>` : ''}`;
 })()}</div>
-<div class="eta">${stale ? '<span class="stale">stale</span> ' : ''}<span class="${stale ? 'unknown' : ''}">${ago(p.mtime)}</span><small>${slot ? `slot ${slot[0]} · ${esc(slot[1].by || '')}` : esc(p.repo)}</small></div>
+<div class="eta">${stale ? '<span class="stale">stale</span> ' : ''}<span class="${stale ? 'unknown' : ''}">${ago(p.mtime)}</span><small>${esc(p.repo)}</small></div>
 <svg class="row-arrow" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <div class="detail" hidden><div class="detail-title"><strong>Checklist · ${esc(p.name)} ${specLink}</strong><span>${esc(p.repo)} · edited ${ago(p.mtime)}</span></div>${tasks || '<div class="tasks"><div class="task pending"><span class="checkbox"></span><span class="task-text">No steps yet</span></div></div>'}</div></article>`;
   })
@@ -366,7 +335,7 @@ const html = `<!doctype html>
 .goal{margin:8px 0;font-size:15px}.goal.missing{color:var(--muted);font-style:italic;font-size:13px}
 .sum-line{display:grid;grid-template-columns:86px 1fr;gap:8px;margin:5px 0;font-size:14px}.sum-line span{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;padding-top:2px}.sum-line.done span{color:var(--green)}.sum-line.warn span{color:var(--amber)}.sum-line.dec span{color:var(--purple)}
 .waiting{border:1px solid var(--amber);background:var(--amber-soft);border-radius:8px;padding:10px 14px;margin-bottom:10px}.waiting-title{font-weight:760;color:var(--amber);font-size:15px;margin-bottom:4px}.waiting-title b{background:var(--amber);color:#fff;border-radius:10px;padding:0 8px;font-size:13px}.w-item{display:grid;grid-template-columns:220px 1fr;gap:12px;padding:5px 0;font-size:14.5px;border-top:1px dashed var(--line)}
-.slots{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:12.5px;color:var(--muted)}.slot{border:1px solid var(--line);border-radius:10px;padding:1px 9px;font-family:"Google Sans Code",monospace;background:var(--card)}.slot.busy{border-color:var(--green-mid);color:var(--green)}
+
 .pr{color:var(--blue);font-weight:700;text-decoration:none}.pr:hover{text-decoration:underline}.stale{font-size:11.5px;font-weight:700;color:#fff;background:var(--red);border-radius:4px;padding:0 5px}
 .views{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}.view{border:0;background:var(--card);padding:6px 12px;font-size:14px;font-weight:700;color:var(--muted)}.view.on{background:var(--green);color:#fff}.view span{font-size:12px;opacity:.8}
 .dec-item{display:grid;grid-template-columns:220px 1fr;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line2);font-size:14.5px}.dec-plan{font-family:"Google Sans Code",monospace;font-weight:700;color:var(--purple);font-size:13px}
@@ -377,7 +346,7 @@ const html = `<!doctype html>
 @media(max-width:640px){.content{padding:18px 16px}.table-head{display:none}.wf-main{grid-template-columns:1fr auto}.wf-main>div:nth-child(3){grid-column:2;grid-row:1}.wf-main>svg{display:none}}
 </style></head><body>
 <div class="content">
-<div class="topbar"><div class="brand"><h1 class="page-title">Agent Workboard</h1><span class="intro-desc">${repos.filter((r) => r.plans.length).length} repo(s) · updated ${stamp} · reloads every ${RELOAD_SECONDS / 60} min</span></div>
+<div class="topbar"><div class="brand"><h1 class="page-title">Agent Ops</h1><span class="intro-desc">${repos.filter((r) => r.plans.length).length} repo(s) · updated ${stamp} · reloads every ${RELOAD_SECONDS / 60} min</span></div>
 <div class="metrics">
 <div class="metric"><span class="meta">Plans</span><b class="value">${plans.length}</b></div>
 <div class="metric accent"><span class="meta">Steps done</span><b class="value">${sumDone}<small> / ${sumTotal} · ${donePct}%</small></b><div class="mini-bar"><i style="width:${donePct}%"></i></div></div>
@@ -387,10 +356,6 @@ const html = `<!doctype html>
 ${waiting.length ? `<section class="waiting"><div class="waiting-title">Waiting for you <b>${waiting.length}</b></div>${waiting
   .map((w) => `<div class="w-item"><span class="dec-plan">${esc(w.plan)}</span><span>${linkPRs(esc(w.text), w.gh)}</span></div>`)
   .join('')}</section>` : ''}
-${Object.keys(slots).length ? `<div class="slots">Slots ${Object.entries(slots)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([k, v]) => `<span class="slot ${v && v.task ? 'busy' : ''}" title="${esc((v && v.task) || 'free')}">${k} ${v && v.task ? esc(v.by || 'busy') : 'free'}</span>`)
-  .join('')}</div>` : ''}
 ${attention.length ? `<details class="risk"><summary><span class="risk-title">Needs attention</span><b class="risk-count">${attention.length}</b><span class="risk-hint">show</span></summary><div class="risk-list">${attentionHtml}</div></details>` : ''}
 <div class="panel">
 <div class="panel-top"><div class="views"><button type="button" class="view on" data-view="plans">Plans</button><button type="button" class="view" data-view="summary">Summary</button><button type="button" class="view" data-view="decisions">Decisions <span>${allDecisions.length}</span></button></div><input class="search" id="search" type="search" placeholder="Search plans and steps…" aria-label="Search"><select id="filter" aria-label="Filter by status"><option value="all">All statuses</option><option value="doing">In progress</option><option value="review">Review</option><option value="test">Test / CI</option><option value="pending">Waiting / partial</option><option value="bad">Blocked</option><option value="ok">Done</option><option value="idle">Not started</option></select><button class="compact-link" id="sort" type="button">Sort: last edited</button></div>
@@ -405,7 +370,7 @@ ${attention.length ? `<details class="risk"><summary><span class="risk-title">Ne
 <script>
 (function(){
  var rows=[].slice.call(document.querySelectorAll('.wf')),list=document.getElementById('list'),search=document.getElementById('search'),filter=document.getElementById('filter'),sort=document.getElementById('sort'),empty=document.getElementById('empty'),expand=document.getElementById('expandAll');
- var KEY='krik-workboard',st={q:'',f:'all',s:0,open:[],v:'plans'};var decView=document.getElementById('decView'),sumView=document.getElementById('sumView'),decs=[].slice.call(document.querySelectorAll('.dcard,.sum')),head=document.querySelector('.table-head'),views=[].slice.call(document.querySelectorAll('.view'));
+ var KEY='agent-ops',st={q:'',f:'all',s:0,open:[],v:'plans'};var decView=document.getElementById('decView'),sumView=document.getElementById('sumView'),decs=[].slice.call(document.querySelectorAll('.dcard,.sum')),head=document.querySelector('.table-head'),views=[].slice.call(document.querySelectorAll('.view'));
  try{st=Object.assign(st,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){/* Invalid preferences fall back to the defaults above. */}
  function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){/* Storage restrictions affect preferences only; the current view still works. */}}
  function toggle(r,force){var o=force===undefined?r.getAttribute('aria-expanded')!=='true':force;r.setAttribute('aria-expanded',String(o));r.querySelector('.wf-main').setAttribute('aria-expanded',String(o));r.querySelector('.detail').hidden=!o;var k=r.dataset.key;st.open=st.open.filter(function(x){return x!==k});if(o)st.open.push(k);label();}
@@ -427,25 +392,19 @@ ${attention.length ? `<details class="risk"><summary><span class="risk-title">Ne
 writeFileSync(join(OUT_DIR, 'tong-hop-chung.html'), html);
 
 // Machine-readable state for the Agent Ops desktop app.
-const executionReports=loadExecutionReports(reportDirectory(STATE_FILE));
-plans.forEach(p=>applyExecutionReports(p,executionReports));
-const historicalExecutions=loadHistoricalExecutions();
-plans.forEach(p=>applyHistoricalExecutions(p,historicalExecutions));
 const MARK = { '⬜': 'todo', '🔄': 'doing', '✅': 'done', '⚠': 'partial', '❌': 'blocked' };
 const step = (x, i, p) => {
  const milestone = p.milestones.find((m) => m.points.includes(x));
- return { status: MARK[x.status], sourceStatus:MARK[x.sourceStatus || x.status], text: x.text, executors:x.executors, executorSource:x.executorSource || '', execution:x.execution || null, executionHistory:x.executionHistory || null, line:x.line, milestone: milestone ? milestone.id : '', index: milestone ? milestone.points.indexOf(x) : i };
+ return { status: MARK[x.status], text: x.text, line:x.line, milestone: milestone ? milestone.id : '', index: milestone ? milestone.points.indexOf(x) : i };
 };
 writeFileSync(
   STATE_FILE,
   JSON.stringify({
     generatedAt: new Date().toISOString(),
-    slots,
     projects: projectStates,
     plans: plans.map((p) => {
       const count = Object.fromEntries(STATUSES.map((k) => [k, p.points.filter((x) => x.status === k).length]));
       const st = statusOf(p, count);
-      const slot = slotOf(p.name);
       return {
         project: p.project,
         projectName: p.projectName,
@@ -454,14 +413,6 @@ writeFileSync(
         gh: repoGh(p),
         name: p.name,
         owner: p.owner,
-        ...agentOf(p, slot ? slot[1] : null),
-        ...(!p.agentLabel && p.reportedCoordinator?{agent:p.reportedCoordinator,agentSource:'Agent execution report'}:{}),
-        ...executionOf(p,slot ? slot[1] : null),
-        declaredExecutors:executionOf(p,slot ? slot[1] : null).executors,
-        ...(p.recordedExecutors?{executors:p.recordedExecutors,executorSource:p.historicalExecutors.length?'Recorded execution and verified session history':'Agent execution reports'}:{}),
-        historicalExecutors:p.historicalExecutors,
-        executionReports:p.executionReports,
-        executionUpdatedAt:p.executionUpdatedAt,
         goal: p.goal,
         spec: p.spec,
         next: p.next,
@@ -470,7 +421,6 @@ writeFileSync(
         step: st.step,
         mtime: p.mtime.toISOString(),
         revision: p.revision,
-        slot: slot ? { id: slot[0], by: slot[1].by || '' } : null,
         decisions: p.decisions.map((d) => {
           const x = stamped(d, 0);
           return { key: x.key, when: x.when, text: x.text };

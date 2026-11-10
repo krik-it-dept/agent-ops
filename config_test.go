@@ -92,13 +92,13 @@ func TestMigrationFromLegacyFolder(t *testing.T) {
 	dir := isolated(t)
 	repos := filepath.Join(dir, "legacy repos")
 	mkRepo(t, filepath.Join(repos, "one"), "plan")
-	legacy := legacyPaths{repos: repos, state: filepath.Join(dir, "old-state.json"), slots: filepath.Join(dir, "slots.json")}
+	legacy := legacyPaths{repos: repos, state: filepath.Join(dir, "old-state.json")}
 	file := configFilePath(filepath.Join(dir, "data"))
 	cfg, warning, err := loadOrMigrateConfig(file, legacy, time.Now())
 	if err != nil || warning != "" {
 		t.Fatal(err, warning)
 	}
-	if !cfg.SetupComplete || len(cfg.Projects) != 1 || cfg.Projects[0].Kind != "folder" || cfg.Projects[0].Path != repos || cfg.Projects[0].ID != projectIDFor(repos) || cfg.StateFile != legacy.state || cfg.SlotsFile != legacy.slots || !cfg.Notifications {
+	if !cfg.SetupComplete || len(cfg.Projects) != 1 || cfg.Projects[0].Kind != "folder" || cfg.Projects[0].Path != repos || cfg.Projects[0].ID != projectIDFor(repos) || cfg.StateFile != legacy.state || !cfg.Notifications {
 		t.Fatalf("%+v", cfg)
 	}
 	if saved, err := readAppConfig(file); err != nil || saved.Projects[0].Path != repos {

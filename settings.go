@@ -34,11 +34,16 @@ var (
 	openFolder     = func(path string) error { return exec.Command("explorer.exe", path).Start() }
 	pickerBusy     sync.Mutex
 	// The first release's fixed paths, replaced in tests.
-	legacyDefaults         = legacyPaths{repos: legacyReposDir, state: legacyStateFile, slots: legacySlotsFile}
+	legacyDefaults         = legacyPaths{repos: legacyReposDir, state: legacyStateFile}
 	legacyMigrationAllowed = func() bool { return strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir())) }
 )
 
-func defaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard") }
+func defaultDataDir() string { return filepath.Join(os.Getenv("LOCALAPPDATA"), "AgentOps") }
+
+// legacyDefaultDataDir is the data folder of releases before v0.3.0.
+func legacyDefaultDataDir() string {
+	return filepath.Join(os.Getenv("LOCALAPPDATA"), legacyDataDirName)
+}
 
 // The installed instance owns the Run key and protocol registration; dev, test
 // and smoke instances on other ports or data folders never rewrite them.
@@ -46,8 +51,7 @@ func defaultInstance() bool {
 	return addr == "127.0.0.1:7790" && strings.EqualFold(filepath.Clean(dataDir), filepath.Clean(defaultDataDir()))
 }
 
-// initSettings loads (or migrates) config.json and resolves the state and slots
-// files: flag > environment > config.json > default under dataDir.
+// initSettings loads (or migrates) config.json and resolves the state file: flag > environment > config.json > default under dataDir.
 func initSettings() {
 	// The first release's fixed paths only migrate into the installed app's own data
 	// folder; isolated, test and smoke runs never adopt the owner's real folders.
@@ -61,7 +65,6 @@ func initSettings() {
 	}{
 		{&legacy.repos, []string{reposDir, legacyLaunch.repos}},
 		{&legacy.state, []string{stateFile, legacyLaunch.state}},
-		{&legacy.slots, []string{slotsFile, legacyLaunch.slots}},
 	} {
 		for _, v := range item.values {
 			if v != "" {
@@ -86,9 +89,6 @@ func initSettings() {
 	}
 	if stateFile == "" {
 		stateFile = filepath.Join(dataDir, "state", "tong-hop-chung.json")
-	}
-	if slotsFile == "" {
-		slotsFile = cfg.SlotsFile
 	}
 }
 
@@ -364,7 +364,7 @@ func currentSettings() settingsPayload {
 	}
 	projects := cfg.Projects
 	if reposDir != "" {
-		out.ProjectsOverridden = "Projects are set by --repos-dir or KRIK_REPOS_DIR for this run: " + reposDir
+		out.ProjectsOverridden = "Projects are set by --repos-dir or AGENT_OPS_REPOS_DIR for this run: " + reposDir
 		projects = []Project{overrideProject()}
 	}
 	for _, p := range projects {
@@ -420,7 +420,7 @@ func decodeOne(w http.ResponseWriter, r *http.Request, v any) bool {
 	return true
 }
 
-const overrideReadOnly = "Projects are set by --repos-dir or KRIK_REPOS_DIR for this run. Restart Agent Ops without it to manage projects here."
+const overrideReadOnly = "Projects are set by --repos-dir or AGENT_OPS_REPOS_DIR for this run. Restart Agent Ops without it to manage projects here."
 
 // mutateConfig applies change to a copy, saves it atomically, then refreshes.
 func mutateConfig(w http.ResponseWriter, change func(*AppConfig) (int, string)) bool {
@@ -641,7 +641,15 @@ func handleProject(w http.ResponseWriter, r *http.Request) {
 
 // pickFolderDialog opens the Windows folder dialog on the desktop. The console
 // stays hidden; the dialog is owned by a topmost form so it appears above Edge.
-func pickFolderDialog(ctx context.Context) (string, error) {
+// purpose is "" (a project folder), "skills" (a folder that receives the skill;
+// new folders allowed) or "instruction-file" (a file, which may not exist yet).
+func pickFolderDialog(ctx context.Context, purpose string) (string, error) {
+	switch purpose {
+	case "skills":
+		return runFolderPicker(ctx, skillsDialogScript)
+	case "instruction-file":
+		return runFolderPicker(ctx, instructionFileDialogScript)
+	}
 	return runFolderPicker(ctx, folderDialogScript)
 }
 
@@ -651,6 +659,21 @@ const folderDialogScript = `$owner=New-Object System.Windows.Forms.Form -Propert
 	`$dialog.Description='Choose a project folder: a Git repository, or a folder that contains repositories.';` +
 	`$dialog.ShowNewFolderButton=$false;` +
 	`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){$selected=$dialog.SelectedPath};` +
+	`$owner.Dispose();`
+
+const skillsDialogScript = `$owner=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};` +
+	`$dialog=New-Object System.Windows.Forms.FolderBrowserDialog;` +
+	`$dialog.Description='Choose the skills folder of an AI client. Agent Ops installs task-plan\SKILL.md inside it.';` +
+	`$dialog.ShowNewFolderButton=$true;` +
+	`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){$selected=$dialog.SelectedPath};` +
+	`$owner.Dispose();`
+
+const instructionFileDialogScript = `$owner=New-Object System.Windows.Forms.Form -Property @{TopMost=$true;ShowInTaskbar=$false};` +
+	`$dialog=New-Object System.Windows.Forms.OpenFileDialog;` +
+	`$dialog.Title='Choose the instruction file of an AI client';` +
+	`$dialog.Filter='Markdown (*.md)|*.md|All files (*.*)|*.*';` +
+	`$dialog.CheckFileExists=$false;` +
+	`if($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK){$selected=$dialog.FileName};` +
 	`$owner.Dispose();`
 
 // runFolderPicker runs a constant chooser script and decodes its UTF-8 output, so
@@ -670,6 +693,16 @@ func handlePickFolder(w http.ResponseWriter, r *http.Request) {
 	if !guardWrite(w, r, http.MethodPost) {
 		return
 	}
+	var body struct {
+		Purpose string `json:"purpose"`
+	}
+	if r.ContentLength != 0 && !decodeOne(w, r, &body) {
+		return
+	}
+	if body.Purpose != "" && body.Purpose != "skills" && body.Purpose != "instruction-file" {
+		settingsFail(w, http.StatusBadRequest, "Unknown dialog.")
+		return
+	}
 	if !pickerBusy.TryLock() {
 		settingsFail(w, http.StatusConflict, "A folder dialog is already open. Finish it first.")
 		return
@@ -677,7 +710,7 @@ func handlePickFolder(w http.ResponseWriter, r *http.Request) {
 	defer pickerBusy.Unlock()
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
 	defer cancel()
-	path, err := pickFolder(ctx)
+	path, err := pickFolder(ctx, body.Purpose)
 	if err != nil {
 		settingsFail(w, http.StatusInternalServerError, "Could not open the folder dialog. Paste the path instead.")
 		return
@@ -737,6 +770,8 @@ func settingsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/settings/open-folder", handleOpenFolder)
 	mux.HandleFunc("/api/projects", handleProjects)
 	mux.HandleFunc("/api/projects/", handleProject)
+	mux.HandleFunc("/api/integrations", handleIntegrations)
+	mux.HandleFunc("/api/integrations/", handleIntegrationAction)
 }
 
 func syncStartupMenu() {

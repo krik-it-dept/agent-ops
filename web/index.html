@@ -277,12 +277,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .k-decision { border-color: var(--ds-text-discovery); }
 .k-waiting { border-color: var(--ds-text-warning); }
 .ok { color: var(--ds-text-success); }
-.column.drop-target, .column.drop-target h2 { background: var(--ds-background-brand-subtlest); }
-.column.drop-target { outline: 2px dashed var(--ds-border-focused); outline-offset: -2px; }
-.task-card[draggable="true"] { cursor: grab; }
-.task-card.dragging { opacity: .45; }
-.status-select { min-height: 32px; max-width: 220px; border: 1px solid transparent; border-radius: var(--ds-radius-small); background: var(--ds-background-neutral); padding: var(--ds-space-050) var(--ds-space-100); font-size: 14px; font-weight: 500; }
-.status-select:hover { background: var(--ds-background-neutral-hovered); }
 @media (max-width: 760px) {
   .appbar { height: auto; min-height: 48px; flex-wrap: wrap; gap: var(--ds-space-150); padding: 0 var(--ds-space-150); }
   .nav { min-height: 48px; gap: var(--ds-space-100); }
@@ -301,39 +295,31 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
 
-/* Workspace views and agent identity. */
+/* Workspace views. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.agent-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;line-height:20px;color:var(--ds-text-subtle)}
-.agent-icon{width:20px;height:20px;object-fit:contain;flex-shrink:0}.agent-icon-codex{padding:3px;border-radius:4px;background:#181818}.agent-icon-anti{border-radius:4px;background:#fff}
-.agent-unknown{display:grid;place-items:center;width:20px;height:20px;border:1px solid var(--ds-border-input);border-radius:50%;color:var(--ds-text-subtlest);font-weight:500}
-.agent-editor{display:inline-flex;align-items:center;gap:6px}.agent-editor .agent-chip>span:last-child{display:none}.agent-select,.agent-filter{height:32px;border:1px solid var(--ds-border);border-radius:3px;background:var(--ds-surface);padding:4px 8px;font-size:14px;max-width:150px}.agent-select:hover,.agent-filter:hover{background:var(--ds-background-neutral)}
-.task-footer{justify-content:space-between;gap:8px}.task-footer .assignee .owner{max-width:112px}.top .agent-filter{max-width:140px}
-.table-wrap{border:1px solid var(--ds-border);border-radius:8px;overflow:visible;min-width:1020px}.work-table{width:100%;border-collapse:separate;border-spacing:0}.work-table th,.work-table td{padding:12px 16px;border-bottom:1px solid var(--ds-border);vertical-align:middle;text-align:left}.work-table th{position:sticky;top:0;z-index:2;background:var(--ds-surface-sunken);font-size:12px;font-weight:600;color:var(--ds-text-subtle)}.work-table th:first-child{border-top-left-radius:8px}.work-table th:last-child{border-top-right-radius:8px}.work-table tbody tr:last-child td{border-bottom:0}.work-table tr:hover td{background:var(--ds-background-neutral)}.work-name{min-width:260px;max-width:420px}.work-link{display:block;padding:0;border:0;background:none;text-align:left;font-size:14px;line-height:20px;color:var(--fg);overflow-wrap:anywhere}.work-link:hover{text-decoration:underline}.work-meta{display:block;color:var(--ds-text-subtlest);font-size:12px;line-height:16px;margin-top:4px}.updated-cell{white-space:nowrap;font-size:12px;color:var(--ds-text-subtlest)}.list-progress{display:flex;gap:8px;align-items:center;min-width:110px;font-size:12px}.list-progress .bar{width:64px;flex:1}.work-table .status-select{max-width:200px}.work-table .stage-detail{max-width:240px}
-.timeline-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.timeline-actions{display:flex;gap:6px}.timeline-legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ds-text-subtle);margin-bottom:16px}.legend-dot,.legend-edit{display:inline-block;width:10px;height:10px;flex-shrink:0}.legend-dot{border-radius:50%;background:var(--ds-link)}.legend-edit{border:2px solid var(--ds-text-subtlest);transform:rotate(45deg);margin-left:12px}.timeline-scroll{border:1px solid var(--ds-border);border-radius:8px;isolation:isolate}.timeline-table{border-collapse:separate;border-spacing:0;table-layout:fixed;width:max-content}.timeline-table th,.timeline-table td{height:64px;padding:8px;border-right:1px solid var(--ds-border);border-bottom:1px solid var(--ds-border);vertical-align:middle;background:var(--ds-surface)}.timeline-table th{height:44px;font-size:12px;font-weight:600;background:var(--ds-surface-sunken);position:sticky;top:0;z-index:4;text-align:left}.timeline-table tbody tr:last-child td{border-bottom:0}.timeline-table .timeline-work{position:sticky;left:0;width:280px;min-width:280px;max-width:280px;z-index:2}.timeline-table .timeline-status{position:sticky;left:280px;width:190px;min-width:190px;z-index:2}.timeline-table .timeline-agent{position:sticky;left:470px;width:124px;min-width:124px;z-index:2;box-shadow:2px 0 0 var(--ds-border)}.timeline-table thead .timeline-work,.timeline-table thead .timeline-status,.timeline-table thead .timeline-agent{z-index:5}.timeline-table .timeline-day{width:36px;min-width:36px;text-align:center;padding:4px}.timeline-table .weekend{background:var(--ds-surface-sunken)}.timeline-table .today{background:var(--ds-background-brand-subtlest);border-left:1px solid var(--ds-link);border-right:1px solid var(--ds-link)}.timeline-dot{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:var(--ds-background-information);color:var(--ds-text-information);font-size:12px;font-weight:600}.timeline-dot:hover{outline:2px solid var(--ds-border-focused)}.timeline-edit{display:inline-block;width:10px;height:10px;border:2px solid var(--ds-text-subtlest);transform:rotate(45deg)}.history-filter{display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:12px;color:var(--ds-text-subtle)}
-.summary{max-width:1200px;margin:0 auto}.summary-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}.summary-stat{display:grid;grid-template-columns:1fr auto;gap:4px 16px;border:1px solid var(--ds-border);border-radius:6px;padding:16px}.summary-stat>span{font-size:14px;font-weight:500}.summary-stat>strong{grid-column:2;grid-row:1/3;font-size:28px;line-height:32px;font-weight:600;align-self:center}.summary-stat small{font-size:12px;color:var(--ds-text-subtlest)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.summary-panel{padding:20px;border:1px solid var(--ds-border);border-radius:8px;min-width:0}.summary-panel h2{font-size:16px;line-height:20px;font-weight:600;margin:0}.summary-panel h3{font-size:14px;font-weight:600;margin:24px 0 12px}.status-overview{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:16px}.status-chart{width:180px;max-width:100%;height:180px}.chart-count{font:600 22px var(--ds-font-family-body);fill:var(--ds-text)}.chart-label{font:400 10px var(--ds-font-family-body);fill:var(--ds-text-subtle)}.status-legend{padding:0;list-style:none;flex:1;min-width:170px}.status-legend li{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:12px}.status-legend strong{margin-left:auto;font-family:var(--ds-font-family-code)}.legend-swatch{width:8px;height:8px;flex-shrink:0;border-radius:2px}.summary-feed{max-height:280px;overflow:auto;margin-top:12px;padding-right:8px}.summary-feed .empty{padding:48px 12px}.summary-feed .ch{cursor:pointer;color:var(--ds-link)}.agent-workload{display:grid;gap:12px;margin-top:24px}.workload-row{display:flex;align-items:center;gap:12px;width:100%;padding:8px 0;border:0;background:none;text-align:left;font-size:12px;color:var(--ds-text-subtle)}.workload-row:hover{background:var(--ds-background-neutral)}.workload-row .agent-chip{min-width:86px}.workload-bar{height:8px;flex:1;min-width:40px;background:var(--ds-background-neutral);border-radius:3px;overflow:hidden}.workload-bar i{display:block;height:100%;background:var(--ds-link)}.summary-progress{margin-top:24px}.summary-progress strong{display:block;font-size:28px;font-weight:600;line-height:32px;margin-bottom:16px}.summary-progress strong span{font-size:16px;font-weight:400;color:var(--ds-text-subtlest)}.attention-row{position:relative;padding:8px 0;border-bottom:1px solid var(--ds-border)}.attention-row .agent-chip{position:absolute;right:0;bottom:8px}.attention-row .work-meta{padding-right:90px}
+.table-wrap{border:1px solid var(--ds-border);border-radius:8px;overflow:visible;min-width:1020px}.work-table{width:100%;border-collapse:separate;border-spacing:0}.work-table th,.work-table td{padding:12px 16px;border-bottom:1px solid var(--ds-border);vertical-align:middle;text-align:left}.work-table th{position:sticky;top:0;z-index:2;background:var(--ds-surface-sunken);font-size:12px;font-weight:600;color:var(--ds-text-subtle)}.work-table th:first-child{border-top-left-radius:8px}.work-table th:last-child{border-top-right-radius:8px}.work-table tbody tr:last-child td{border-bottom:0}.work-table tr:hover td{background:var(--ds-background-neutral)}.work-name{min-width:260px;max-width:420px}.work-link{display:block;padding:0;border:0;background:none;text-align:left;font-size:14px;line-height:20px;color:var(--fg);overflow-wrap:anywhere}.work-link:hover{text-decoration:underline}.work-meta{display:block;color:var(--ds-text-subtlest);font-size:12px;line-height:16px;margin-top:4px}.updated-cell{white-space:nowrap;font-size:12px;color:var(--ds-text-subtlest)}.list-progress{display:flex;gap:8px;align-items:center;min-width:110px;font-size:12px}.list-progress .bar{width:64px;flex:1}.work-table .stage-detail{max-width:240px}
+.timeline-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.timeline-actions{display:flex;gap:6px}.timeline-legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ds-text-subtle);margin-bottom:16px}.legend-dot,.legend-edit{display:inline-block;width:10px;height:10px;flex-shrink:0}.legend-dot{border-radius:50%;background:var(--ds-link)}.legend-edit{border:2px solid var(--ds-text-subtlest);transform:rotate(45deg);margin-left:12px}.timeline-scroll{border:1px solid var(--ds-border);border-radius:8px;isolation:isolate}.timeline-table{border-collapse:separate;border-spacing:0;table-layout:fixed;width:max-content}.timeline-table th,.timeline-table td{height:64px;padding:8px;border-right:1px solid var(--ds-border);border-bottom:1px solid var(--ds-border);vertical-align:middle;background:var(--ds-surface)}.timeline-table th{height:44px;font-size:12px;font-weight:600;background:var(--ds-surface-sunken);position:sticky;top:0;z-index:4;text-align:left}.timeline-table tbody tr:last-child td{border-bottom:0}.timeline-table .timeline-work{position:sticky;left:0;width:280px;min-width:280px;max-width:280px;z-index:2}.timeline-table .timeline-status{position:sticky;left:280px;width:190px;min-width:190px;z-index:2;box-shadow:2px 0 0 var(--ds-border)}.timeline-table thead .timeline-work,.timeline-table thead .timeline-status{z-index:5}.timeline-table .timeline-day{width:36px;min-width:36px;text-align:center;padding:4px}.timeline-table .weekend{background:var(--ds-surface-sunken)}.timeline-table .today{background:var(--ds-background-brand-subtlest);border-left:1px solid var(--ds-link);border-right:1px solid var(--ds-link)}.timeline-dot{width:26px;height:26px;padding:0;border:0;border-radius:50%;background:var(--ds-background-information);color:var(--ds-text-information);font-size:12px;font-weight:600}.timeline-dot:hover{outline:2px solid var(--ds-border-focused)}.timeline-edit{display:inline-block;width:10px;height:10px;border:2px solid var(--ds-text-subtlest);transform:rotate(45deg)}.history-filter{display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:12px;color:var(--ds-text-subtle)}
+.summary{max-width:1200px;margin:0 auto}.summary-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}.summary-stat{display:grid;grid-template-columns:1fr auto;gap:4px 16px;border:1px solid var(--ds-border);border-radius:6px;padding:16px}.summary-stat>span{font-size:14px;font-weight:500}.summary-stat>strong{grid-column:2;grid-row:1/3;font-size:28px;line-height:32px;font-weight:600;align-self:center}.summary-stat small{font-size:12px;color:var(--ds-text-subtlest)}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}.summary-panel{padding:20px;border:1px solid var(--ds-border);border-radius:8px;min-width:0}.summary-panel h2{font-size:16px;line-height:20px;font-weight:600;margin:0}.summary-panel h3{font-size:14px;font-weight:600;margin:24px 0 12px}.status-overview{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:16px}.status-chart{width:180px;max-width:100%;height:180px}.chart-count{font:600 22px var(--ds-font-family-body);fill:var(--ds-text)}.chart-label{font:400 10px var(--ds-font-family-body);fill:var(--ds-text-subtle)}.status-legend{padding:0;list-style:none;flex:1;min-width:170px}.status-legend li{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:12px}.status-legend strong{margin-left:auto;font-family:var(--ds-font-family-code)}.legend-swatch{width:8px;height:8px;flex-shrink:0;border-radius:2px}.summary-feed{max-height:280px;overflow:auto;margin-top:12px;padding-right:8px}.summary-feed .empty{padding:48px 12px}.summary-feed .ch{cursor:pointer;color:var(--ds-link)}.summary-progress{margin-top:24px}.summary-progress strong{display:block;font-size:28px;font-weight:600;line-height:32px;margin-bottom:16px}.summary-progress strong span{font-size:16px;font-weight:400;color:var(--ds-text-subtlest)}.attention-row{position:relative;padding:8px 0;border-bottom:1px solid var(--ds-border)}
 @media(max-width:1000px){.appbar{gap:12px}.nav{gap:12px}.summary-stats{grid-template-columns:repeat(2,1fr)}.summary-grid{grid-template-columns:1fr}.connection{display:none}}
-@media(max-width:760px){.nav{overflow-x:auto;max-width:100%;order:0;width:auto;min-height:40px;flex:1;min-width:0}.nav .item{flex-shrink:0}.appbar{gap:0 12px}.summary-stats{gap:8px}.summary-stat{padding:12px}.summary-stat>strong{font-size:24px}.timeline-table .timeline-work{width:220px;min-width:220px;max-width:220px}.timeline-table .timeline-status{left:220px}.timeline-table .timeline-agent{left:410px}.timeline-toolbar{flex-wrap:wrap}}
+@media(max-width:760px){.nav{overflow-x:auto;max-width:100%;order:0;width:auto;min-height:40px;flex:1;min-width:0}.nav .item{flex-shrink:0}.appbar{gap:0 12px}.summary-stats{gap:8px}.summary-stat{padding:12px}.summary-stat>strong{font-size:24px}.timeline-table .timeline-work{width:220px;min-width:220px;max-width:220px}.timeline-table .timeline-status{left:220px}.timeline-toolbar{flex-wrap:wrap}}
 
-.filter-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px;border:1px solid var(--ds-border);border-radius:6px;background:var(--ds-background-brand-subtlest);color:var(--muted-fg);font-size:12px}.empty h2{font-size:16px;color:var(--ds-text)}.workload-row:disabled{cursor:default}.workload-row:disabled:hover{background:none}
-.role-chain{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}.role-arrow,.role-plus,.role-none{font-size:12px;color:var(--ds-text-subtlest)}.role-control{display:inline-flex;align-items:center;gap:6px}.role-control>small{font-size:12px;color:var(--ds-text-subtle)}.executor-select{min-height:32px;max-width:220px;padding:4px 8px;background:var(--ds-surface);border:1px solid var(--ds-border);border-radius:3px;font-size:14px}.task-footer{flex-wrap:wrap}.task-footer .role-chain{max-width:100%}.timeline-table .timeline-agent{width:190px;min-width:190px}.attention-row .role-chain{position:static;margin-top:4px}.attention-row .role-chain .agent-chip{position:static}.attention-row .work-meta{padding-right:0}
-.agent-stack{display:inline-flex;align-items:center;padding-right:2px}.agent-stack>.agent-chip{gap:0;margin-left:-5px;background:var(--ds-surface);border-radius:50%;padding:2px;border:1px solid var(--ds-surface)}.agent-stack>.agent-chip:first-child{margin-left:0}.agent-stack>.agent-chip>span{display:none}.agent-stack .agent-icon{width:18px;height:18px}.agent-multi{gap:6px}.st.has-agent{grid-template-columns:16px minmax(0,1fr) 140px 74px;align-items:start}.step-agent{min-width:0}.st.has-agent>.tag{justify-self:end;margin-top:4px}.execution-agent{display:inline-flex;align-items:center;min-height:24px;font-size:12px}.execution-note{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;color:var(--ds-text-subtlest);font-size:12px;line-height:16px}.checklist-columns{display:grid;grid-template-columns:minmax(0,1fr) 140px 74px;gap:8px;padding:8px 0;margin-bottom:16px;border-bottom:1px solid var(--ds-border);font-size:12px;font-weight:600;color:var(--ds-text-subtle)}.checklist-columns>span:last-child{text-align:right}.checklist-columns small{margin-left:12px;font-weight:400;color:var(--ds-text-subtlest)}@media(max-width:650px){.st.has-agent{grid-template-columns:16px minmax(0,1fr) 74px}.st.has-agent .step-agent{grid-column:2;grid-row:2}.st.has-agent>.tag{grid-column:3;grid-row:1}.checklist-columns{grid-template-columns:1fr 74px}.checklist-columns>span:nth-child(2){display:none}}
-.history-mark{display:block;color:var(--ds-text-subtlest);font-size:10px;line-height:14px;font-weight:400}
-.task-list-wrap{min-width:1100px}.task-list-table th,.task-list-table td{padding:10px 12px}.task-list-table .task-list-work{min-width:300px;max-width:600px;width:34%}.task-list-table .task-list-plan{min-width:170px;max-width:230px;width:16%}.task-list-table .task-list-plan .work-link{font-size:12px}.task-list-table .task-list-agent{min-width:130px}.task-list-table .task-list-status{min-width:105px;white-space:nowrap}.task-list-result{min-width:220px;max-width:380px;width:23%;font-size:12px;line-height:18px;color:var(--ds-text-subtle)}.task-work-link,.task-result-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}.task-result-text{max-height:36px}.task-list-plan .work-meta{margin-top:2px}.plan-stage{font-size:11px}.task-status-filter{min-width:155px}.task-focused{background:var(--ds-background-information);box-shadow:inset 3px 0 var(--ds-link);scroll-margin-block:64px;padding-left:8px!important;padding-right:8px!important;border-radius:3px}
+.filter-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px;border:1px solid var(--ds-border);border-radius:6px;background:var(--ds-background-brand-subtlest);color:var(--muted-fg);font-size:12px}.empty h2{font-size:16px;color:var(--ds-text)}
+.task-footer{justify-content:space-between;gap:8px;flex-wrap:wrap}.st>.tag{justify-self:end}.checklist-columns{display:grid;grid-template-columns:minmax(0,1fr) 74px;gap:8px;padding:8px 0;margin-bottom:16px;border-bottom:1px solid var(--ds-border);font-size:12px;font-weight:600;color:var(--ds-text-subtle)}.checklist-columns>span:last-child{text-align:right}.checklist-columns small{margin-left:12px;font-weight:400;color:var(--ds-text-subtlest)}
+.task-list-wrap{min-width:720px}.task-list-table th,.task-list-table td{padding:10px 12px}.task-list-table .task-list-work{min-width:300px;max-width:600px}.task-list-table .task-list-plan{min-width:170px;max-width:300px}.task-list-table .task-list-plan .work-link{font-size:12px}.task-list-table .task-list-status{min-width:105px;white-space:nowrap}.task-work-link{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}.task-list-plan .work-meta{margin-top:2px}.plan-stage{font-size:11px}.task-status-filter{min-width:155px}.task-focused{background:var(--ds-background-information);box-shadow:inset 3px 0 var(--ds-link);scroll-margin-block:64px;padding-left:8px!important;padding-right:8px!important;border-radius:3px}
 .task-list-status .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.task-list-status .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}.task-list-status .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.task-list-status .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}
-.task-list-table{table-layout:fixed;min-width:1200px}.task-list-table th:nth-child(1){width:30%}.task-list-table th:nth-child(2){width:16%}.task-list-table th:nth-child(3){width:11%}.task-list-table th:nth-child(4){width:10%}.task-list-table th:nth-child(5){width:23%}.task-list-table th:nth-child(6){width:10%}.task-list-table th.column-open{z-index:8}.column-trigger{display:flex;align-items:center;gap:7px;width:100%;min-height:28px;line-height:20px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left}.column-trigger:hover,.column-filtered .column-trigger{color:var(--ds-link)}.column-chevron{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;flex-shrink:0}.column-chevron svg{display:block;width:12px;height:12px}.column-filter-dot{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:var(--ds-link)}
-.column-popover{position:absolute;top:100%;left:0;z-index:10;width:300px;max-height:min(520px,calc(100dvh - 240px));overflow:auto;padding:8px;border:1px solid var(--ds-border);border-radius:6px;background:var(--ds-surface);box-shadow:0 8px 24px #091e4233;color:var(--ds-text);font-size:12px;font-weight:400}.task-list-table th:last-child .column-popover{left:auto;right:0}.column-popover button{border:0;border-radius:3px;background:none;padding:7px 8px;color:var(--ds-text);font:inherit;text-align:left}.column-popover button:hover{background:var(--ds-background-neutral)}.column-sort-actions{display:grid;border-bottom:1px solid var(--ds-border);padding-bottom:6px}.column-filter-body{display:grid;gap:8px;padding:12px 6px}.column-popover input[type=search],.column-popover select,.column-date-range input{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--ds-border-input);border-radius:3px;background:var(--ds-surface);color:var(--ds-text);font:inherit}.column-selection-actions{display:flex;justify-content:space-between}.column-plan-options{max-height:190px;overflow:auto}.column-plan-options>label{display:flex;align-items:center;gap:8px;padding:7px 4px;cursor:pointer}.column-plan-options>label:hover{background:var(--ds-background-neutral)}.column-plan-options input{accent-color:var(--ds-link)}.column-plan-options>label>span{flex:1;overflow-wrap:anywhere}.column-plan-options small{display:block;color:var(--ds-text-subtlest);font-size:11px}.column-date-range{display:flex;gap:8px}.column-date-range label{display:grid;gap:4px;min-width:0;flex:1}.column-footer{display:flex;justify-content:flex-end;gap:4px;border-top:1px solid var(--ds-border);padding-top:8px}.column-footer>button:first-child{margin-right:auto}.column-footer .column-apply{background:var(--ds-link);color:var(--ds-surface)}.column-footer .column-apply:hover{background:var(--ds-text-information)}.column-error{padding:0 6px;color:var(--ds-text-danger)}
+.task-list-table{table-layout:fixed;min-width:720px}.task-list-table th:nth-child(1){width:52%}.task-list-table th:nth-child(2){width:30%}.task-list-table th:nth-child(3){width:18%}.task-list-table th.column-open{z-index:8}.column-trigger{display:flex;align-items:center;gap:7px;width:100%;min-height:28px;line-height:20px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left}.column-trigger:hover,.column-filtered .column-trigger{color:var(--ds-link)}.column-chevron{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;flex-shrink:0}.column-chevron svg{display:block;width:12px;height:12px}.column-filter-dot{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:var(--ds-link)}
+.column-popover{position:absolute;top:100%;left:0;z-index:10;width:300px;max-height:min(520px,calc(100dvh - 240px));overflow:auto;padding:8px;border:1px solid var(--ds-border);border-radius:6px;background:var(--ds-surface);box-shadow:0 8px 24px #091e4233;color:var(--ds-text);font-size:12px;font-weight:400}.task-list-table th:last-child .column-popover{left:auto;right:0}.column-popover button{border:0;border-radius:3px;background:none;padding:7px 8px;color:var(--ds-text);font:inherit;text-align:left}.column-popover button:hover{background:var(--ds-background-neutral)}.column-sort-actions{display:grid;border-bottom:1px solid var(--ds-border);padding-bottom:6px}.column-filter-body{display:grid;gap:8px;padding:12px 6px}.column-popover input[type=search],.column-popover select{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--ds-border-input);border-radius:3px;background:var(--ds-surface);color:var(--ds-text);font:inherit}.column-selection-actions{display:flex;justify-content:space-between}.column-plan-options{max-height:190px;overflow:auto}.column-plan-options>label{display:flex;align-items:center;gap:8px;padding:7px 4px;cursor:pointer}.column-plan-options>label:hover{background:var(--ds-background-neutral)}.column-plan-options input{accent-color:var(--ds-link)}.column-plan-options>label>span{flex:1;overflow-wrap:anywhere}.column-plan-options small{display:block;color:var(--ds-text-subtlest);font-size:11px}.column-footer{display:flex;justify-content:flex-end;gap:4px;border-top:1px solid var(--ds-border);padding-top:8px}.column-footer>button:first-child{margin-right:auto}.column-footer .column-apply{background:var(--ds-link);color:var(--ds-surface)}.column-footer .column-apply:hover{background:var(--ds-text-information)}.column-error{padding:0 6px;color:var(--ds-text-danger)}
 .task-group-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--ds-text-subtle)}.task-group-toolbar label{display:flex;align-items:center;gap:8px}.task-group-toolbar select{height:30px;padding:4px 8px;border:1px solid var(--ds-border);border-radius:3px;background:var(--ds-surface);color:var(--ds-text);font:inherit}.task-group-toolbar .btn{height:30px;font-size:12px}.task-group-toolbar .work-meta{margin:0 0 0 8px}.task-list-table tbody.task-group-heading tr td{border-bottom:1px solid var(--ds-border);border-top:1px solid var(--ds-border);background:var(--ds-surface-sunken);padding:8px 12px}.task-group-name{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.task-group-heading .task-group-progress .list-progress{gap:10px;min-width:0}.task-group-progress .work-meta{font-size:11px;margin-bottom:5px}.task-group-progress .mono{white-space:nowrap;font-size:11px}.task-group-progress .list-progress.is-complete .bar i{background:var(--ds-text-success)}.task-group-heading .task-group-actions{text-align:right}.task-group-status .pill{font-size:11px}.task-group-name .work-meta{font-size:11px}.task-group-heading .work-meta{margin:0}.task-group-toggle,.task-group-open{padding:4px 0;border:0;background:none;font:inherit;text-align:left}.task-group-toggle{display:flex;align-items:center;gap:8px;min-width:0;overflow-wrap:anywhere;font-weight:600;color:var(--ds-text)}.task-group-toggle>span{width:12px;flex-shrink:0}.task-group-open{font-size:12px;white-space:nowrap;color:var(--ds-link)}.task-group-toggle:hover,.task-group-open:hover{color:var(--ds-link);text-decoration:underline}.task-list-table tbody[hidden]{display:none}
-.workload-row{display:grid;grid-template-columns:90px minmax(40px,1fr) auto}.workload-counts{display:grid;gap:4px;text-align:right;font-variant-numeric:tabular-nums}.workload-counts strong{font-size:12px;font-weight:600;color:var(--ds-text)}.workload-counts small{font-size:11px;color:var(--ds-text-subtlest)}@media(max-width:600px){.workload-row{grid-template-columns:90px minmax(40px,1fr)}.workload-counts{grid-column:1/-1}}
 .msg.context-actor{grid-template-columns:minmax(0,1fr)}
 .workspace{display:flex;flex:1;min-height:0;min-width:0}.plan-sidebar{width:232px;flex:0 0 232px;display:flex;flex-direction:column;border-right:1px solid var(--ds-border);background:var(--panel);padding:20px 12px;min-height:0}.sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:0 8px 12px;font-size:14px;font-weight:600}.sidebar-collections{display:flex;gap:4px;margin-bottom:12px}.sidebar-collections button{flex:1;border:0;background:none;color:var(--ds-text-subtle);font-size:12px;padding:6px 3px;border-radius:3px}.sidebar-collections button[aria-pressed=true]{background:var(--ds-background-brand-subtlest);color:var(--ds-link)}.sidebar-items{overflow:auto;flex:1;min-height:0}.sidebar-plan{display:flex;align-items:center;gap:6px;padding:4px;border-radius:4px}.sidebar-plan:hover{background:var(--ds-background-neutral)}.sidebar-plan.current{background:var(--ds-background-brand-subtlest)}.sidebar-plan-link{flex:1;min-width:0;padding:5px 2px;border:0;background:none;text-align:left}.sidebar-plan-link>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.sidebar-plan-link small{display:block;color:var(--ds-text-subtlest);font-size:11px;line-height:16px}.sidebar-empty{padding:16px 8px;color:var(--ds-text-subtlest);font-size:12px}.icon-btn{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:3px;background:none;color:var(--ds-text-subtle);flex-shrink:0}.icon-btn:hover{background:var(--ds-background-neutral-hovered)}.icon-btn svg{width:18px;height:18px}.star-toggle[aria-pressed=true]{color:var(--ds-text-warning)}.star-toggle[aria-pressed=true] svg{fill:currentColor}.task-heading .task-edited{margin-left:auto}.task-heading .icon-btn{width:26px;height:26px}.sidebar-toggle{width:30px}.chead .star-toggle{margin-left:-6px}.plan-link-tools{display:flex;align-items:center;gap:4px}.plan-link-tools .work-link{flex:1;min-width:0}
-.quick-plan{padding:0;border:1px solid var(--ds-border);border-radius:10px;background:var(--ds-surface);color:var(--ds-text);width:min(1100px,calc(100vw - 48px));max-width:none;height:min(780px,calc(100dvh - 64px));max-height:none;box-shadow:0 16px 48px #091e4244}.quick-plan::backdrop{background:#091e4270}.quick-shell{height:100%;display:flex;flex-direction:column;min-height:0}.quick-header{padding:18px 24px;border-bottom:1px solid var(--ds-border);display:flex;align-items:center;gap:12px}.quick-title{min-width:0;flex:1}.quick-title small{color:var(--ds-text-subtlest);font-size:12px}.quick-title h2{font-size:22px;line-height:28px;margin:2px 0;overflow-wrap:anywhere}.quick-tabs{display:flex;gap:20px;padding:0 24px;border-bottom:1px solid var(--ds-border)}.quick-tabs button{padding:12px 0;border:0;border-bottom:3px solid transparent;background:none;color:var(--ds-text-subtle);font-size:14px}.quick-tabs button[aria-selected=true]{color:var(--ds-link);border-bottom-color:var(--ds-link)}.quick-scroll{padding:24px;overflow:auto;flex:1;min-height:0}.quick-scroll h3{font-size:14px;line-height:20px;margin:0 0 8px}.quick-overview{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:32px}.quick-overview p{margin:0 0 20px}.quick-facts{border:1px solid var(--ds-border);border-radius:6px;padding:16px;align-self:start}.quick-facts dl{margin:0;display:grid;grid-template-columns:100px minmax(0,1fr);gap:16px 8px}.quick-facts dt{font-size:12px;color:var(--ds-text-subtle)}.quick-facts dd{margin:0;font-size:12px;min-width:0}.quick-progress{display:flex;align-items:center;gap:12px;margin-top:20px;font-size:12px;color:var(--ds-text-subtle)}.quick-progress .bar{flex:1}.quick-footer{display:flex;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--ds-border)}.quick-footer .quick-open-full{margin-left:auto}.quick-footer small{color:var(--ds-text-subtlest);font-size:11px}.quick-table{width:100%;border-collapse:collapse}.quick-table th{font-size:12px;text-align:left;color:var(--ds-text-subtle)}.quick-table th,.quick-table td{padding:10px 8px;border-bottom:1px solid var(--ds-border);vertical-align:top}.quick-table th:first-child,.quick-table td:first-child{padding-left:0}.quick-table td:nth-child(2){width:130px}.quick-table td:last-child{width:90px;white-space:nowrap}.quick-table .work-link{font-size:13px}.quick-table .execution-note{max-width:100%}.quick-table .work-meta{font-size:11px}.quick-error{margin:12px 24px 0;padding:8px 12px;border-radius:4px;background:var(--ds-background-danger);color:var(--ds-text-danger);font-size:12px}
-@media(max-width:1000px){.plan-sidebar{width:210px;flex-basis:210px}.quick-overview{grid-template-columns:minmax(0,1fr) 250px}}@media(max-width:760px){.plan-sidebar{position:absolute;left:0;top:48px;bottom:0;z-index:9;width:240px;box-shadow:4px 0 16px #091e4226}.quick-plan{width:calc(100vw - 16px);height:calc(100dvh - 16px)}.quick-header,.quick-scroll{padding:16px}.quick-overview{grid-template-columns:1fr;gap:16px}.quick-tabs{padding:0 16px;gap:16px}.quick-footer{padding:12px 16px;flex-wrap:wrap}.quick-footer small{display:none}.quick-title h2{font-size:18px}.quick-header .pill{display:none}.quick-table td:nth-child(2){width:100px}}
-.plan-header{width:100%;margin:0;display:grid;gap:12px}.plan-heading{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.plan-heading h1{flex:1;min-width:160px}.plan-toolbar{display:flex;align-items:center;gap:12px;justify-content:flex-end}.plan-toolbar .search{max-width:290px;height:30px;font-size:12px}.plan-toolbar .btn{min-height:30px;font-size:12px}.plan-roles{display:inline-flex;align-items:center;gap:8px;color:var(--ds-text-subtle);font-size:12px}.plan-roles .role-control{gap:5px}.plan-heading .status-select{max-width:185px}.plan-header .star-toggle{margin-left:-6px}.plan-header .plan-toolbar .source-link{margin-right:auto;background:none;color:var(--ds-text-subtlest);padding-left:0}
+.quick-plan{padding:0;border:1px solid var(--ds-border);border-radius:10px;background:var(--ds-surface);color:var(--ds-text);width:min(1100px,calc(100vw - 48px));max-width:none;height:min(780px,calc(100dvh - 64px));max-height:none;box-shadow:0 16px 48px #091e4244}.quick-plan::backdrop{background:#091e4270}.quick-shell{height:100%;display:flex;flex-direction:column;min-height:0}.quick-header{padding:18px 24px;border-bottom:1px solid var(--ds-border);display:flex;align-items:center;gap:12px}.quick-title{min-width:0;flex:1}.quick-title small{color:var(--ds-text-subtlest);font-size:12px}.quick-title h2{font-size:22px;line-height:28px;margin:2px 0;overflow-wrap:anywhere}.quick-tabs{display:flex;gap:20px;padding:0 24px;border-bottom:1px solid var(--ds-border)}.quick-tabs button{padding:12px 0;border:0;border-bottom:3px solid transparent;background:none;color:var(--ds-text-subtle);font-size:14px}.quick-tabs button[aria-selected=true]{color:var(--ds-link);border-bottom-color:var(--ds-link)}.quick-scroll{padding:24px;overflow:auto;flex:1;min-height:0}.quick-scroll h3{font-size:14px;line-height:20px;margin:0 0 8px}.quick-overview{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:32px}.quick-overview p{margin:0 0 20px}.quick-facts{border:1px solid var(--ds-border);border-radius:6px;padding:16px;align-self:start}.quick-facts dl{margin:0;display:grid;grid-template-columns:100px minmax(0,1fr);gap:16px 8px}.quick-facts dt{font-size:12px;color:var(--ds-text-subtle)}.quick-facts dd{margin:0;font-size:12px;min-width:0}.quick-progress{display:flex;align-items:center;gap:12px;margin-top:20px;font-size:12px;color:var(--ds-text-subtle)}.quick-progress .bar{flex:1}.quick-footer{display:flex;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--ds-border)}.quick-footer .quick-open-full{margin-left:auto}.quick-footer small{color:var(--ds-text-subtlest);font-size:11px}.quick-table{width:100%;border-collapse:collapse}.quick-table th{font-size:12px;text-align:left;color:var(--ds-text-subtle)}.quick-table th,.quick-table td{padding:10px 8px;border-bottom:1px solid var(--ds-border);vertical-align:top}.quick-table th:first-child,.quick-table td:first-child{padding-left:0}.quick-table td:last-child{width:90px;white-space:nowrap}.quick-table .work-link{font-size:13px}.quick-table .work-meta{font-size:11px}.quick-error{margin:12px 24px 0;padding:8px 12px;border-radius:4px;background:var(--ds-background-danger);color:var(--ds-text-danger);font-size:12px}
+@media(max-width:1000px){.plan-sidebar{width:210px;flex-basis:210px}.quick-overview{grid-template-columns:minmax(0,1fr) 250px}}@media(max-width:760px){.plan-sidebar{position:absolute;left:0;top:48px;bottom:0;z-index:9;width:240px;box-shadow:4px 0 16px #091e4226}.quick-plan{width:calc(100vw - 16px);height:calc(100dvh - 16px)}.quick-header,.quick-scroll{padding:16px}.quick-overview{grid-template-columns:1fr;gap:16px}.quick-tabs{padding:0 16px;gap:16px}.quick-footer{padding:12px 16px;flex-wrap:wrap}.quick-footer small{display:none}.quick-title h2{font-size:18px}.quick-header .pill{display:none}}
+.plan-header{width:100%;margin:0;display:grid;gap:12px}.plan-heading{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.plan-heading h1{flex:1;min-width:160px}.plan-toolbar{display:flex;align-items:center;gap:12px;justify-content:flex-end}.plan-toolbar .search{max-width:290px;height:30px;font-size:12px}.plan-toolbar .btn{min-height:30px;font-size:12px}.plan-header .star-toggle{margin-left:-6px}.plan-header .plan-toolbar .source-link{margin-right:auto;background:none;color:var(--ds-text-subtlest);padding-left:0}
 .plan-summary{max-width:none}.plan-purpose{font-size:16px;line-height:25px;margin:0 0 24px;color:var(--ds-text)}.plan-purpose-label{display:block;font-size:11px;line-height:16px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;color:var(--ds-text-subtlest);margin-bottom:7px}.plan-insight{padding:16px 20px;margin:0 0 24px;border:1px solid color-mix(in srgb,var(--ds-text-warning) 25%,transparent);border-left:3px solid var(--ds-text-warning);border-radius:6px;background:var(--ds-background-warning)}.plan-insight .insight-label{display:flex;align-items:center;gap:7px;color:var(--ds-text-warning);font-size:12px;font-weight:600;margin-bottom:8px}.plan-insight .insight-label svg{width:16px;height:16px;flex-shrink:0}.plan-insight p{margin:0;line-height:22px;color:var(--ds-text)}.plan-insight .insight-next{margin-top:10px}.plan-insight .insight-next small{display:block;font-size:11px;font-weight:600;color:var(--ds-text-subtle);margin-bottom:3px}.plan-insight .insight-link{margin-top:12px;padding:0;border:0;background:none;color:var(--ds-link);font-size:12px;text-decoration:underline}.plan-insight.is-blocked{border-left-color:var(--ds-text-danger)}.plan-insight.is-blocked .insight-label{color:var(--ds-text-danger)}.plan-insight.is-recorded{background:var(--ds-surface-sunken);border-color:var(--ds-border)}.plan-insight.is-recorded .insight-label{color:var(--ds-text-subtle)}
 .plan-work-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;font-weight:600}.plan-work-title small{font-size:12px;font-weight:400;color:var(--ds-text-subtlest)}.plan-open-work .ms{margin-bottom:24px;padding-bottom:16px}.plan-open-work .ms-h{margin-bottom:8px}.plan-open-work .ms-h .c{font-size:11px}.plan-open-work .checklist-columns{margin-bottom:12px;padding-top:0}.plan-completed{border-top:1px solid var(--ds-border);margin-top:24px;padding-top:16px}.plan-completed>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:var(--ds-text-subtlest);font-size:13px;font-weight:500;padding:6px 0}.plan-completed>summary::-webkit-details-marker{display:none}.plan-completed>summary:before{content:'›';width:12px;font-size:18px}.plan-completed[open]>summary:before{content:'⌄'}.plan-completed .completed-count{font-family:var(--ds-font-family-code);font-size:11px;border-radius:4px;padding:1px 6px;background:var(--ds-background-neutral)}.plan-completed-body{padding-top:16px}.plan-completed .ms-h{margin-bottom:8px}.plan-completed .st{font-size:13px}.plan-completed .st.s-done .tx{color:var(--ds-text-subtle)}.plan-completed .quick-table td{color:var(--ds-text-subtle)}
-.report-disclosure{margin-top:5px;font-size:11px;line-height:16px;color:var(--ds-text-subtlest)}.report-disclosure>summary{cursor:pointer;width:fit-content;max-width:100%}.report-disclosure[open]>summary{color:var(--ds-link)}.report-body{margin:8px 0 4px;padding:10px 12px;background:var(--ds-surface-sunken);border-radius:4px;color:var(--ds-text-subtle);font-size:12px;line-height:19px;white-space:normal;overflow-wrap:anywhere}.plan-notes{margin:16px 0;color:var(--ds-text-subtlest);font-size:12px}.plan-notes>summary{cursor:pointer}.plan-notes[open]>summary{margin-bottom:8px}.plan-notes .report-body{margin-top:8px}.plan-context-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ds-text-subtlest);margin-top:24px}.focus-work-list{list-style:none;padding:0;margin:0 0 24px}.focus-work-list>li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--ds-border)}.focus-work-list .work-link{flex:1;font-size:13px;line-height:21px}.focus-work-list .tag{margin-top:2px}.plan-summary .section-link{font-size:12px;margin-top:8px;padding:0;border:0;background:none;color:var(--ds-link)}.plan-no-open{padding:12px 0;color:var(--ds-text-subtlest);font-size:13px}.st.s-doing>.tag{color:var(--ds-text-information);background:var(--ds-background-information)}.st.s-blocked>.tag{color:var(--ds-text-danger);background:var(--ds-background-danger)}.st.s-partial>.tag{color:var(--ds-text-warning);background:var(--ds-background-warning)}.st.s-done>.tag{color:var(--ds-text-success);background:var(--ds-background-success)}.quick-scroll .plan-summary{max-width:none}.quick-scroll .plan-purpose{font-size:15px;line-height:24px}.quick-scroll .plan-insight{margin-bottom:20px}.quick-header .quick-state{flex-shrink:0}.quick-tabs button{white-space:nowrap}
-@media(max-width:900px){.plan-heading h1{font-size:21px}.plan-roles{width:100%;padding-left:0}.plan-heading{gap:8px}.plan-toolbar{gap:8px}.plan-toolbar .search{flex:1;max-width:100%;min-width:120px}.plan-insight{padding:14px 16px}.plan-purpose{font-size:15px}.quick-header .quick-state{display:none}}
-.status-todo{--status-fg:var(--ds-text-subtle);--status-bg:var(--ds-background-neutral)}.status-doing{--status-fg:var(--ds-text-information);--status-bg:var(--ds-background-information)}.status-review{--status-fg:var(--ds-text-discovery);--status-bg:var(--ds-background-discovery)}.status-waiting{--status-fg:var(--ds-text-warning);--status-bg:var(--ds-background-warning)}.status-blocked{--status-fg:var(--ds-text-danger);--status-bg:var(--ds-background-danger)}.status-done{--status-fg:var(--ds-text-success);--status-bg:var(--ds-background-success)}.status-select[class*=status-],.pill[class*=status-]{color:var(--status-fg,var(--ds-text));background-color:var(--status-bg,var(--ds-background-neutral));border:1px solid color-mix(in srgb,var(--status-fg,var(--ds-border)) 24%,transparent);font-weight:600}.status-select[class*=status-]:hover{background-color:var(--status-bg)}.status-select option{background:var(--ds-surface);color:var(--ds-text);font-weight:400}.status-select option[class*=status-]{color:var(--status-fg)}.plan-state-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--status-fg,var(--ds-text-subtlest));vertical-align:middle}.sidebar-plan.is-done:not(.current) .sidebar-plan-link>span{color:var(--ds-text-subtlest)}.quick-role-line{padding:0 24px 12px}.quick-role-line:empty{display:none}.quick-group-row td{font-size:12px;font-weight:600;color:var(--ds-text-subtle);background:var(--ds-surface-sunken)}.focus-work-list .s-doing,.quick-table .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.focus-work-list .s-blocked,.quick-table .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.focus-work-list .s-partial,.quick-table .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}.quick-table .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}
+.report-body{margin:8px 0 4px;padding:10px 12px;background:var(--ds-surface-sunken);border-radius:4px;color:var(--ds-text-subtle);font-size:12px;line-height:19px;white-space:normal;overflow-wrap:anywhere}.plan-notes{margin:16px 0;color:var(--ds-text-subtlest);font-size:12px}.plan-notes>summary{cursor:pointer}.plan-notes[open]>summary{margin-bottom:8px}.plan-notes .report-body{margin-top:8px}.plan-context-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ds-text-subtlest);margin-top:24px}.focus-work-list{list-style:none;padding:0;margin:0 0 24px}.focus-work-list>li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--ds-border)}.focus-work-list .work-link{flex:1;font-size:13px;line-height:21px}.focus-work-list .tag{margin-top:2px}.plan-summary .section-link{font-size:12px;margin-top:8px;padding:0;border:0;background:none;color:var(--ds-link)}.plan-no-open{padding:12px 0;color:var(--ds-text-subtlest);font-size:13px}.st.s-doing>.tag{color:var(--ds-text-information);background:var(--ds-background-information)}.st.s-blocked>.tag{color:var(--ds-text-danger);background:var(--ds-background-danger)}.st.s-partial>.tag{color:var(--ds-text-warning);background:var(--ds-background-warning)}.st.s-done>.tag{color:var(--ds-text-success);background:var(--ds-background-success)}.quick-scroll .plan-summary{max-width:none}.quick-scroll .plan-purpose{font-size:15px;line-height:24px}.quick-scroll .plan-insight{margin-bottom:20px}.quick-header .quick-state{flex-shrink:0}.quick-tabs button{white-space:nowrap}
+@media(max-width:900px){.plan-heading h1{font-size:21px}.plan-heading{gap:8px}.plan-toolbar{gap:8px}.plan-toolbar .search{flex:1;max-width:100%;min-width:120px}.plan-insight{padding:14px 16px}.plan-purpose{font-size:15px}.quick-header .quick-state{display:none}}
+.status-todo{--status-fg:var(--ds-text-subtle);--status-bg:var(--ds-background-neutral)}.status-doing{--status-fg:var(--ds-text-information);--status-bg:var(--ds-background-information)}.status-review{--status-fg:var(--ds-text-discovery);--status-bg:var(--ds-background-discovery)}.status-waiting{--status-fg:var(--ds-text-warning);--status-bg:var(--ds-background-warning)}.status-blocked{--status-fg:var(--ds-text-danger);--status-bg:var(--ds-background-danger)}.status-done{--status-fg:var(--ds-text-success);--status-bg:var(--ds-background-success)}.pill[class*=status-]{color:var(--status-fg,var(--ds-text));background-color:var(--status-bg,var(--ds-background-neutral));border:1px solid color-mix(in srgb,var(--status-fg,var(--ds-border)) 24%,transparent);font-weight:600}.plan-state-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--status-fg,var(--ds-text-subtlest));vertical-align:middle}.sidebar-plan.is-done:not(.current) .sidebar-plan-link>span{color:var(--ds-text-subtlest)}.quick-group-row td{font-size:12px;font-weight:600;color:var(--ds-text-subtle);background:var(--ds-surface-sunken)}.focus-work-list .s-doing,.quick-table .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.focus-work-list .s-blocked,.quick-table .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.focus-work-list .s-partial,.quick-table .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}.quick-table .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}
 .task-card .task-progress .bar i{background:var(--status-fg,var(--ds-link))}.nav .item[data-go=waiting] .badge{background:var(--ds-background-warning);color:var(--ds-text-warning)}.plan-insight p+p{margin-top:8px}
 /* ---------- Shared components (orca-ui-spec.md section 3) ---------- */
 .appbar { background: var(--bg); }
@@ -591,6 +577,26 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .repo-list small { color: var(--muted-fg); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .project-actions { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-3); }
 .project-actions small { color: var(--muted-fg); font-size: var(--text-xs); }
+.integration-card.is-disabled .project-title, .integration-card.is-disabled .project-summary { opacity: .6; }
+.integration-edit { display: grid; gap: var(--s-2); margin-top: var(--s-3); }
+.integration-field { display: grid; gap: var(--s-1); font-size: var(--text-xs); color: var(--muted-fg); }
+.integration-field .input { font-family: var(--font-mono); color: var(--fg); }
+.integration-reminder { display: grid; gap: var(--s-1); margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); }
+.integration-reminder-state { display: flex; align-items: center; gap: var(--s-2); color: var(--muted-fg); font-size: var(--text-xs); }
+.diff-panel { margin-top: var(--s-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg); overflow: hidden; }
+.diff-head { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--border); font-size: var(--text-xs); }
+.diff-legend { display: inline-flex; gap: var(--s-3); margin-left: auto; color: var(--muted-fg); }
+.diff-body { max-height: 320px; overflow: auto; padding: var(--s-1) 0; font: 12px/18px var(--font-mono); }
+.diff-line { display: flex; gap: var(--s-2); padding: 0 var(--s-3); white-space: pre-wrap; overflow-wrap: anywhere; }
+.diff-line.is-del, .diff-legend .is-del { background: var(--danger-bg); color: var(--danger); }
+.diff-line.is-add, .diff-legend .is-add { background: var(--success-bg); color: var(--success); }
+.diff-op { width: 10px; flex-shrink: 0; }
+.diff-empty { margin: 0; padding: var(--s-2) var(--s-3); color: var(--muted-fg); font-family: var(--font-ui); }
+.review-list { display: grid; gap: var(--s-2); margin: var(--s-3) 0 0; padding: var(--s-3) var(--s-4); list-style: none; border: 1px solid var(--border); border-radius: var(--r-lg); font-size: var(--text-xs); }
+.review-list li { display: grid; gap: 2px; overflow-wrap: anywhere; }
+.setup-check { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--primary); }
+.added-row.is-disabled { opacity: .6; }
+.added-row label.added-text { cursor: pointer; }
 @media (max-width: 760px) {
   .settings-shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .settings-nav { border-right: 0; border-bottom: 1px solid var(--border); max-height: 40vh; }
@@ -636,7 +642,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .sidebar-footer { display:flex;align-items:center;gap:6px;border-top:1px solid var(--border);margin:8px -8px 0;padding:6px 8px; }
 .archive-nav { display:flex;align-items:center;gap:8px;flex:1;padding:6px 8px;border:0;border-radius:5px;background:transparent;color:var(--muted-fg);text-align:left;font-size:12px; }.archive-nav>svg { width:15px;height:15px; }.archive-nav>small { margin-left:auto;font-size:10px; }.archive-nav.on,.archive-nav:hover { background:var(--panel-accent);color:var(--fg); }
 .top { padding:22px 24px 18px;gap:10px; }.top h1 { font-size:19px;line-height:26px;font-weight:500;letter-spacing:-.02em; }
-.sub { border-left:1px solid var(--border);padding-left:10px;font-size:11px; }.top .search { width:min(240px,25vw);margin-left:auto;background:var(--card);box-shadow:none; }.top .btn,.top .agent-filter { font-size:12px;height:30px; }
+.sub { border-left:1px solid var(--border);padding-left:10px;font-size:11px; }.top .search { width:min(240px,25vw);margin-left:auto;background:var(--card);box-shadow:none; }.top .btn { font-size:12px;height:30px; }
 .view { padding:0 24px 24px; }.view.detail { padding-top:22px; }
 .filter-notice { padding:6px 10px;margin-bottom:14px;background:transparent;color:var(--muted-fg);font-size:11px;border-color:var(--border); }.filter-notice .btn { min-height:24px;font-size:11px;border:0;box-shadow:none;background:transparent; }
 .archive-view { max-width:1000px; }.archive-lead { margin:0 0 12px;color:var(--muted-fg);font-size:12px; }.archive-view .summary-plan { padding:18px 12px; }.archive-view .summary-plan:hover { background:var(--hover); }
@@ -686,7 +692,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .summary-plan .pill { font-size:10px;white-space:nowrap;flex-shrink:0; }
 .summary-next { margin:8px 0 12px;font-size:13px;line-height:21px;color:var(--ds-text-subtle);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere; }
 .summary-plan-meta { display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted-fg); }
-.summary-plan-meta .agent-chip { font-size:11px; }
 .summary-plan-meta .bar { margin-left:auto;width:70px;flex-shrink:0;height:3px; }
 .summary-plan-meta .bar i { background:var(--muted-fg); }
 .status-overview { margin-top:12px;gap:16px; }
@@ -702,18 +707,10 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .summary-feed .msg { padding:12px 0; }
 .summary-feed .ch { color:var(--ds-text-subtle); }
 .summary-feed .mb { font-size:12px;line-height:20px; }
-.agent-workload { margin-top:14px;gap:4px; }
-.workload-row { grid-template-columns:76px minmax(24px,1fr) auto;padding:10px 0;gap:12px;border-radius:5px; }
-.workload-row .agent-chip { min-width:0; }
-.workload-bar { height:4px; }
-.workload-bar i { background:var(--muted-fg); }
-.workload-counts strong { font-size:11px;font-weight:500; }
-.workload-counts small { font-size:10px; }
 .quick-plan { width:min(1160px,calc(100vw - 80px));height:min(800px,calc(100dvh - 80px));background:var(--bg);border-radius:12px;box-shadow:var(--shadow-dialog); }
 .quick-plan::backdrop,.command-dialog::backdrop { background:var(--overlay);backdrop-filter:blur(4px); }
 .quick-header { padding:24px 28px 14px;border-bottom:0; }
 .quick-title h2 { font-size:22px;line-height:30px;letter-spacing:-.02em;font-weight:600; }
-.quick-role-line { padding:0 28px 18px; }
 .quick-tabs { padding:0 28px;gap:24px; }
 .quick-tabs button { font-size:12px;border-bottom-width:2px; }
 .quick-tabs button[aria-selected=true] { color:var(--fg);border-bottom-color:var(--fg); }
@@ -724,8 +721,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .quick-plan.is-docked[open] { display:flex; }.is-docked .quick-shell { width:100%;min-width:0; }
 .is-docked .quick-header { padding:18px 18px 10px;gap:8px;align-items:flex-start; }.is-docked .quick-title small { font-size:10px; }.is-docked .quick-title h2 { font-size:17px;line-height:24px;margin-top:4px; }.is-docked .quick-state { display:none; }
 .quick-dock-state { display:none; }.is-docked .quick-dock-state { display:block;margin-top:8px; }
-.is-docked .quick-role-line { padding:0 18px 16px; }.is-docked .plan-roles { flex-wrap:wrap;gap:8px;font-size:11px; }.is-docked .plan-roles .role-arrow { display:none; }
-.is-docked .quick-tabs { padding:0 18px;gap:20px; }.is-docked .quick-scroll { padding:20px 18px; }.is-docked .plan-summary { padding:0; }.is-docked .plan-purpose { font-size:13px;line-height:22px; }.is-docked .plan-insight { padding:14px;margin-top:16px; }.is-docked .plan-insight p { font-size:13px;line-height:22px; }.is-docked .plan-facts { display:block; }.is-docked .quick-footer { padding:10px 12px;gap:4px;flex-wrap:wrap; }.is-docked .quick-footer .btn { font-size:11px;min-height:28px;padding:0 8px; }.is-docked .quick-footer small { display:none; }.is-docked .quick-footer .icon-btn { width:26px;height:26px; }.is-docked .quick-table { table-layout:fixed; }.is-docked .quick-table td:nth-child(2) { width:78px; }.is-docked .quick-table td:last-child { width:72px; }.is-docked .quick-table .agent-chip { font-size:10px;gap:3px;white-space:normal; }.is-docked .quick-table td { padding:10px 4px; }.is-docked .quick-table .agent-icon { width:16px;height:16px; }.is-docked .quick-table .work-link { font-size:12px;line-height:20px; }.is-docked .quick-table .tag { font-size:10px;white-space:normal; }.is-docked .msg { grid-template-columns:minmax(0,1fr); }.is-docked .msg>.av { display:none; }.is-docked .mh { flex-wrap:wrap; }.is-docked .quick-error { margin:10px 18px 0; }
+.is-docked .quick-tabs { padding:0 18px;gap:20px; }.is-docked .quick-scroll { padding:20px 18px; }.is-docked .plan-summary { padding:0; }.is-docked .plan-purpose { font-size:13px;line-height:22px; }.is-docked .plan-insight { padding:14px;margin-top:16px; }.is-docked .plan-insight p { font-size:13px;line-height:22px; }.is-docked .plan-facts { display:block; }.is-docked .quick-footer { padding:10px 12px;gap:4px;flex-wrap:wrap; }.is-docked .quick-footer .btn { font-size:11px;min-height:28px;padding:0 8px; }.is-docked .quick-footer small { display:none; }.is-docked .quick-footer .icon-btn { width:26px;height:26px; }.is-docked .quick-table { table-layout:fixed; }.is-docked .quick-table td:nth-child(2) { width:78px; }.is-docked .quick-table td:last-child { width:72px; }.is-docked .quick-table td { padding:10px 4px; }.is-docked .quick-table .work-link { font-size:12px;line-height:20px; }.is-docked .quick-table .tag { font-size:10px;white-space:normal; }.is-docked .msg { grid-template-columns:minmax(0,1fr); }.is-docked .msg>.av { display:none; }.is-docked .mh { flex-wrap:wrap; }.is-docked .quick-error { margin:10px 18px 0; }
 .inspector-resize { position:relative;flex:0 0 1px;width:1px;z-index:3;cursor:col-resize;touch-action:none; }.inspector-resize::after { position:absolute;content:"";top:0;bottom:0;left:-3px;width:7px; }.inspector-resize:hover,.inspector-resize:focus-visible { background:var(--ring);box-shadow:0 0 0 1px var(--ring); }
 @container (max-width:1000px) { .summary-grid { grid-template-columns:1fr; }.summary-focus { grid-row:auto; }.summary-stats { grid-template-columns:repeat(4,1fr); }.summary-stat { padding:14px; }.summary-stat>strong { font-size:22px; }.summary-plan { padding:14px 0; }.top .search { width:180px; }.summary-feed { max-height:300px; } }
 @container (max-width:740px) { .summary-stats { grid-template-columns:repeat(2,1fr); }.summary-stat:nth-child(2) { border-right:0; }.summary-stat:nth-child(-n+2) { border-bottom:1px solid var(--border); }.top .search { flex:1 1 130px;width:auto; }.top h1 { font-size:18px; }.top { padding:18px; }.view { padding-left:18px;padding-right:18px; }.summary-panel { padding:18px; }.summary-grid { gap:16px; } }
@@ -754,7 +750,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .command-footer { display:flex;gap:18px;padding:10px 16px;border-top:1px solid var(--border);color:var(--muted-fg);font-size:11px; }
 .command-footer>span { display:flex;align-items:center;gap:6px; }
 @media (hover:none) { .sidebar-plan .star-toggle[aria-pressed=false] { opacity:1; } }
-@media (max-width:760px) { .appbar { padding:0 8px;gap:8px;height:38px;min-height:38px;flex-wrap:nowrap; }.command-open { width:min(360px,65vw); }.plan-sidebar { position:absolute;top:38px;bottom:24px;z-index:9;width:244px;box-shadow:var(--shadow-floating); }.workspace-strip { min-height:38px; }.nav { order:0;width:auto;min-height:0;gap:0; }.item { padding:0 12px;font-size:11px; }.top { padding:18px 16px 16px; }.view { padding:0 16px 24px; }.view.detail { padding-top:20px; }.top .search { width:auto;flex:1 1 140px; }.summary-panel { padding:18px; }.summary-plan-meta { flex-wrap:wrap;gap:8px; }.summary-plan-meta .bar { width:48px; }.quick-plan { width:calc(100vw - 24px);height:calc(100dvh - 32px); }.quick-header,.quick-scroll { padding:20px; }.quick-role-line { padding:0 20px 16px; }.quick-tabs { padding:0 20px; }.quick-footer { padding:12px 20px; }.tabs { padding:0 16px; }.top .btn .kbd { display:none; } }
+@media (max-width:760px) { .appbar { padding:0 8px;gap:8px;height:38px;min-height:38px;flex-wrap:nowrap; }.command-open { width:min(360px,65vw); }.plan-sidebar { position:absolute;top:38px;bottom:24px;z-index:9;width:244px;box-shadow:var(--shadow-floating); }.workspace-strip { min-height:38px; }.nav { order:0;width:auto;min-height:0;gap:0; }.item { padding:0 12px;font-size:11px; }.top { padding:18px 16px 16px; }.view { padding:0 16px 24px; }.view.detail { padding-top:20px; }.top .search { width:auto;flex:1 1 140px; }.summary-panel { padding:18px; }.summary-plan-meta { flex-wrap:wrap;gap:8px; }.summary-plan-meta .bar { width:48px; }.quick-plan { width:calc(100vw - 24px);height:calc(100dvh - 32px); }.quick-header,.quick-scroll { padding:20px; }.quick-tabs { padding:0 20px; }.quick-footer { padding:12px 20px; }.tabs { padding:0 16px; }.top .btn .kbd { display:none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .spin { border-right-color: currentColor; border-bottom-color: transparent; }
@@ -800,14 +796,16 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 <section class="onboarding" id="onboarding" hidden></section>
 <script>
 (function () {
-  var D = { state: { plans: [], slots: {} }, activity: [], now: '' };
-  var ui = load('wb-ui', { view: 'home', layout: 'summary', tab: 'summary', q: '', agent: 'all' });
+  var D = { state: { plans: [] }, activity: [], now: '' };
+  var ui = load('wb-ui', { view: 'home', layout: 'summary', tab: 'summary', q: '' });
   if (ui.view === 'activity') ui.view = 'home';
   if (!['board','list','timeline','summary'].includes(ui.layout)) ui.layout = 'summary';
-  // Clear saved search/agent filters on opening; List starts with tasks in progress.
-  ui.agent='all';ui.q='';ui.activityDay='';
+  // Clear saved search filters on opening; List starts with tasks in progress.
+  // Filters from retired features (agent, result, updated date) are dropped from saved preferences.
+  delete ui.agent;delete ui.taskResult;delete ui.taskDates;
+  ui.q='';ui.activityDay='';
   ui.taskStatus='doing';ui.focusTask=null;
-  ui.taskPlans=null;ui.taskWork='';ui.taskResult='';ui.taskDates={mode:'all',from:'',to:''};
+  ui.taskPlans=null;ui.taskWork='';
   if(!['none','plan'].includes(ui.taskGroup))ui.taskGroup='none';
   if(!ui.collapsedPlans || typeof ui.collapsedPlans!=='object' || Array.isArray(ui.collapsedPlans))ui.collapsedPlans={};
   if(!ui.planDetails || typeof ui.planDetails!=='object' || Array.isArray(ui.planDetails))ui.planDetails={};
@@ -872,7 +870,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       download:'M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14',arrowUp:'M12 19V5M6.5 10.5 12 5l5.5 5.5',alert:'M12 3.5 2.5 20h19ZM12 10v4.5M12 17.2h.01',
       alertCircle:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 8v5M12 16h.01',check:'m5 12.5 4.5 4.5L19 7.5',bolt:'M13 3 5 14h6l-1 7 8-11h-6Z',
       shield:'M12 3 5 6v5.5c0 4.2 2.9 7.6 7 9.5 4.1-1.9 7-5.3 7-9.5V6Z',file:'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8ZM14 3v5h5M9 13h6M9 17h4',
-      trash:'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'};
+      trash:'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',plug:'M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0ZM12 17v4'};
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+paths[name]+'"/></svg>';
   }
   function starButton(p,id){var on=navigation.starred.includes(key(p)),label=(on?'Unstar ':'Star ')+p.name;return '<button'+(id?' id="'+id+'"':'')+' class="icon-btn star-toggle" data-star-plan="'+esc(key(p))+'" aria-pressed="'+on+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+icon('star')+'</button>';}
@@ -964,7 +962,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function quickRowsTable(p,rows){
     if(!rows.length)return '';
     var groups=groupedPlanRows(p,rows);
-    return '<table class="quick-table"><thead><tr><th scope="col">Work</th><th scope="col">Agent</th><th scope="col">Status</th></tr></thead><tbody>'+groups.map(function(g){return (g.milestone?'<tr class="quick-group-row"><td colspan="3">'+esc(g.milestone.title)+'</td></tr>':'')+g.rows.map(function(r){var s=r.s;return '<tr><td><button class="work-link" data-open-task="'+esc(key(p))+'" data-task-index="'+r.index+'" data-task-revision="'+esc(p.revision || '')+'">'+esc(s.text)+'</button>'+executionDisclosure(s,p.gh,p,'quick','')+'</td><td>'+stepExecution(s,true)+'</td><td><span class="tag s-'+s.status+'">'+esc(TASK_STATUSES[s.status] || s.status)+'</span></td></tr>';}).join('');}).join('')+'</tbody></table>';
+    return '<table class="quick-table"><thead><tr><th scope="col">Work</th><th scope="col">Status</th></tr></thead><tbody>'+groups.map(function(g){return (g.milestone?'<tr class="quick-group-row"><td colspan="2">'+esc(g.milestone.title)+'</td></tr>':'')+g.rows.map(function(r){var s=r.s;return '<tr><td><button class="work-link" data-open-task="'+esc(key(p))+'" data-task-index="'+r.index+'" data-task-revision="'+esc(p.revision || '')+'">'+esc(s.text)+'</button></td><td><span class="tag s-'+s.status+'">'+esc(TASK_STATUSES[s.status] || s.status)+'</span></td></tr>';}).join('');}).join('')+'</tbody></table>';
   }
   function quickChecklist(p){
     var rows=scopedPlanRows(p,''),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
@@ -978,7 +976,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(!p){host.innerHTML='<div class="quick-header"><h2 id="quick-plan-title">Plan unavailable</h2><button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view">'+icon('close')+'</button></div><div class="quick-scroll"><p>This plan is no longer in the current data. Refresh to check again.</p></div>';if($('quick-close'))$('quick-close').focus();return;}
     var body=quick.tab==='checklist'?quickChecklist(p):quick.tab==='activity'?feedHTML(feedFor(p),false,100,true):quickOverview(p);
     var checked=D.state.generatedAt,reason=errorUI.reason,remaining=p.steps.filter(function(s){return s.status!=='done';}).length;
-    var header='<div class="quick-header"><div class="quick-title"><small>Plan details · '+esc(repoLabel(p))+'</small><h2 id="quick-plan-title">'+esc(p.name)+'</h2><span class="quick-dock-state">'+pill(p)+'</span></div><span class="quick-state">'+pill(p)+'</span>'+starButton(p,'quick-star')+'<button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view" title="Close (Esc)">'+icon('close')+'</button></div><div class="quick-role-line">'+planRoles(p)+'</div>';
+    var header='<div class="quick-header"><div class="quick-title"><small>Plan details · '+esc(repoLabel(p))+'</small><h2 id="quick-plan-title">'+esc(p.name)+'</h2><span class="quick-dock-state">'+pill(p)+'</span></div><span class="quick-state">'+pill(p)+'</span>'+starButton(p,'quick-star')+'<button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view" title="Close (Esc)">'+icon('close')+'</button></div>';
     var tabs='<div class="quick-tabs" role="tablist" aria-label="Quick view tabs">'+[['overview','Summary'],['checklist','Work'],['activity','Activity']].map(function(a){return '<button role="tab" id="quick-tab-'+a[0]+'" data-quick-tab="'+a[0]+'" aria-selected="'+(quick.tab===a[0])+'" aria-controls="quick-plan-scroll" tabindex="'+(quick.tab===a[0]?'0':'-1')+'">'+a[1]+(a[0]==='checklist'?' '+remaining:'')+'</button>';}).join('')+'</div>';
     var footer='<div class="quick-footer"><button class="icon-btn" id="quick-prev" data-quick-step="-1" aria-label="Previous plan" title="Previous plan (Alt+Up)">←</button><button class="icon-btn" id="quick-next" data-quick-step="1" aria-label="Next plan" title="Next plan (Alt+Down)">→</button><button class="btn" id="quick-refresh" data-quick-refresh>Refresh</button><small>'+esc(checked?'Checked '+hhmm(checked):'No successful progress check yet')+'</small><button class="btn quick-open-full" id="quick-full" data-quick-full>Open full plan ↗</button></div>';
     host.innerHTML=header+tabs+'<div class="quick-error" id="quick-error" role="status"'+(!reason?' hidden':'')+'>'+esc(reason)+'</div><div class="quick-scroll" id="quick-plan-scroll" role="tabpanel" aria-labelledby="quick-tab-'+quick.tab+'" tabindex="0">'+body+'</div>'+footer;
@@ -1015,7 +1013,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var ev = D.activity.filter(function (e) { return !p || (e.repo === p.repo && e.plan === p.name && (!e.project || !p.project || e.project === p.project)); });
     var known = {}; ev.forEach(function (e) { var pl = planByKey(eventKey(e)); known[(pl ? key(pl) : eventKey(e)) + '|' + e.kind + '|' + e.text] = 1; });
     (p ? [p] : D.state.plans).forEach(function (pl) {
-      var who = pl.slot && pl.slot.by ? pl.slot.by : pl.owner || pl.repo;
+      var who = owner(pl);
       pl.decisions.forEach(function (d) { var t = stampTime(d); if (t && !known[key(pl) + '|decision|' + d.text]) ev.push({ ts: t, project: pl.project, repo: pl.repo, plan: pl.name, kind: 'decision', text: d.text, actor: who }); });
       pl.questions.forEach(function (q) { var t = stampTime(q); if (t && !known[key(pl) + '|question|' + q.ask]) ev.push({ ts: t, project: pl.project, repo: pl.repo, plan: pl.name, kind: 'question', text: q.ask, extra: q.open ? '' : q.answer, actor: who }); });
     });
@@ -1025,10 +1023,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   var LABEL = { decision: 'Decision', question: 'Question', answer: 'Answered', milestone: 'Milestone done', waiting: 'Waiting for you', blocked: 'Blocked', stale: 'Stale', partial: 'Partly done' };
   function msgBody(e, gh) {
     switch (e.kind) {
-      case 'execution': return '<span class="x">executors assigned</span> '+esc(e.text);
-      case 'execution-report': return '<span class="x">'+prs(e.extra,gh)+'</span> '+prs(e.text,gh);
-      case 'step-assignment': return '<span class="x">task assigned · '+esc(e.extra)+'</span> '+prs(e.text,gh);
-      case 'assignment': return '<span class="x">coordinator assigned</span> '+esc(e.text);
       case 'new': return '<span class="x">opened the plan</span>' + (e.extra ? ' · ' + prs(e.extra, gh) : '');
       case 'closed': return '<span class="x">closed the plan</span>';
       case 'status': return '<span class="x">moved</span> <b>' + prs(e.text, gh) + '</b>' + (detail(e.extra) ? '<div class="x">' + prs(detail(e.extra), gh) + '</div>' : '');
@@ -1046,8 +1040,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     list.filter(function (e) { return !q || (e.plan + ' ' + e.text + ' ' + (e.extra || '')).toLowerCase().indexOf(q) >= 0; }).slice(0, limit || 400).forEach(function (e) {
       var d = dayLabel(e.ts); if (d !== lastDay) { out.push('<div class="day">' + d + '</div>'); lastDay = d; }
       var p = planByKey(eventKey(e)) || {};
-      var actor=e.actor || p.owner || e.repo,contextActor=!showChannel && ([p.name,p.repo,'agent'].includes(actor) || actor===e.agent);
-      out.push('<div class="msg'+(contextActor?' context-actor':'')+'">'+(contextActor?'':'<div class="av" aria-hidden="true" style="background:'+color(actor)+'">'+esc(initials(actor))+'</div>')+'<div><div class="mh">'+(contextActor?'':'<b>'+esc(actor)+'</b>')+(e.agent?agentChain({agent:e.agent,executors:e.executors}):'') +
+      var actor=e.actor || p.owner || e.repo,contextActor=!showChannel && [p.name,p.repo,'agent'].includes(actor);
+      out.push('<div class="msg'+(contextActor?' context-actor':'')+'">'+(contextActor?'':'<div class="av" aria-hidden="true" style="background:'+color(actor)+'">'+esc(initials(actor))+'</div>')+'<div><div class="mh">'+(contextActor?'':'<b>'+esc(actor)+'</b>') +
         (showChannel ? '<span class="ch" data-go="plan:' + esc(p.name ? key(p) : eventKey(e)) + '"># ' + esc(e.plan) + '</span>' : '') + '<time>' + hhmm(e.ts) + '</time></div><div class="mb">' + msgBody(e, p.gh) + '</div></div></div>');
     });
     return out.length ? '<div class="feed">' + out.join('') + '</div>' : '<div class="empty">No activity yet</div>';
@@ -1062,14 +1056,14 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var words=commandText(commandState.query).trim().split(/\s+/).filter(Boolean);
     function matches(text){text=commandText(text);return words.every(function(word){return text.includes(word);});}
     var actions=Object.keys(LAYOUTS).map(function(name,i){return {label:LAYOUTS[name],detail:'View',keys:'Ctrl '+(i+1),run:function(){switchLayout(name);}};}).concat([
-      {label:'Needs attention',detail:'View',run:function(){if(quick.key)closeQuickPlan(false);ui.view='waiting';ui.layout='summary';ui.q='';ui.agent='all';save('wb-ui',ui);render();$('view').scrollTop=0;}},
+      {label:'Needs attention',detail:'View',run:function(){if(quick.key)closeQuickPlan(false);ui.view='waiting';ui.layout='summary';ui.q='';save('wb-ui',ui);render();$('view').scrollTop=0;}},
       {label:'Refresh progress',detail:'Action',keys:'F5',run:refresh},
       {label:'Toggle plans sidebar',detail:'Action',keys:'Ctrl B',run:function(){navigation.collapsed=!navigation.collapsed;save('wb-navigation',navigation);renderSidebar();}},
       {label:'Plan details',detail:'Panel',run:toggleInspector},
       {label:'Archive',detail:'View',run:function(){openArchive();}},
       {label:'Settings',detail:'Preferences',keys:'Ctrl ,',run:function(){openSettings('general');}}
     ]);
-    var matching=plans().filter(function(p){return matches(p.name+' '+p.repo+' '+(p.goal || ''));}).sort(function(a,b){return Number(navigation.starred.includes(key(b)))-Number(navigation.starred.includes(key(a))) || String(b.executionUpdatedAt || b.mtime).localeCompare(String(a.executionUpdatedAt || a.mtime));}).slice(0,words.length?30:5).map(function(p){return {label:p.name,detail:repoLabel(p)+' \u00b7 '+stage(p.status),plan:p,run:function(){openQuickPlan(key(p));}};});
+    var matching=plans().filter(function(p){return matches(p.name+' '+p.repo+' '+(p.goal || ''));}).sort(function(a,b){return Number(navigation.starred.includes(key(b)))-Number(navigation.starred.includes(key(a))) || String(b.mtime).localeCompare(String(a.mtime));}).slice(0,words.length?30:5).map(function(p){return {label:p.name,detail:repoLabel(p)+' \u00b7 '+stage(p.status),plan:p,run:function(){openQuickPlan(key(p));}};});
     return matching.concat(actions.filter(function(a){return matches(a.label+' '+a.detail);}));
   }
   function renderCommands(){
@@ -1120,12 +1114,9 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function topBar(title, sub, taskRows) {
     if (viewOnly) return;
     $('top').innerHTML = '<h1>' + title + '</h1>' + (sub ? '<span class="sub" id="plan-count">' + sub + '</span>' : '') +
-      '<input class="search" id="q" title="Filter this view (/)" aria-label="Search work" placeholder="'+(taskRows?'Search tasks':'Search work')+'" value="' + esc(ui.q) + '">'+(taskRows?'':agentFilter())+'<button class="btn" id="refresh" title="Refresh (F5)">'+icon('refresh')+'Refresh<kbd class="kbd">F5</kbd></button>';
+      '<input class="search" id="q" title="Filter this view (/)" aria-label="Search work" placeholder="'+(taskRows?'Search tasks':'Search work')+'" value="' + esc(ui.q) + '"><button class="btn" id="refresh" title="Refresh (F5)">'+icon('refresh')+'Refresh<kbd class="kbd">F5</kbd></button>';
   }
   var COLUMNS = ['To do', 'In progress', 'Review & test', 'Waiting', 'Done'];
-  var COLUMN_STAGES = ['Planning', 'Implementing', 'Reviewing', 'Waiting for owner', 'Done'];
-  var PLAN_STAGES = ['Planning', 'Implementing', 'Reviewing', 'Fixing review', 'Testing', 'Waiting for CI', 'Waiting for owner', 'Shipping', 'Blocked', 'Done'];
-  var dragged = null, saving = false;
   function columnOf(p) {
     var s = stage(p.status).toLowerCase();
     if (s === 'done') return 4;
@@ -1135,72 +1126,26 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if (s !== 'planning' && counts(p).blocked) return 3;
     return 0;
   }
-  function owner(p) { return p.slot && p.slot.by || p.owner || p.repo; }
+  function owner(p) { return p.owner || p.repo; }
   function needsAttention(p) {return isWaiting(p) || counts(p).blocked || stage(p.status)==='Blocked' || isStale(p) || p.questions.some(function(q){return q.open;});}
   function taskCard(p) {
     var c=counts(p), who=owner(p), waiting=p.questions.filter(function(q){return q.open;}).length;
-    return '<article class="task-card status-'+statusTone(p.status)+'" draggable="'+(!saving && !!p.revision)+'" data-plan="'+esc(key(p))+'" data-go="plan:'+esc(key(p))+'">' +
+    return '<article class="task-card status-'+statusTone(p.status)+'" data-go="plan:'+esc(key(p))+'">' +
       '<div class="task-heading"><div class="task-repo" title="'+esc(repoLabel(p))+'">'+esc(repoLabel(p))+'</div><time class="task-edited" title="'+esc(p.mtime)+'">'+ago(p.mtime)+'</time>'+starButton(p)+'</div>' +
       '<button class="task-title" data-preview-plan="'+esc(key(p))+'" title="Quick view: '+esc(p.name)+'">'+esc(p.name)+'</button>' +
       '<div class="task-status">'+pill(p)+(isStale(p)?'<span class="pill t-bad">Stale</span>':'')+(waiting?'<span class="pill t-pending">'+waiting+' open question'+(waiting>1?'s':'')+'</span>':'')+'</div>' +
       (detail(p.status)?'<div class="stage-detail">'+prs(detail(p.status),p.gh)+'</div>':'') +
       (p.next?'<div class="task-next">'+prs(p.next,p.gh)+'</div>':'') +
       '<div class="task-progress"><div class="bar" role="progressbar" aria-label="Steps done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct(p)+'"><i style="width:'+pct(p)+'%"></i></div><span class="mono">'+c.done+'/'+p.steps.length+'</span></div>' +
-      '<div class="task-footer">'+agentChain(p)+'<span class="assignee" title="'+esc(who)+'"><span class="av" aria-hidden="true" style="background:'+color(who)+'">'+esc(initials(who))+'</span><span class="owner">'+esc(who)+'</span></span></div></article>';
-  }
-  var AGENTS = ['Codex','Anti','Claude','Unknown'];
-  if(!['all'].concat(AGENTS).includes(ui.agent)) ui.agent='all';
-  function agentName(p) { return AGENTS.includes(p.agent) ? p.agent : 'Unknown'; }
-  function executorsOf(p) {
-    if(!Array.isArray(p.executors) || p.executors.some(function(a){return !AGENTS.slice(0,3).includes(a);}))return null;
-    return AGENTS.slice(0,3).filter(function(a){return p.executors.includes(a);});
-  }
-  function executorValue(p) {var list=executorsOf(p);return list===null?'Unknown':list.length?list.join(', '):'None';}
-  function agentMatches(p,name) {
-    var list=executorsOf(p);
-    return agentName(p)===name || (list===null?name==='Unknown':list.includes(name)) || (p.steps || []).some(function(s){return (executorsOf(s) || []).includes(name) || taskAgentMatches({s:s},name);});
-  }
-  function agentBadge(p) {
-    var name=agentName(p), icons={Codex:'codex.png',Anti:'anti.png',Claude:'claude.svg'};
-    var icon=icons[name]?'<img class="agent-icon agent-icon-'+name.toLowerCase()+'" src="/icons/'+icons[name]+'" alt="" aria-hidden="true">':'<span class="agent-unknown" aria-hidden="true">?</span>';
-    return '<span class="agent-chip" title="'+esc(p.agentSource || (name==='Unknown'?'Agent not specified':name))+'">'+icon+'<span>'+name+'</span></span>';
-  }
-  function executorBadges(p) {
-    var list=executorsOf(p);
-    if(list===null)return '<span class="role-none" title="No execution report received">Not reported</span>';
-    if(!list.length)return '<span class="role-none">Not reported</span>';
-    if(list.length===1)return agentBadge({agent:list[0],agentSource:p.executorSource || 'Task execution metadata'});
-    return '<span class="agent-chip agent-multi" title="'+esc(list.join(', '))+'"><span class="agent-stack" aria-hidden="true">'+list.map(function(a){return agentBadge({agent:a});}).join('')+'</span><span>Multi</span></span>';
-  }
-  function stepExecution(s,compact){
-    var active=s.execution && s.execution.activeAgents,shown=active && active.length?{executors:active,executorSource:'Currently reported working'}:s;
-    var history=s.executionHistory,source=s.execution?'Reported by executing client':history?'Verified session history: '+history.verifiedAt+' · '+history.summary:'No execution report received';
-    return '<span class="execution-agent" title="'+esc(source)+'">'+executorBadges(shown)+'</span>'+(!compact && !s.execution && history?'<small class="history-mark" title="'+esc(source)+'">History</small>':'');
-  }
-  function executionNote(s){
-    if(!s.execution)return '';
-    return '<small class="execution-note" title="'+esc(s.execution.reportedAt+' · '+(s.execution.result || 'Execution started'))+'">Reported '+ago(s.execution.reportedAt)+(s.execution.result?' · '+prs(s.execution.result,''):'')+'</small>';
+      '<div class="task-footer"><span class="assignee" title="'+esc(who)+'"><span class="av" aria-hidden="true" style="background:'+color(who)+'">'+esc(initials(who))+'</span><span class="owner">'+esc(who)+'</span></span></div></article>';
   }
   function samePlanText(a,b){return !!a && !!b && String(a).normalize('NFC').trim().replace(/\s+/g,' ')===String(b).normalize('NFC').trim().replace(/\s+/g,' ');}
   function planDisclosureKey(p,scope,name){return scope+'|'+key(p)+'|'+name;}
   function disclosure(token,label,body,cls,auto){
     return '<details class="'+cls+'" data-plan-disclosure="'+esc(token)+'"'+(auto?' data-disclosure-auto="1"':'')+(auto || ui.planDetails[token]?' open':'')+'><summary id="plan-disclosure-'+encodeURIComponent(token)+'">'+label+'</summary>'+body+'</details>';
   }
-  function executionDisclosure(s,gh,p,scope,q){
-    var record=s.execution || s.executionHistory;if(!record)return '';
-    var text=s.execution?s.execution.result:s.executionHistory.summary,at=s.execution?s.execution.reportedAt:s.executionHistory.verifiedAt;
-    var label=s.execution?'Latest report':'Verified history',time=at && Number.isFinite(new Date(at).getTime())?' · '+ago(at):'';
-    if(!text || samePlanText(text,s.text))return '<small class="report-disclosure">'+label+time+'</small>';
-    var token=planDisclosureKey(p,scope,'report:'+(Number.isInteger(s.line)?'L'+s.line:'I'+p.steps.indexOf(s)));
-    return disclosure(token,esc(label+time),'<div class="report-body">'+prs(text,gh)+'</div>','report-disclosure',!!q && text.toLowerCase().includes(q.toLowerCase()));
-  }
-  function planRoles(p){
-    var list=executorsOf(p);
-    if(list && list.length===1 && list[0]===agentName(p))return '<span class="plan-roles"><small>Agent</small>'+agentBadge(p)+'</span>';
-    return '<span class="plan-roles"><span class="role-control"><small>Coordinator</small>'+agentBadge(p)+'</span><span class="role-arrow" aria-hidden="true">→</span><span class="role-control"><small>Executed by</small>'+executorBadges(p)+'</span></span>';
-  }
   function scopedPlanRows(p,q){
-    q=(q || '').toLowerCase();return taskRows([p]).filter(function(r){return !q || [r.s.text,executorValue(r.s),taskResult(r.s)].join(' ').toLowerCase().includes(q);}).sort(function(a,b){return SORDER[a.s.status]-SORDER[b.s.status] || a.index-b.index;});
+    q=(q || '').toLowerCase();return taskRows([p]).filter(function(r){return !q || r.s.text.toLowerCase().includes(q);}).sort(function(a,b){return SORDER[a.s.status]-SORDER[b.s.status] || a.index-b.index;});
   }
   function rowMilestone(p,s){
     if(s.milestone)return (p.milestones || []).find(function(m){return m.id===s.milestone;});
@@ -1213,7 +1158,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function planRowGroups(p,rows,scope,q){
     return groupedPlanRows(p,rows).map(function(g){
       var m=g.milestone,summary=m && m.summary;
-      var repeated=summary && ([p.goal,p.next,detail(p.status)].concat(p.steps.map(taskResult))).some(function(t){return samePlanText(summary,t);});
+      var repeated=summary && [p.goal,p.next,detail(p.status)].some(function(t){return samePlanText(summary,t);});
       var ownsNotes=!m || g.rows.some(function(r){return r.s.status!=='done';}) || !p.steps.some(function(s){return s.status!=='done' && rowMilestone(p,s)===m;});
       var notes=summary && !repeated && ownsNotes?disclosure(planDisclosureKey(p,scope,'milestone:'+m.id),'Milestone notes','<div class="report-body">'+prs(summary,p.gh)+'</div>','plan-notes',false):'';
       return '<section class="ms">'+(m?'<div class="ms-h"><span class="id">'+esc(m.id)+'</span><b>'+esc(m.title)+'</b></div>':'')+stepsHTML(g.rows.map(function(r){return r.s;}),p.gh,p,{scope:scope,q:q})+notes+'</section>';
@@ -1225,7 +1170,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function planWork(p,scope,q){
     var rows=scopedPlanRows(p,q),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
-    var columns='<div class="checklist-columns"><span>Work'+(q?' <small>'+open.length+' matching</small>':'')+'</span><span title="Recorded task agents; coordinator identity is separate">Agent</span><span>Status</span></div>';
+    var columns='<div class="checklist-columns"><span>Work'+(q?' <small>'+open.length+' matching</small>':'')+'</span><span>Status</span></div>';
     var content=open.length?columns+planRowGroups(p,open,scope,q):'<div class="plan-no-open">'+(q?'No matching open tasks.':'No open checklist tasks.')+'</div>';
     return '<div class="plan-open-work">'+content+'</div>'+completedPlanWork(p,done,scope,planRowGroups(p,done,scope,q),q);
   }
@@ -1245,21 +1190,9 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(!open.length)current='<div class="plan-no-open">No open checklist tasks.</div>';
     var questions=p.questions.filter(function(q){return q.open && !samePlanText(q.ask,p.next) && !samePlanText(q.ask,p.goal);});
     var asks=questions.length?'<aside class="plan-insight"><div class="insight-label">Needs your decision</div>'+questions.slice(0,2).map(function(q){return '<p>'+prs(q.ask,p.gh)+'</p>';}).join('')+'<button class="insight-link" data-plan-section="questions" data-section-plan="'+esc(key(p))+'">View questions →</button></aside>':'';
-    var extra=detail(p.status),notes=extra && stage(p.status)!=='Blocked' && ![p.next,p.goal].concat(p.steps.map(taskResult)).some(function(t){return samePlanText(extra,t);})?disclosure(planDisclosureKey(p,scope,'status-detail'),'Recorded status detail','<div class="report-body">'+prs(extra,p.gh)+'</div>','plan-notes',false):'';
+    var extra=detail(p.status),notes=extra && stage(p.status)!=='Blocked' && ![p.next,p.goal].some(function(t){return samePlanText(extra,t);})?disclosure(planDisclosureKey(p,scope,'status-detail'),'Recorded status detail','<div class="report-body">'+prs(extra,p.gh)+'</div>','plan-notes',false):'';
     var completed=scope==='quick'?quickRowsTable(p,done):planRowGroups(p,done,scope,'');
     return '<div class="plan-summary">'+purpose+planInsight(p,scope,open.length)+asks+current+completedPlanWork(p,done,scope,completed,'')+notes+'<div class="plan-context-meta">'+(scope==='quick'?'':'<span>'+esc(p.repo)+'</span>')+'<time title="'+esc(p.mtime)+'">Plan edited '+ago(p.mtime)+'</time></div></div>';
-  }
-  function agentChain(p) {
-    var list=executorsOf(p),label='Coordinator: '+agentName(p)+'; executors: '+executorValue(p);
-    if(list && list.length===1 && list[0]===agentName(p))return '<span class="role-chain" title="'+esc(label)+'">'+agentBadge(p)+'</span>';
-    return '<span class="role-chain" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+agentBadge(p)+'<span class="role-arrow" aria-hidden="true">→</span>'+executorBadges(p)+'</span>';
-  }
-  function agentFilter() {
-    var all=ui.view==='archive'?plans().filter(archivedPlan):workspacePlans();
-    return '<select class="agent-filter" data-agent-filter aria-label="Filter by agent"><option value="all"'+(ui.agent==='all'?' selected':'')+'>All agents ('+all.length+')</option>'+AGENTS.map(function(a){
-      var count=all.filter(function(p){return agentMatches(p,a);}).length;
-      return '<option value="'+a+'"'+(ui.agent===a?' selected':'')+'>'+a+' ('+count+')</option>';
-    }).join('')+'</select>';
   }
   function workCell(p) {
     return '<button class="work-link" data-go="plan:'+esc(key(p))+'">'+esc(p.name)+'</button><div class="work-meta">'+esc(repoLabel(p))+'</div>';
@@ -1269,7 +1202,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     return '<div class="list-progress"><div class="bar" role="progressbar" aria-label="Steps done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct(p)+'"><i style="width:'+pct(p)+'%"></i></div><span class="mono">'+done+'/'+p.steps.length+'</span></div>';
   }
   var TASK_STATUSES={all:'All statuses',doing:'In progress',todo:'To do',blocked:'Blocked',partial:'Partial',done:'Done'};
-  var TASK_COLUMNS={work:'Work',plan:'Plan',agent:'Agent',status:'Status',result:'Latest result',updated:'Updated'};
+  var TASK_COLUMNS={work:'Work',plan:'Plan',status:'Status'};
   var taskCollator=new Intl.Collator('vi',{numeric:true,sensitivity:'base'}),columnMenu=null;
   if(!ui.taskSort || !Object.hasOwn(TASK_COLUMNS,ui.taskSort.column) || !['asc','desc'].includes(ui.taskSort.direction))ui.taskSort=null;
   function taskRows(ps){
@@ -1277,21 +1210,11 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     ps.forEach(function(p){(p.steps || []).forEach(function(s,i){rows.push({p:p,s:s,index:i});});});
     return rows;
   }
-  function taskAgents(s){
-    var active=s.execution && s.execution.activeAgents;
-    return active && active.length?active:executorsOf(s);
-  }
-  function taskAgentMatches(row,name){var agents=taskAgents(row.s);return agents && agents.length?agents.includes(name):name==='Unknown';}
   function taskNeedsAttention(row){return ['blocked','partial'].includes(row.s.status) || (row.s.status!=='done' && needsAttention(row.p));}
-  function taskTime(s){return s.execution && s.execution.reportedAt || s.executionHistory && s.executionHistory.verifiedAt || '';}
-  function taskResult(s){return s.execution && s.execution.result || s.executionHistory && s.executionHistory.summary || '';}
   function taskColumnValue(row,column){
     if(column==='work')return row.s.text;
     if(column==='plan')return row.p.name+' · '+row.p.repo;
-    if(column==='agent')return (taskAgents(row.s) || []).join(', ');
-    if(column==='status')return SORDER[row.s.status];
-    if(column==='result')return taskResult(row.s);
-    return taskTime(row.s)?new Date(taskTime(row.s)).getTime():null;
+    return SORDER[row.s.status];
   }
   function compareTaskRows(a,b){
     if(ui.taskSort){
@@ -1300,35 +1223,29 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       var order=typeof av==='number' && typeof bv==='number'?av-bv:taskCollator.compare(String(av || ''),String(bv || ''));
       if(order)return ui.taskSort.direction==='asc'?order:-order;
     }else{
-      var order=SORDER[a.s.status]-SORDER[b.s.status] || new Date(taskTime(b.s) || b.p.mtime)-new Date(taskTime(a.s) || a.p.mtime);
+      var order=SORDER[a.s.status]-SORDER[b.s.status] || new Date(b.p.mtime)-new Date(a.p.mtime);
       if(order)return order;
     }
     return taskCollator.compare(key(a.p),key(b.p)) || a.index-b.index;
   }
-  function taskDateMatches(s){
-    var filter=ui.taskDates,at=taskTime(s);
-    if(filter.mode==='missing')return !at;
-    if(!at)return filter.mode==='all' && !filter.from && !filter.to;
-    var day=dateKey(at);return (!filter.from || day>=filter.from) && (!filter.to || day<=filter.to);
-  }
   function filteredTaskRows(rows){
     return rows.filter(function(row){
       var s=row.s,p=row.p,m=(p.milestones || []).find(function(m){return m.id===s.milestone;});
-      var text=[s.text,TASK_STATUSES[s.status],p.name,p.repo,s.milestone,m && m.title,(taskAgents(s) || []).join(' '),s.execution && s.execution.result,s.executionHistory && s.executionHistory.summary].join(' ').toLowerCase();
-      return (ui.taskStatus==='all' || s.status===ui.taskStatus) && (ui.agent==='all' || taskAgentMatches(row,ui.agent)) && (!ui.q || text.includes(ui.q.toLowerCase())) && (ui.view!=='waiting' || taskNeedsAttention(row)) &&
-        (ui.taskPlans===null || ui.taskPlans.includes(key(p))) && (!ui.taskWork || s.text.toLowerCase().includes(ui.taskWork.toLowerCase())) && (!ui.taskResult || taskResult(s).toLowerCase().includes(ui.taskResult.toLowerCase())) && taskDateMatches(s);
+      var text=[s.text,TASK_STATUSES[s.status],p.name,p.repo,s.milestone,m && m.title].join(' ').toLowerCase();
+      return (ui.taskStatus==='all' || s.status===ui.taskStatus) && (!ui.q || text.includes(ui.q.toLowerCase())) && (ui.view!=='waiting' || taskNeedsAttention(row)) &&
+        (ui.taskPlans===null || ui.taskPlans.includes(key(p))) && (!ui.taskWork || s.text.toLowerCase().includes(ui.taskWork.toLowerCase()));
     }).sort(compareTaskRows);
   }
   function columnFiltered(column){
-    return column==='work'?!!ui.taskWork:column==='plan'?ui.taskPlans!==null:column==='agent'?ui.agent!=='all':column==='status'?ui.taskStatus!=='all':column==='result'?!!ui.taskResult:ui.taskDates.mode!=='all' || !!ui.taskDates.from || !!ui.taskDates.to;
+    return column==='work'?!!ui.taskWork:column==='plan'?ui.taskPlans!==null:ui.taskStatus!=='all';
   }
   function resetTaskColumn(column){
-    if(column==='work')ui.taskWork='';else if(column==='plan')ui.taskPlans=null;else if(column==='agent')ui.agent='all';else if(column==='status')ui.taskStatus='all';else if(column==='result')ui.taskResult='';else ui.taskDates={mode:'all',from:'',to:''};
+    if(column==='work')ui.taskWork='';else if(column==='plan')ui.taskPlans=null;else ui.taskStatus='all';
   }
   function openColumnMenu(column){
     if(!Object.hasOwn(TASK_COLUMNS,column))return;
     if(columnMenu && columnMenu.column===column){dismissColumnMenu(true);return;}
-    var value=column==='work'?ui.taskWork:column==='plan'?(ui.taskPlans===null?null:ui.taskPlans.slice()):column==='agent'?ui.agent:column==='status'?ui.taskStatus:column==='result'?ui.taskResult:Object.assign({},ui.taskDates);
+    var value=column==='work'?ui.taskWork:column==='plan'?(ui.taskPlans===null?null:ui.taskPlans.slice()):ui.taskStatus;
     columnMenu={column:column,value:value,query:'',error:''};render(true);
     if($('column-first-input'))$('column-first-input').focus();
   }
@@ -1338,8 +1255,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function applyColumnMenu(){
     if(!columnMenu)return false;var c=columnMenu.column,v=columnMenu.value;
-    if(c==='updated' && v.from && v.to && v.from>v.to){columnMenu.error='From must be on or before To.';render(true);return false;}
-    if(c==='work')ui.taskWork=v.trim();else if(c==='plan')ui.taskPlans=v===null?null:v.slice();else if(c==='agent')ui.agent=v;else if(c==='status')ui.taskStatus=v;else if(c==='result')ui.taskResult=v.trim();else ui.taskDates=Object.assign({},v);
+    if(c==='work')ui.taskWork=v.trim();else if(c==='plan')ui.taskPlans=v===null?null:v.slice();else ui.taskStatus=v;
     save('wb-ui',ui);dismissColumnMenu(true);return true;
   }
   function sortTaskColumn(column,direction){
@@ -1357,11 +1273,9 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       body='<input id="column-first-input" type="search" data-column-plan-search placeholder="Find plans" aria-label="Find plans" value="'+esc(columnMenu.query)+'"><div class="column-selection-actions"><button data-column-plans="all">Select all</button><button data-column-plans="none">Clear selection</button></div><div class="column-plan-options">'+options.map(function(p){
         return '<label><input id="column-plan-'+encodeURIComponent(key(p))+'" type="checkbox" data-column-plan-choice="'+esc(key(p))+'"'+(value===null || value.includes(key(p))?' checked':'')+'><span>'+esc(p.name)+'<small>'+esc(p.repo)+'</small></span><small>'+p.steps.length+'</small></label>';
       }).join('')+(options.length?'':'<p class="work-meta">No plans match this search.</p>')+'</div>';
-    }else if(column==='agent')body=columnSelect(column,[['all','All agents']].concat(AGENTS.map(function(a){return [a,a+' ('+rows.filter(function(r){return taskAgentMatches(r,a);}).length+')'];})),value);
-    else if(column==='status')body=columnSelect(column,Object.keys(TASK_STATUSES).map(function(s){return [s,TASK_STATUSES[s]+' ('+(s==='all'?rows.length:rows.filter(function(r){return r.s.status===s;}).length)+')'];}),value);
-    else if(column==='updated')body=columnSelect(column,[['all','All dates'],['recorded','With recorded date'],['missing','Not recorded']],value.mode)+'<div class="column-date-range"><label>From<input id="column-date-from" type="date" data-column-date="from" value="'+esc(value.from)+'"'+(value.mode==='missing'?' disabled':'')+'></label><label>To<input id="column-date-to" type="date" data-column-date="to" value="'+esc(value.to)+'"'+(value.mode==='missing'?' disabled':'')+'></label></div><small class="work-meta">Execution or history date · Vietnam time</small>';
+    }else if(column==='status')body=columnSelect(column,Object.keys(TASK_STATUSES).map(function(s){return [s,TASK_STATUSES[s]+' ('+(s==='all'?rows.length:rows.filter(function(r){return r.s.status===s;}).length)+')'];}),value);
     else body='<input id="column-first-input" type="search" data-column-field="'+column+'" aria-label="Filter '+title+'" placeholder="Contains text" value="'+esc(value)+'">';
-    var asc=column==='updated'?'Oldest first':column==='status'?'Workflow order':'Sort A → Z',desc=column==='updated'?'Newest first':column==='status'?'Reverse workflow':'Sort Z → A';
+    var asc=column==='status'?'Workflow order':'Sort A → Z',desc=column==='status'?'Reverse workflow':'Sort Z → A';
     return '<div id="task-column-popover" class="column-popover" role="dialog" aria-label="'+title+' filter and sort"><div class="column-sort-actions"><button data-column-sort="'+column+'" data-direction="asc">↑ '+asc+'</button><button data-column-sort="'+column+'" data-direction="desc">↓ '+desc+'</button><button data-column-sort="'+column+'" data-direction="default">Default task order</button></div><div class="column-filter-body"><strong>Filter '+title+'</strong>'+body+'</div>'+(columnMenu.error?'<p class="column-error" role="alert">'+esc(columnMenu.error)+'</p>':'')+'<div class="column-footer"><button data-column-clear="'+column+'">Clear filter</button><button data-column-cancel>Cancel</button><button class="column-apply" data-column-apply>Apply</button></div></div>';
   }
   function taskColumnHeaders(rows){
@@ -1379,7 +1293,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     return groupedTaskRows(rows).map(function(g){
       var collapsed=ui.collapsedPlans[g.key]===true,id='task-group-'+encodeURIComponent(g.key);
       var p=g.plan,done=counts(p).done,total=p.steps.length,percent=pct(p),description=done+' of '+total+' tasks complete across the whole plan';
-      return '<tbody class="task-group-heading"><tr><td colspan="3"><div class="task-group-name"><button class="task-group-toggle" data-task-group-toggle="'+esc(g.key)+'" aria-expanded="'+!collapsed+'" aria-controls="'+id+'"><span aria-hidden="true">'+(collapsed?'›':'⌄')+'</span>'+esc(p.name)+'</button><span class="work-meta">'+esc(p.repo)+' · '+g.rows.length+' of '+total+' tasks matched</span></div></td><td class="task-group-status">'+pill(p)+'</td><td class="task-group-progress"><span class="work-meta">Plan progress</span><div class="list-progress'+(done===total?' is-complete':'')+'" title="'+esc(description)+'"><div class="bar" role="progressbar" aria-label="'+esc('Plan progress for '+p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'" aria-valuetext="'+esc(description)+'"><i style="width:'+percent+'%"></i></div><span class="mono">'+done+'/'+total+' · '+percent+'%</span></div></td><td class="task-group-actions"><button class="task-group-open" data-go="plan:'+esc(g.key)+'">Open plan ↗</button></td></tr></tbody><tbody id="'+id+'"'+(collapsed?' hidden':'')+'>'+(!collapsed?g.rows.map(taskListRow).join(''):'')+'</tbody>';
+      return '<tbody class="task-group-heading"><tr><td><div class="task-group-name"><button class="task-group-toggle" data-task-group-toggle="'+esc(g.key)+'" aria-expanded="'+!collapsed+'" aria-controls="'+id+'"><span aria-hidden="true">'+(collapsed?'›':'⌄')+'</span>'+esc(p.name)+'</button><span class="work-meta">'+esc(p.repo)+' · '+g.rows.length+' of '+total+' tasks matched</span><button class="task-group-open" data-go="plan:'+esc(g.key)+'">Open plan ↗</button></div></td><td class="task-group-progress"><span class="work-meta">Plan progress</span><div class="list-progress'+(done===total?' is-complete':'')+'" title="'+esc(description)+'"><div class="bar" role="progressbar" aria-label="'+esc('Plan progress for '+p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'" aria-valuetext="'+esc(description)+'"><i style="width:'+percent+'%"></i></div><span class="mono">'+done+'/'+total+' · '+percent+'%</span></div></td><td class="task-group-status">'+pill(p)+'</td></tr></tbody><tbody id="'+id+'"'+(collapsed?' hidden':'')+'>'+(!collapsed?g.rows.map(taskListRow).join(''):'')+'</tbody>';
     }).join('');
   }
   function taskGroupToolbar(){
@@ -1390,24 +1304,21 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     save('wb-ui',ui);render(true);
   }
   function taskListRow(row){
-    var p=row.p,s=row.s,at=taskTime(s),history=!s.execution && !!s.executionHistory;
-    var result=s.execution && s.execution.result || s.executionHistory && s.executionHistory.summary || '';
+    var p=row.p,s=row.s;
     var attrs=' data-open-task="'+esc(key(p))+'" data-task-index="'+row.index+'" data-task-revision="'+esc(p.revision || '')+'"';
     return '<tr><td class="task-list-work"><button class="work-link task-work-link"'+attrs+' title="'+esc(s.text)+'">'+esc(s.text)+'</button></td>'+
-      '<td class="task-list-plan"><button class="work-link" data-preview-plan="'+esc(key(p))+'" title="'+esc('Plan details · Plan status: '+p.status+' · Coordinator: '+agentName(p))+'">'+esc(p.name)+'</button><span class="work-meta">'+esc(p.repo)+(s.milestone?' · '+esc(s.milestone):'')+'</span></td>'+
-      '<td class="task-list-agent">'+stepExecution(s)+'</td><td class="task-list-status"><span class="tag s-'+s.status+'">'+esc(TASK_STATUSES[s.status] || s.status)+'</span></td>'+
-      '<td class="task-list-result">'+(result?'<span class="task-result-text" title="'+esc(result)+'">'+prs(result,p.gh)+'</span>':'<span class="work-meta">No result recorded</span>')+'</td>'+
-      '<td class="updated-cell">'+(at?'<time title="'+esc(at)+'">'+ago(at)+'</time><span class="work-meta">'+(history?'History verified':'Execution report')+'</span>':'<span class="work-meta">Not recorded</span>')+'</td></tr>';
+      '<td class="task-list-plan"><button class="work-link" data-preview-plan="'+esc(key(p))+'" title="'+esc('Plan details · Plan status: '+p.status)+'">'+esc(p.name)+'</button><span class="work-meta">'+esc(p.repo)+(s.milestone?' · '+esc(s.milestone):'')+'</span></td>'+
+      '<td class="task-list-status"><span class="tag s-'+s.status+'">'+esc(TASK_STATUSES[s.status] || s.status)+'</span></td></tr>';
   }
   function viewList(ps){
     var all=taskRows(ps),rows=filteredTaskRows(all),sub=rows.length+' of '+all.length+' tasks';
     topBar(ui.view==='waiting'?'Needs attention':'List',sub,all);
     if($('plan-count'))$('plan-count').textContent=sub;
     if(!viewOnly)$('tabs').innerHTML='';
-    var extra=ui.taskPlans!==null || !!ui.taskWork || !!ui.taskResult || columnFiltered('updated');
-    var empty=ui.taskStatus==='doing' && ui.agent==='all' && !ui.q && !extra && ui.view!=='waiting'?'No tasks in progress':'No matching tasks';
-    return filterNotice(all.length,rows.length,'tasks')+taskGroupToolbar()+'<div class="table-wrap task-list-wrap"><table class="work-table task-list-table"><caption class="sr-only">Individual checklist tasks with parent plans and recorded execution</caption><thead><tr>'+taskColumnHeaders(all)+'</tr></thead>'+
-      (rows.length?taskTableBody(rows):'<tbody><tr><td colspan="6"><div class="empty"><h2>'+empty+'</h2><p>'+all.length+' checklist tasks are available.</p>'+(ui.taskStatus!=='all'?'<button class="btn" data-task-status-all>Show all statuses</button>':'')+'</div></td></tr></tbody>')+'</table></div>';
+    var extra=ui.taskPlans!==null || !!ui.taskWork;
+    var empty=ui.taskStatus==='doing' && !ui.q && !extra && ui.view!=='waiting'?'No tasks in progress':'No matching tasks';
+    return filterNotice(all.length,rows.length,'tasks')+taskGroupToolbar()+'<div class="table-wrap task-list-wrap"><table class="work-table task-list-table"><caption class="sr-only">Individual checklist tasks with their parent plans</caption><thead><tr>'+taskColumnHeaders(all)+'</tr></thead>'+
+      (rows.length?taskTableBody(rows):'<tbody><tr><td colspan="3"><div class="empty"><h2>'+empty+'</h2><p>'+all.length+' checklist tasks are available.</p>'+(ui.taskStatus!=='all'?'<button class="btn" data-task-status-all>Show all statuses</button>':'')+'</div></td></tr></tbody>')+'</table></div>';
   }
   var dayFormatter=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'});
   function dateKey(value) {
@@ -1441,10 +1352,10 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     }).join('');
     return '<div class="timeline-toolbar"><div><strong>'+label+'</strong><span class="work-meta">Recorded activity by day · Vietnam time</span></div><div class="timeline-actions"><button class="btn" data-month="-1" aria-label="Previous month">←</button><button class="btn" data-month="today">Today</button><button class="btn" data-month="1" aria-label="Next month">→</button></div></div>'+
       '<div class="timeline-legend"><span class="legend-dot"></span>Recorded event <span class="legend-edit"></span>Latest plan edit</div>'+
-      '<div class="timeline-scroll"><table class="timeline-table"><caption class="sr-only">Daily recorded plan activity for '+label+'</caption><thead><tr><th class="timeline-work" scope="col">Work</th><th class="timeline-status" scope="col">Status</th><th class="timeline-agent" scope="col">Coordinator → executors</th>'+dayHeaders+'</tr></thead><tbody>'+
+      '<div class="timeline-scroll"><table class="timeline-table"><caption class="sr-only">Daily recorded plan activity for '+label+'</caption><thead><tr><th class="timeline-work" scope="col">Work</th><th class="timeline-status" scope="col">Status</th>'+dayHeaders+'</tr></thead><tbody>'+
       ps.map(function(p){
         var grouped={};timelineEntries(p).forEach(function(e){if(!grouped[e.day])grouped[e.day]=[];grouped[e.day].push(e);});
-        return '<tr><td class="timeline-work">'+workCell(p)+'</td><td class="timeline-status">'+statusSelect(p)+'</td><td class="timeline-agent">'+agentChain(p)+'</td>'+
+        return '<tr><td class="timeline-work">'+workCell(p)+'</td><td class="timeline-status">'+pill(p)+'</td>'+
           days.map(function(day){
             var entries=grouped[day] || [], recorded=entries.filter(function(e){return e.kind!=='updated';}), edited=entries.some(function(e){return e.kind==='updated';});
             var d=new Date(day+'T12:00:00+07:00'), classes='timeline-day '+([0,6].includes(d.getUTCDay())?'weekend ':'')+(day===today?'today':'');
@@ -1464,35 +1375,25 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     }).join('');
     return '<div class="status-overview"><svg class="status-chart" viewBox="0 0 120 120" role="img" aria-label="'+total+' plans by current status"><circle cx="60" cy="60" r="42" fill="none" stroke="var(--ds-background-neutral-pressed)" stroke-width="12"/>'+circles+'<text x="60" y="59" text-anchor="middle" class="chart-count">'+total+'</text><text x="60" y="76" text-anchor="middle" class="chart-label">plans</text></svg><ul class="status-legend">'+values.map(function(n,i){return '<li><span class="legend-swatch" style="background:'+colors[i]+'"></span><span>'+COLUMNS[i]+'</span><strong>'+n+'</strong></li>';}).join('')+'</ul></div>';
   }
-  function agentWorkload(ps,name){
-    var rows=taskRows(ps).filter(function(r){return taskAgentMatches(r,name);}),keys=new Set(rows.map(function(r){return key(r.p);}));
-    return {plans:ps.filter(function(p){return agentMatches(p,name) || keys.has(key(p));}),tasks:rows.length,
-      coordinating:ps.filter(function(p){return agentName(p)===name;}).length,
-      active:rows.filter(function(r){return r.s.execution && (r.s.execution.activeAgents || []).includes(name);}).length};
-  }
   function summaryPlan(p){
     var completed=counts(p).done,total=p.steps.length;
     return '<article class="summary-plan"><div class="summary-plan-head"><button class="summary-plan-title" data-preview-plan="'+esc(key(p))+'" title="'+esc(p.name)+'">'+esc(p.name)+'</button>'+pill(p)+'</div><span class="work-meta">'+esc(repoLabel(p))+'</span>'+
-      '<p class="summary-next">'+esc(p.next || p.goal || 'No next action recorded')+'</p><div class="summary-plan-meta">'+agentChain(p)+'<div class="bar" aria-hidden="true"><i style="width:'+pct(p)+'%"></i></div><span>'+completed+'/'+total+' steps</span></div></article>';
+      '<p class="summary-next">'+esc(p.next || p.goal || 'No next action recorded')+'</p><div class="summary-plan-meta"><div class="bar" aria-hidden="true"><i style="width:'+pct(p)+'%"></i></div><span>'+completed+'/'+total+' steps</span></div></article>';
   }
   function viewSummary(ps) {
     var now=new Date(D.now || Date.now()).getTime(), cutoff=now-7*86400000;
     var done=ps.filter(function(p){return stage(p.status)==='Done';}).length, needs=ps.filter(needsAttention).length;
-    var updated=ps.filter(function(p){var t=new Date(p.executionUpdatedAt || p.mtime).getTime();return t>=cutoff && t<=now;}).length;
+    var updated=ps.filter(function(p){var t=new Date(p.mtime).getTime();return t>=cutoff && t<=now;}).length;
     var stats=[['Active plans',ps.length-done,'Current'],['Done',done,'Current'],['Updated',updated,'Last 7 days'],['Needs attention',needs,'Current']];
     var keys=new Set(ps.map(key)), history=feedFor(null).filter(function(e){var pl=planByKey(eventKey(e));return pl && keys.has(key(pl));}).slice(0,8);
     var total=ps.reduce(function(n,p){return n+p.steps.length;},0), completed=ps.reduce(function(n,p){return n+counts(p).done;},0);
-    var active=ps.filter(function(p){return stage(p.status)!=='Done';}).sort(function(a,b){return Number(needsAttention(b))-Number(needsAttention(a)) || String(b.executionUpdatedAt || b.mtime).localeCompare(String(a.executionUpdatedAt || a.mtime));});
+    var active=ps.filter(function(p){return stage(p.status)!=='Done';}).sort(function(a,b){return Number(needsAttention(b))-Number(needsAttention(a)) || String(b.mtime).localeCompare(String(a.mtime));});
     return '<div class="summary"><div class="summary-stats">'+stats.map(function(s){return '<div class="summary-stat"><span>'+s[0]+'</span><strong>'+s[1]+'</strong><small>'+s[2]+'</small></div>';}).join('')+'</div><div class="summary-grid">'+
       '<section class="summary-panel summary-focus"><div class="panel-heading"><h2>Current work</h2><button class="btn btn-ghost" data-layout="list">View tasks &rarr;</button></div><p class="work-meta">'+(ui.view==='waiting'?'Plans needing your attention':'Active plans, with items needing attention first')+'</p>'+
       (active.length?active.slice(0,6).map(summaryPlan).join(''):'<div class="empty">'+(ps.length?'All plans are complete':'No active plans')+'</div>')+
       (active.length>6?'<button class="btn btn-ghost" data-layout="board">View all plans &rarr;</button>':'')+'</section>'+
       '<section class="summary-panel"><h2>Status overview</h2><p class="work-meta">Current state of your plans</p>'+statusSummary(ps)+'<div class="summary-progress"><h2>Step progress</h2><strong>'+completed+' <span>/ '+total+'</span></strong><div class="bar"><i style="width:'+(total?completed/total*100:0)+'%"></i></div></div>'+
       (needs?'<h3>Needs attention</h3>'+ps.filter(needsAttention).slice(0,3).map(function(p){return '<div class="attention-row">'+workCell(p)+'</div>';}).join(''):'')+'</section>'+
-      '<section class="summary-panel"><h2>Agent workload</h2><p class="work-meta">Reported participation &middot; select an agent to view work</p><div class="agent-workload">'+AGENTS.map(function(a){
-        var count=agentWorkload(ps,a),planLabel=count.plans.length+' plan'+(count.plans.length===1?'':'s'),taskLabel=count.tasks+' task'+(count.tasks===1?'':'s');
-        return '<button class="workload-row" data-agent-view="'+a+'"'+(!count.plans.length?' disabled':'')+'>'+agentBadge({agent:a})+'<span class="workload-bar" title="'+planLabel+' of '+ps.length+' matching plans"><i style="width:'+(ps.length?count.plans.length/ps.length*100:0)+'%"></i></span><span class="workload-counts"><strong title="Plan participation and tasks matching the Agent column in List; historical tasks are included">'+planLabel+' \u00b7 '+taskLabel+'</strong><small title="Coordinating counts plans. Active tasks require an open execution report; historical evidence does not indicate live activity.">'+count.coordinating+' coordinating \u00b7 '+count.active+' active task'+(count.active===1?'':'s')+'</small></span></button>';
-      }).join('')+'</div></section>'+
       '<section class="summary-panel summary-activity"><h2>Recent activity</h2><p class="work-meta">Latest recorded changes</p><div class="summary-feed">'+feedHTML(history,true,8,true)+'</div></section></div></div>';
   }
   function handleViewAction(e) {
@@ -1529,10 +1430,10 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(e.target.closest('[data-task-status-all]')){ui.taskStatus='all';save('wb-ui',ui);render();return true;}
     if(e.target.closest('[data-clear-filters]')) {
       if(ui.layout==='list'){Object.keys(TASK_COLUMNS).forEach(resetTaskColumn);columnMenu=null;}
-      ui.agent='all';ui.q='';ui.view='home';ui.activityDay='';
+      ui.q='';ui.view='home';ui.activityDay='';
       save('wb-ui',ui);render();return true;
     }
-    var layout=e.target.closest('[data-layout]'), month=e.target.closest('[data-month]'), activity=e.target.closest('[data-open-activity]'), agent=e.target.closest('[data-agent-view]');
+    var layout=e.target.closest('[data-layout]'), month=e.target.closest('[data-month]'), activity=e.target.closest('[data-open-activity]');
     if(layout) {
       var value=layout.getAttribute('data-layout');
       if(!Object.hasOwn(LAYOUTS,value))return true;
@@ -1550,15 +1451,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     }
     if(activity) {ui.view='plan:'+activity.getAttribute('data-open-activity');ui.tab='activity';ui.activityDay=activity.getAttribute('data-day');ui.q='';save('wb-ui',ui);render();return true;}
     if(e.target.closest('[data-clear-day]')) {ui.activityDay='';save('wb-ui',ui);render(true);return true;}
-    if(agent) {
-      var selected=agent.getAttribute('data-agent-view');
-      var count=agentWorkload(filteredPlans(plans()),selected);
-      if(!count.plans.length)return true;
-      Object.keys(TASK_COLUMNS).forEach(resetTaskColumn);columnMenu=null;
-      ui.taskPlans=count.plans.map(key);ui.agent=count.tasks?selected:'all';
-      if(!count.tasks)ui.taskGroup='plan';
-      ui.layout='list';ui.view='home';ui.q='';ui.activityDay='';save('wb-ui',ui);render();return true;
-    }
     return false;
   }
   function filterNotice(total,matching,unit) {
@@ -1568,10 +1460,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(unit==='tasks'){
       if(ui.taskPlans!==null)labels.push('Plans: '+(ui.taskPlans.length?ui.taskPlans.map(function(k){var p=planByKey(k);return p?p.name+' ('+p.repo+')':k;}).join(', '):'None selected'));
       if(ui.taskWork)labels.push('Work: '+ui.taskWork);
-      if(ui.taskResult)labels.push('Result: '+ui.taskResult);
-      if(columnFiltered('updated'))labels.push('Updated: '+(ui.taskDates.mode==='missing'?'Not recorded':(ui.taskDates.from || 'Any date')+' to '+(ui.taskDates.to || 'Any date')+(ui.taskDates.mode==='recorded'?' (recorded)':'')));
     }
-    if(ui.agent!=='all')labels.push('Agent: '+ui.agent);
     if(ui.view==='waiting')labels.push('Needs attention');
     if(ui.q)labels.push('Search: '+ui.q);
     if(!labels.length)return '';
@@ -1579,8 +1468,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function filteredPlans(ps){
     return ps.filter(function(p){
-      var text=[p.name,p.repo,p.status,p.next,p.goal,owner(p),agentName(p),executorValue(p)].concat(p.steps.map(function(s){return s.text+' '+executorValue(s);}),p.decisions.map(function(d){return d.text;}),p.questions.map(function(q){return q.ask+' '+q.answer;})).join(' ').toLowerCase();
-      return (!ui.q || text.includes(ui.q.toLowerCase())) && (ui.agent==='all' || agentMatches(p,ui.agent)) && (ui.view!=='waiting' || needsAttention(p));
+      var text=[p.name,p.repo,p.status,p.next,p.goal,owner(p)].concat(p.steps.map(function(s){return s.text;}),p.decisions.map(function(d){return d.text;}),p.questions.map(function(q){return q.ask+' '+q.answer;})).join(' ').toLowerCase();
+      return (!ui.q || text.includes(ui.q.toLowerCase())) && (ui.view!=='waiting' || needsAttention(p));
     });
   }
   function viewHome() {
@@ -1591,16 +1480,13 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if($('plan-count')) $('plan-count').textContent=ps.length+' of '+all.length+' plans';
     if(!viewOnly) $('tabs').innerHTML='';
     var notice=filterNotice(all.length,ps.length);
-    if(all.length && !ps.length) {
-      var unknown=all.every(function(p){return agentName(p)==='Unknown';});
-      return notice+'<div class="empty"><h2>No matching work</h2><p>'+all.length+' plans are available. Clear filters to show all plans.</p>'+(unknown?'<p>These plans have no reported agent yet. Agent identity appears when a client reports execution.</p>':'')+'</div>';
-    }
+    if(all.length && !ps.length) return notice+'<div class="empty"><h2>No matching work</h2><p>'+all.length+' plans are available. Clear filters to show all plans.</p></div>';
     if(ui.layout==='summary') return notice+viewSummary(ps);
     if (!all.length) return '<div class="empty">No active plan</div>';
     if (ui.layout==='timeline') return notice+viewTimeline(ps);
-    return notice+'<div class="board">'+COLUMNS.map(function(title,i){var list=ps.filter(function(p){return columnOf(p)===i;});return '<section class="column" data-column="'+i+'" aria-label="'+esc(title)+'"><h2>'+esc(title)+' <span>'+list.length+'</span></h2>'+list.map(taskCard).join('')+(list.length?'':'<div class="empty-column">No work</div>')+'</section>';}).join('')+'</div>';
+    return notice+'<div class="board">'+COLUMNS.map(function(title,i){var list=ps.filter(function(p){return columnOf(p)===i;});return '<section class="column" aria-label="'+esc(title)+'"><h2>'+esc(title)+' <span>'+list.length+'</span></h2>'+list.map(taskCard).join('')+(list.length?'':'<div class="empty-column">No work</div>')+'</section>';}).join('')+'</div>';
   }
-  function openArchive(){if(quick.key)closeQuickPlan(false);navigation.section='archive';ui.view='archive';ui.q='';ui.agent='all';save('wb-navigation',navigation);save('wb-ui',ui);render();$('view').scrollTop=0;}
+  function openArchive(){if(quick.key)closeQuickPlan(false);navigation.section='archive';ui.view='archive';ui.q='';save('wb-navigation',navigation);save('wb-ui',ui);render();$('view').scrollTop=0;}
   function viewArchive(){
     var all=plans().filter(archivedPlan),ps=filteredPlans(all);topBar('Archive',ps.length+' of '+all.length+' plans');if(!viewOnly)$('tabs').innerHTML='';
     return '<div class="archive-view"><p class="archive-lead">Completed plans, kept for reference.</p>'+(all.length?filterNotice(all.length,ps.length)+(ps.length?ps.map(summaryPlan).join(''):'<div class="empty">No matching archived plans</div>'):'<div class="empty"><h2>No archived plans</h2><p>'+(autoArchiveOn()?'Plans appear here when their status is Done.':'Turn on automatic archiving in Settings to keep completed plans here.')+'</p><button class="btn" data-settings-open="general">Open Settings</button></div>')+'</div>';
@@ -1632,14 +1518,14 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     opts=opts || {};
     return list.map(function (s, i) { return [s, i]; }).sort(function (a, b) { return SORDER[a[0].status] - SORDER[b[0].status] || a[1] - b[1]; }).map(function (x) {
       var s = x[0],selected=p && focusedTask(p),focused=selected && (selected===s || (Number.isInteger(s.line) && s.line>0 && selected.line===s.line));
-      return '<div class="st '+(p?'has-agent ':'')+(focused?'task-focused ':'')+'s-' + s.status + '"'+(Number.isInteger(s.line) && s.line>0?' id="task-line-'+s.line+'"':'')+(focused?' tabindex="-1" aria-current="step"':'')+'><span class="box">' + BOX[s.status] + '</span><div class="tx">' + prs(s.text, gh) + (p?executionDisclosure(s,gh,p,opts.scope || 'full',opts.q):executionNote(s)) + '</div>'+(p?'<div class="step-agent">'+stepExecution(s,true)+'</div>':'')+'<span class="tag">' + TAG[s.status] + '</span></div>';
+      return '<div class="st '+(focused?'task-focused ':'')+'s-' + s.status + '"'+(Number.isInteger(s.line) && s.line>0?' id="task-line-'+s.line+'"':'')+(focused?' tabindex="-1" aria-current="step"':'')+'><span class="box">' + BOX[s.status] + '</span><div class="tx">' + prs(s.text, gh) + '</div><span class="tag">' + TAG[s.status] + '</span></div>';
     }).join('');
   }
   function viewPlan(k) {
     var p = planByKey(k);
     if (!p) { ui.view = 'home'; return viewHome(); }
     var c = counts(p), spec = p.spec ? 'vscode://file/' + encodeURI((/^[a-z]:/i.test(p.spec) ? p.spec : p.root + '/' + p.spec).replace(/\\/g, '/')) : '';
-    if (!viewOnly) $('top').innerHTML = '<div class="plan-header"><div class="plan-heading"><button class="btn" data-go="home">← '+LAYOUTS[ui.layout]+'</button><h1>'+esc(p.name)+'</h1>'+starButton(p)+statusSelect(p)+planRoles(p)+'</div><div class="plan-toolbar">'+(spec?'<a class="btn source-link" href="'+spec+'">Plan document ↗</a>':'')+'<input class="search" id="q" aria-label="Search this plan" placeholder="Search tasks and reports…" value="'+esc(ui.q)+'"><button class="btn" id="refresh">Refresh</button></div></div>';
+    if (!viewOnly) $('top').innerHTML = '<div class="plan-header"><div class="plan-heading"><button class="btn" data-go="home">← '+LAYOUTS[ui.layout]+'</button><h1>'+esc(p.name)+'</h1>'+starButton(p)+pill(p)+'</div><div class="plan-toolbar">'+(spec?'<a class="btn source-link" href="'+spec+'">Plan document ↗</a>':'')+'<input class="search" id="q" aria-label="Search this plan" placeholder="Search this plan…" value="'+esc(ui.q)+'"><button class="btn" id="refresh">Refresh</button></div></div>';
     var openQ = p.questions.filter(function (q) { return q.open; }).length;
     var tabs = [['summary','Summary',''],['checklist', 'Work', p.steps.length-c.done], ['decisions', 'Decisions', p.decisions.length || ''], ['questions', 'Questions', openQ?openQ+' open':p.questions.length || ''], ['activity', 'Activity', '']].filter(function(t){return t[0]!=='decisions' && t[0]!=='questions' || (t[0]==='decisions'?p.decisions.length:p.questions.length);});
     if(!tabs.some(function(t){return t[0]===ui.tab;}))ui.tab='summary';
@@ -1700,67 +1586,12 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       if(row){row.scrollIntoView({block:'center'});row.focus({preventScroll:true});}
     }
   }
-  function statusSelect(p) {
-    var current = stage(p.status), options = PLAN_STAGES.slice();
-    if (options.indexOf(current) < 0) options.unshift(current);
-    return '<select class="status-select status-'+statusTone(current)+'" aria-label="Plan status" data-status="'+esc(key(p))+'"'+(saving || !p.revision?' disabled':'')+'>'+options.map(function(s){
-      return '<option class="status-'+statusTone(s)+'" value="'+esc(s)+'"'+(s===current?' selected':'')+'>'+esc(s)+'</option>';
-    }).join('')+'</select>';
-  }
-  var suppressClickUntil = 0;
-  function clearDrop() {
-    document.querySelectorAll('.drop-target').forEach(function(el){el.classList.remove('drop-target');});
-  }
-  function endDrag() {
-    dragged = null;
-    suppressClickUntil = Date.now() + 250;
-    clearDrop();
-    document.querySelectorAll('.dragging').forEach(function(el){el.classList.remove('dragging');});
-  }
-  async function savePlanField(k, field, target, revision, stepLine) {
-    var p = planByKey(k);
-    if (!p || saving) return;
-    if (field==='status' && (PLAN_STAGES.indexOf(target)<0 || stage(p.status)===target)) return;
-    if(field!=='status')return;
-    if (!revision) { showError('Refresh the board before moving this plan.'); return; }
-    saving = true;
-    $('save-state').textContent = 'Saving…';
-    showError('');
-    render(true);
-    try {
-      var body={repo:p.repo,plan:p.name,revision:revision,status:target};if(p.project)body.project=p.project;
-      var response = await fetch('/api/plans/'+field, {method:'POST', headers:{'Content-Type':'application/json','X-Workboard':'1'},
-        body:JSON.stringify(body)});
-      var result = await response.json();
-      if (!response.ok) throw Error(result.error || 'Could not save change.');
-      saving = false;
-      await get();
-      $('save-state').textContent = 'Moved to '+target;
-      if(result.error) showError('Status saved. Refresh failed: '+result.error);
-    } catch(e) {
-      saving = false;
-      await get();
-      $('save-state').textContent = '';
-      showError(e.message);
-    } finally {
-      saving = false;
-      render();
-    }
-  }
-  function moveStatus(k,target,revision){return savePlanField(k,'status',target,revision);}
   function columnInput(target){
     if(!columnMenu)return false;
     if(target.closest('[data-column-plan-search]')){columnMenu.query=target.value;render(true);return true;}
-    var date=target.closest('[data-column-date]');
-    if(date && columnMenu.column==='updated'){columnMenu.value[date.getAttribute('data-column-date')]=target.value;columnMenu.error='';return true;}
     var field=target.closest('[data-column-field]');
     if(!field)return false;
-    if(columnMenu.column==='updated'){
-      if(!['all','recorded','missing'].includes(target.value))return true;
-      columnMenu.value.mode=target.value;
-      if(target.value==='missing'){columnMenu.value.from='';columnMenu.value.to='';}
-      render(true);
-    }else columnMenu.value=target.value;
+    columnMenu.value=target.value;
     return true;
   }
   document.addEventListener('toggle',function(e){
@@ -1784,49 +1615,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       if(!['none','plan'].includes(e.target.value))return;
       ui.taskGroup=e.target.value;columnMenu=null;save('wb-ui',ui);render(true);return;
     }
-    if(e.target.closest('[data-agent-filter]')) {ui.agent=e.target.value;save('wb-ui',ui);render(true);return;}
-    var select=e.target.closest('[data-status]');
-    if(!select) return;
-    var p=planByKey(select.getAttribute('data-status'));
-    if(p) {
-      var target=select.value;
-      select.className='status-select status-'+statusTone(target);
-      select.disabled=true;
-      moveStatus(key(p),target,p.revision).finally(function(){select.disabled=false;});
-    }
   });
-  document.addEventListener('dragstart',function(e){
-    var card=e.target.closest('[data-plan]');
-    if(!card || saving || e.target.closest('a,input,select,textarea')) {e.preventDefault();return;}
-    var p=planByKey(card.getAttribute('data-plan'));
-    if(!p || !p.revision) {e.preventDefault();return;}
-    dragged={key:key(p),column:columnOf(p),revision:p.revision};
-    e.dataTransfer.effectAllowed='move';
-    e.dataTransfer.setData('text/plain',key(p));
-    card.classList.add('dragging');
-  });
-  document.addEventListener('dragover',function(e){
-    var column=e.target.closest('[data-column]');
-    if(!dragged || saving || !column || Number(column.getAttribute('data-column'))===dragged.column) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect='move';
-    clearDrop();
-    column.classList.add('drop-target');
-  });
-  document.addEventListener('dragleave',function(e){
-    var column=e.target.closest('[data-column]');
-    if(column && !column.contains(e.relatedTarget)) column.classList.remove('drop-target');
-  });
-  document.addEventListener('drop',function(e){
-    var column=e.target.closest('[data-column]'), source=dragged;
-    if(!source || !column) return;
-    e.preventDefault();
-    var index=Number(column.getAttribute('data-column'));
-    endDrag();
-    if(index!==source.column && COLUMN_STAGES[index]) moveStatus(source.key,COLUMN_STAGES[index],source.revision);
-    else get();
-  });
-  document.addEventListener('dragend',function(){endDrag();get();});
   var refreshing=null;
   function refresh() {
     if(refreshing)return refreshing;
@@ -1834,7 +1623,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     $('save-state').textContent='Checking progress…';
     refreshing=(async function(){
       try{
-        var response=await fetch('/api/refresh',{method:'POST',cache:'no-store',headers:{'X-Workboard':'1'}});
+        var response=await fetch('/api/refresh',{method:'POST',cache:'no-store',headers:{'X-Agent-Ops':'1'}});
         var result=response.status===204?{}:await response.json();
         if(!response.ok || result.error)throw Error(result.error || 'Progress refresh failed');
         var latest=await get();
@@ -1857,10 +1646,9 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   document.addEventListener('click', function (ev) {
     if(handleSettingsAction(ev))return;
     if(handleUpdateAction(ev))return;
-    if(Date.now()<suppressClickUntil) return;
     if(handleViewAction(ev)) return;
     var go = ev.target.closest('[data-go]'), tab = ev.target.closest('[data-tab]');
-    if (Date.now() < suppressClickUntil || ev.target.closest('a,select')) return;
+    if (ev.target.closest('a,select')) return;
     if (go) { columnMenu=null;var v = go.getAttribute('data-go'); if(v==='waiting' && ui.view==='waiting')v='home'; if (v !== ui.view) { ui.view = v; ui.q = ''; ui.activityDay='';ui.focusTask=null;if(v==='waiting' && ui.layout==='list')ui.taskStatus='all'; if (v.indexOf('plan:') === 0) ui.tab = 'summary'; } save('wb-ui', ui); render(); $('view').scrollTop = 0; }
     else if (tab) { ui.tab = tab.getAttribute('data-tab'); save('wb-ui', ui); render(); }
   });
@@ -1928,7 +1716,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     }
     if(kind==='available')return head(icon('arrowUp'),'Update available',true)+'<p>Agent Ops '+esc(s.latest)+' is ready. Your plans and settings are kept.</p>'+
       '<details><summary>What\u2019s new</summary><div class="update-notes">'+esc(s.notes || 'No release notes provided.')+'</div></details>'+
-      '<div class="update-card-actions"><button class="btn btn-primary btn-block" id="update-apply" data-update-action="apply"'+(busy || saving?' disabled':'')+'>Update and restart</button><button class="btn btn-ghost btn-block" id="update-skip" data-update-action="skip"'+(busy?' disabled':'')+'>Skip this version</button></div>';
+      '<div class="update-card-actions"><button class="btn btn-primary btn-block" id="update-apply" data-update-action="apply"'+(busy?' disabled':'')+'>Update and restart</button><button class="btn btn-ghost btn-block" id="update-skip" data-update-action="skip"'+(busy?' disabled':'')+'>Skip this version</button></div>';
     return '';
   }
   function renderUpdate(){
@@ -1978,12 +1766,12 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     catch(e){if(updateInstalling())return;if(updateUI.card || updateUI.manual){updateUI.error=e.message;renderUpdate();}}
   }
   async function updateAction(action){
-    if(updateUI.requesting || updateInstalling() || (action==='apply' && saving))return;
+    if(updateUI.requesting || updateInstalling())return;
     updateUI.action=action;updateUI.lastAction=action;updateUI.requesting=true;updateUI.error='';updateUI.upToDate=false;
     if(action==='check'){updateUI.manual=true;if(!settingsUI.open)updateUI.card=true;}
     renderUpdate();
     try{
-      var response=await fetch('/api/updates/'+action,{method:'POST',headers:{'X-Workboard':'1','Content-Type':'application/json'},body:JSON.stringify({version:updateUI.state && updateUI.state.latest || ''})});
+      var response=await fetch('/api/updates/'+action,{method:'POST',headers:{'X-Agent-Ops':'1','Content-Type':'application/json'},body:JSON.stringify({version:updateUI.state && updateUI.state.latest || ''})});
       var state=await response.json();if(!response.ok)throw Error(state.error || 'Update request failed.');
       if(action==='check')updateUI.state=Object.assign({},updateUI.state,{phase:'checking'});
       receiveUpdate(state);
@@ -2045,11 +1833,11 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 
   // ---------- First-run setup and Settings ----------
   // Both read and change the same settings API; the server validates every path.
-  var setup={open:false,step:0,visited:0,busy:'',error:'',notice:'',pasting:false,path:'',confirmRemove:'',confirmSkip:false,saved:''};
+  var setup={open:false,step:0,visited:0,busy:'',error:'',notice:'',pasting:false,path:'',confirmRemove:'',confirmSkip:false,saved:'',picked:null};
   var settingsUI={open:false,section:'general',query:'',busy:'',error:'',notice:'',adding:false,pasting:false,path:'',confirmRemove:'',returnTo:null,saved:''};
   var settingsData=null;
   var PROJECT_KIND={repo:'Repository',folder:'Folder'};
-  var SETUP_STEPS=['Welcome','Add projects','Preferences'];
+  var SETUP_STEPS=['Welcome','Add projects','Connect AI clients','Preferences'],SETUP_LAST=SETUP_STEPS.length-1;
   var SETTING_ITEMS=[
     {id:'startup',section:'general',title:'Start with Windows',description:'Open Agent Ops in the tray when you sign in.',keywords:'startup login sign in boot tray autostart run'},
     {id:'notifications',section:'general',title:'Desktop notifications',description:'Notify when a plan becomes blocked or waits for you.',keywords:'toast alert windows notification blocked waiting question stale quiet'},
@@ -2059,13 +1847,14 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     {id:'data-folder',section:'general',title:'Data folder',description:'Where Agent Ops keeps its settings and cache.',keywords:'config json storage path activity history location open explorer'},
     {id:'setup-again',section:'general',title:'Run setup again',description:'Show the first-run setup.',keywords:'onboarding first run welcome wizard'},
     {id:'projects',section:'projects',title:'Projects',description:'',keywords:'project folder repository repositories repo add remove enable disable plans tasks path choose paste'},
+    {id:'integrations',section:'integrations',title:'AI clients',description:'Folders that receive the task-plan skill.',keywords:'integrations integration skill skills folder folders path paste add suggestion detected custom enable claude codex gemini antigravity orca agent client install update remove reminder instructions task-plan migration diff'},
     {id:'version',section:'about',title:'Version and updates',description:'',keywords:'about version update upgrade release check notes'}
   ];
-  var SETTINGS_SECTIONS=[['general','General','App defaults and maintenance.','sliders'],['projects','Projects','Folders Agent Ops reads plans from.','folder'],['about','About','Version and updates.','info']];
+  var SETTINGS_SECTIONS=[['general','General','App defaults and maintenance.','sliders'],['projects','Projects','Folders Agent Ops reads plans from.','folder'],['integrations','Integrations','Folders your AI clients read the task-plan skill from.','plug'],['about','About','Version and updates.','info']];
 
   async function settingsRequest(path,method,body){
     var options={method:method || 'GET',cache:'no-store',headers:{}};
-    if(options.method!=='GET')options.headers['X-Workboard']='1';
+    if(options.method!=='GET')options.headers['X-Agent-Ops']='1';
     if(body!==undefined){options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
     var response=await fetch(path,options),result={};
     try{result=await response.json();}catch(e){/* A non-JSON body is reported by its status below. */}
@@ -2152,6 +1941,260 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       state.notice='Diagnostics copied. Paste them into your report.';
     });
   }
+  // ---------- Integrations: a list of skills folders, each with the task-plan skill and an optional one-line reminder ----------
+  // The server owns every file change and validation; the page shows state and posts one change at a time.
+  // Detection only suggests folders: nothing is added unless the owner chooses it.
+  var integrationsUI={data:null,loading:false,busy:'',error:'',errorFor:'',notice:'',confirm:'',diff:null,diffFor:'',pasting:false,path:'',instr:'',editing:'',editLabel:'',editPath:'',editInstr:''};
+  var INTEGRATION_ACTIONS=['install','update','replace','keep','remove','instructions-on','instructions-off'];
+  var INTEGRATION_FIELDS=['path','instr','editLabel','editPath','editInstr'];
+  function integrationTargets(){return integrationsUI.data && Array.isArray(integrationsUI.data.targets)?integrationsUI.data.targets:[];}
+  function integrationSuggestions(){return integrationsUI.data && Array.isArray(integrationsUI.data.suggestions)?integrationsUI.data.suggestions:[];}
+  function integrationReadOnly(){return integrationsUI.data && integrationsUI.data.readOnly || '';}
+  async function loadIntegrations(){
+    if(integrationsUI.loading)return integrationsUI.data;
+    integrationsUI.loading=true;
+    try{integrationsUI.data=await settingsRequest('/api/integrations');integrationsUI.error='';integrationsUI.errorFor='';}
+    catch(e){integrationsUI.error=e.message;integrationsUI.errorFor='';}
+    finally{integrationsUI.loading=false;renderPanels();}
+    return integrationsUI.data;
+  }
+  // run performs one request for a target (or 'add'), shows its error inline next to it and returns success.
+  async function integrationRequest(owner,busy,work){
+    if(integrationsUI.busy || integrationReadOnly())return false;
+    integrationsUI.confirm='';integrationsUI.busy=busy;integrationsUI.error='';integrationsUI.errorFor='';integrationsUI.notice='';renderPanels();
+    var ok=true;
+    try{await work();}catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=owner;ok=false;}
+    finally{integrationsUI.busy='';renderPanels();}
+    return ok;
+  }
+  function askFirst(key){if(integrationsUI.confirm===key)return false;integrationsUI.confirm=key;renderSettings();return true;}
+  function integrationAction(id,action){
+    if(INTEGRATION_ACTIONS.indexOf(action)<0 || integrationsUI.busy || integrationReadOnly())return Promise.resolve(false);
+    if(['replace','remove'].includes(action) && askFirst(id+':'+action))return Promise.resolve(false);
+    return integrationRequest(id,id+':'+action,async function(){
+      integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id)+'/'+action,'POST',{});
+      if(integrationsUI.diffFor===id){integrationsUI.diff=null;integrationsUI.diffFor='';}
+    });
+  }
+  function addIntegration(body,owner){
+    return integrationRequest(owner || 'add','add',async function(){
+      var result=await settingsRequest('/api/integrations','POST',body);
+      integrationsUI.data=result;integrationsUI.pasting=false;integrationsUI.path='';integrationsUI.instr='';
+      var added=integrationTargets().find(function(t){return t.id===result.added;});
+      integrationsUI.notice=added?'Added '+added.label+'. Install the skill when you are ready.':'Folder added.';
+    });
+  }
+  function changeTarget(id,body,busy){
+    return integrationRequest(id,id+':'+(busy || 'edit'),async function(){
+      integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id),'PATCH',body);
+      if(busy!=='enable')integrationsUI.editing='';
+    });
+  }
+  function dropTarget(id){
+    if(askFirst(id+':drop'))return Promise.resolve(false);
+    return integrationRequest(id,id+':drop',async function(){integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id),'DELETE');});
+  }
+  // The native dialogs reuse the folder picker endpoint; a cancelled dialog changes nothing.
+  async function pickIntegrationPath(purpose){
+    if(integrationsUI.busy)return '';
+    integrationsUI.busy='pick-'+purpose;integrationsUI.error='';integrationsUI.errorFor='';renderSettings();
+    var picked=null;
+    try{picked=await settingsRequest('/api/settings/pick-folder','POST',{purpose:purpose});}
+    catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=integrationsUI.editing || 'add';}
+    integrationsUI.busy='';renderSettings();
+    return picked && picked.path || '';
+  }
+  async function chooseSkillsFolder(){
+    var path=await pickIntegrationPath('skills');
+    if(path)return addIntegration(integrationsUI.instr.trim()?{skillDir:path,instructionFile:integrationsUI.instr.trim()}:{skillDir:path});
+  }
+  async function chooseInstructionFile(){
+    var path=await pickIntegrationPath('instruction-file');
+    if(!path)return;
+    if(integrationsUI.editing)integrationsUI.editInstr=path;else{integrationsUI.instr=path;integrationsUI.pasting=true;}
+    renderSettings();
+  }
+  function pastedIntegration(){
+    var path=integrationsUI.path.trim();
+    if(!path){integrationsUI.error='Enter a full folder path, such as C:\\Users\\me\\tools\\skills.';integrationsUI.errorFor='add';renderSettings();return Promise.resolve(false);}
+    return addIntegration(integrationsUI.instr.trim()?{skillDir:path,instructionFile:integrationsUI.instr.trim()}:{skillDir:path});
+  }
+  function startEdit(id){
+    var t=integrationTargets().find(function(x){return x.id===id;});if(!t)return;
+    if(integrationsUI.editing===id){integrationsUI.editing='';renderSettings();return;}
+    integrationsUI.editing=id;integrationsUI.editLabel=t.label || '';integrationsUI.editPath=t.skillDir || '';integrationsUI.editInstr=(t.instructions || {}).path || '';integrationsUI.error='';integrationsUI.errorFor='';
+    renderSettings();if($('integration-edit-path'))$('integration-edit-path').focus();
+  }
+  function saveEdit(){
+    var t=integrationTargets().find(function(x){return x.id===integrationsUI.editing;});if(!t)return Promise.resolve(false);
+    var body={};
+    if(integrationsUI.editLabel.trim()!==t.label)body.label=integrationsUI.editLabel.trim();
+    if(integrationsUI.editPath.trim()!==t.skillDir)body.skillDir=integrationsUI.editPath.trim();
+    if(integrationsUI.editInstr.trim()!==((t.instructions || {}).path || ''))body.instructionFile=integrationsUI.editInstr.trim();
+    if(!Object.keys(body).length){integrationsUI.editing='';renderSettings();return Promise.resolve(true);}
+    return changeTarget(t.id,body,'edit');
+  }
+  async function integrationDiff(id){
+    if(integrationsUI.diffFor===id){integrationsUI.diff=null;integrationsUI.diffFor='';renderSettings();return;}
+    if(integrationsUI.busy)return;
+    integrationsUI.busy=id+':diff';integrationsUI.error='';integrationsUI.errorFor='';renderSettings();
+    try{integrationsUI.diff=await settingsRequest('/api/integrations/'+encodeURIComponent(id)+'/diff');integrationsUI.diffFor=id;}
+    catch(e){integrationsUI.error=e.message;integrationsUI.errorFor=id;}
+    finally{integrationsUI.busy='';renderSettings();}
+  }
+  function skillStateText(t){
+    var v=t.installedVersion?' v'+t.installedVersion:'';
+    if(t.state==='missing-folder')return 'Missing folder';
+    if(t.state==='not-installed')return 'Not installed';
+    if(t.state==='installed')return 'Installed'+v;
+    if(t.state==='update-available')return 'Update available'+(v?' ·'+v+' installed':'');
+    if(t.state==='modified')return 'Modified locally'+(t.kept?' · your version is kept':'');
+    return String(t.state || 'Unknown');
+  }
+  function instructionStateText(state){
+    return {on:'On',off:'Off',outdated:'On, but the reminder text is out of date',modified:'Edited by hand','missing-folder':'Its folder is missing'}[state] || String(state || '');
+  }
+  function baseName(path){return String(path || '').split(/[\\/]/).pop();}
+  function errorFor(owner){return integrationsUI.errorFor===owner && integrationsUI.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'';}
+  function integrationButton(t,action,label,cls){
+    var busy=!!integrationsUI.busy || !t.enabled && action!=='remove' && action!=='instructions-off',mine=integrationsUI.busy===t.id+':'+action,confirming=integrationsUI.confirm===t.id+':'+action;
+    var text=confirming?(action==='replace'?'Click again to replace':'Click again to remove'):label;
+    return '<button class="btn btn-xs'+(confirming?' btn-danger':cls?' '+cls:'')+'" id="integration-'+esc(t.id)+'-'+action+'" data-integration-action="'+action+'" data-integration-target="'+esc(t.id)+'"'+(busy || integrationReadOnly()?' disabled':'')+'>'+(mine?spinner():'')+esc(text)+'</button>';
+  }
+  function integrationActions(t){
+    var out=[],busy=!!integrationsUI.busy || !!integrationReadOnly();
+    if(t.enabled){
+      if(t.state==='not-installed')out.push(integrationButton(t,'install','Install','btn-primary'));
+      if(t.state==='update-available')out.push(integrationButton(t,'update','Update','btn-primary'));
+      if(t.state==='modified'){
+        var open=integrationsUI.diffFor===t.id;
+        out.push('<button class="btn btn-xs" id="integration-'+esc(t.id)+'-diff" data-integration-diff="'+esc(t.id)+'" aria-expanded="'+open+'"'+(integrationsUI.busy?' disabled':'')+'>'+(integrationsUI.busy===t.id+':diff'?spinner():'')+(open?'Hide diff':'View diff')+'</button>');
+        if(!t.kept)out.push(integrationButton(t,'keep','Keep mine',''));
+        out.push(integrationButton(t,'replace','Replace',''));
+      }
+      if(t.state==='installed' || t.state==='update-available')out.push(integrationButton(t,'remove','Remove skill',''));
+    }else if(t.state==='installed' || t.state==='update-available')out.push(integrationButton(t,'remove','Remove skill','')); // cleanup stays possible while off
+    out.push('<button class="btn btn-xs" id="integration-'+esc(t.id)+'-edit" data-integration-edit="'+esc(t.id)+'" aria-expanded="'+(integrationsUI.editing===t.id)+'"'+(busy?' disabled':'')+'>Edit path</button>');
+    var dropping=integrationsUI.confirm===t.id+':drop',reminder=reminderOn(t);
+    out.push('<button class="btn btn-xs'+(dropping?' btn-danger':'')+'" id="integration-'+esc(t.id)+'-drop" data-integration-drop="'+esc(t.id)+'"'+(busy || reminder?' disabled':'')+(reminder?' title="Turn the reminder off first"':'')+'>'+icon('trash')+(dropping?'Click again to remove':'Remove from list')+'</button>');
+    var c=integrationsUI.confirm,note=c===t.id+':replace'?'<small>Your file is backed up before Agent Ops writes its version.</small>':c===t.id+':remove'?'<small>The skill file is removed; a backup is kept.</small>':c===t.id+':drop'?'<small>Agent Ops stops managing this folder. Files on disk are not changed.</small>':reminder?'<small>Turn the reminder off before removing this folder from the list.</small>':'';
+    return '<div class="project-actions">'+out.join('')+note+'</div>';
+  }
+  function diffPanel(t){
+    if(integrationsUI.diffFor!==t.id || !integrationsUI.diff)return '';
+    var d=integrationsUI.diff,lines=Array.isArray(d.lines)?d.lines:[];
+    var body=d.identical?'<p class="diff-empty">The file on disk matches what Agent Ops would write.</p>':lines.map(function(l){
+      var op=l.op==='-' || l.op==='+'?l.op:' ',cls=op==='-'?' is-del':op==='+'?' is-add':'';
+      return '<div class="diff-line'+cls+'"><span class="diff-op" aria-hidden="true">'+op+'</span><span class="sr-only">'+(op==='-'?'On disk: ':op==='+'?'Agent Ops version: ':'')+'</span><span>'+esc(l.text)+'</span></div>';
+    }).join('');
+    return '<div class="diff-panel" id="integration-diff-'+esc(t.id)+'" role="region" aria-label="'+esc('Differences for '+t.label)+'"><div class="diff-head"><code>'+esc(d.path || t.skillFile || '')+'</code><span class="diff-legend"><span class="is-del">− on disk</span><span class="is-add">+ Agent Ops version</span></span></div><div class="diff-body">'+body+'</div></div>';
+  }
+  function instructionRow(t){
+    var ins=t.instructions || {},state=ins.state || 'none',id='integration-instructions-'+t.id;
+    if(state==='none' || !ins.path)return '';
+    var on=state!=='off' && state!=='missing-folder',busy=!!integrationsUI.busy || !!integrationReadOnly() || !t.enabled && !on || state==='missing-folder';
+    return '<div class="integration-reminder"><label class="project-toggle" for="'+esc(id)+'"><input type="checkbox" role="switch" class="switch" id="'+esc(id)+'" data-integration-instructions="'+esc(t.id)+'"'+(on?' checked':'')+(busy?' disabled':'')+'><span>Add a one-line reminder to '+esc(baseName(ins.path))+'</span></label>'+
+      '<small class="integration-reminder-state">'+esc(instructionStateText(state))+'</small>'+(state==='outdated' && t.enabled?integrationButton(t,'instructions-on','Refresh reminder',''):'')+
+      '<code class="setting-path">'+esc(ins.path)+'</code></div>';
+  }
+  function fieldInput(field,id,label,placeholder,extra){
+    return '<label class="integration-field" for="'+id+'"><span>'+esc(label)+'</span><input id="'+id+'" class="input" data-integration-input="'+field+'" placeholder="'+esc(placeholder)+'" value="'+esc(integrationsUI[field])+'" autocomplete="off" spellcheck="false"'+(extra || '')+'></label>';
+  }
+  function reminderOn(t){var s=(t.instructions || {}).state;return s==='on' || s==='outdated';}
+  function editPanel(t){
+    if(integrationsUI.editing!==t.id)return '';
+    var busy=!!integrationsUI.busy,locked=reminderOn(t),left=t.state==='installed' || t.state==='update-available' || t.state==='modified';
+    return '<div class="integration-edit" role="group" aria-label="'+esc('Edit '+t.label)+'">'+fieldInput('editLabel','integration-edit-label','Name','Claude Code')+fieldInput('editPath','integration-edit-path','Skills folder','C:\\Users\\me\\tools\\skills')+
+      fieldInput('editInstr','integration-edit-instr','Instruction file (optional)','C:\\Users\\me\\tools\\AGENTS.md',locked?' disabled title="Turn the reminder off first"':'')+
+      '<div class="project-actions"><button class="btn btn-xs" data-integration-pick-file'+(busy || locked?' disabled':'')+'>Choose file…</button><button class="btn btn-primary btn-xs" id="integration-edit-save" data-integration-save'+(busy?' disabled':'')+'>'+(integrationsUI.busy===t.id+':edit'?spinner():'')+'Save</button><button class="btn btn-ghost btn-xs" data-integration-cancel>Cancel</button>'+(locked?'<small>Turn the reminder off before changing the instruction file.</small>':'')+(left?'<small>A new skills folder does not move the skill: the copy in '+esc(t.skillDir)+' stays. Remove skill first if you no longer want it there.</small>':'')+'</div></div>';
+  }
+  function integrationCard(t){
+    var tag=!t.enabled?'<span class="tag is-off">Off</span>':t.state==='modified'?'<span class="tag is-danger">Modified locally</span>':t.state==='missing-folder'?'<span class="tag is-danger">Missing folder</span>':t.state==='update-available'?'<span class="tag">Update available</span>':'';
+    var busy=!!integrationsUI.busy || !!integrationReadOnly();
+    return '<li class="project-card integration-card'+(t.enabled?'':' is-disabled')+(t.state==='missing-folder'?' is-missing':'')+'" id="integration-'+esc(t.id)+'"><div class="project-head"><span class="project-icon">'+icon('plug')+'</span><div class="project-title"><strong>'+esc(t.label)+'</strong><small class="mono" title="'+esc(t.skillDir)+'">'+esc(t.skillDir)+'</small></div>'+tag+
+      '<label class="project-toggle"><input type="checkbox" role="switch" class="switch" id="integration-enabled-'+esc(t.id)+'" data-integration-enabled="'+esc(t.id)+'"'+(t.enabled?' checked':'')+(busy?' disabled':'')+'><span>Use this folder</span></label></div>'+
+      '<div class="project-summary'+(t.state==='missing-folder'?' is-error':'')+'"><span class="integration-state">Skill: '+esc(skillStateText(t))+'</span> · <span>'+(t.source==='detected'?'Detected':'Added by you')+'</span>'+(t.skillFile?'<code class="setting-path">'+esc(t.skillFile)+'</code>':'')+'</div>'+
+      errorFor(t.id)+integrationActions(t)+editPanel(t)+diffPanel(t)+instructionRow(t)+'</li>';
+  }
+  function addFolderControls(){
+    var busy=integrationsUI.busy,ro=!!integrationReadOnly();
+    var label=busy==='pick-skills'?'Waiting for the folder picker…':busy==='add'?'Checking folder…':'Add folder…';
+    return '<div class="add-project"><button class="option-card" id="integration-choose" data-integration-choose'+(busy || ro?' disabled':'')+'><span class="option-icon">'+(busy==='pick-skills' || busy==='add'?spinner():icon('folderPlus'))+'</span>'+
+      '<span class="option-text"><strong>'+label+'</strong><small>The folder an AI client reads skills from. Agent Ops installs task-plan\\SKILL.md inside it.</small></span></button>'+
+      (integrationsUI.pasting?'<div class="integration-edit">'+fieldInput('path','integration-path','Skills folder','C:\\Users\\me\\tools\\skills',integrationsUI.errorFor==='add'?' aria-invalid="true"':'')+fieldInput('instr','integration-instr','Instruction file (optional)','C:\\Users\\me\\tools\\AGENTS.md')+
+        '<div class="project-actions"><button class="btn btn-xs" data-integration-pick-file'+(busy || ro?' disabled':'')+'>Choose file…</button><button class="btn btn-primary btn-xs" id="integration-add" data-integration-add'+(busy || ro?' disabled':'')+'>'+(busy==='add'?spinner()+'Adding…':'Add')+'</button></div></div>'
+        :'<button class="link-btn" id="integration-paste" data-integration-paste aria-expanded="false"'+(busy || ro?' disabled':'')+'>Paste a path instead</button>')+
+      errorFor('add')+(integrationsUI.notice?'<p class="field-msg is-success" role="status">'+icon('check')+'<span>'+esc(integrationsUI.notice)+'</span></p>':'')+'</div>';
+  }
+  function suggestionRow(s,i){
+    var busy=!!integrationsUI.busy || !!integrationReadOnly(),owner='suggestion-'+i;
+    return '<li class="added-row" id="integration-suggestion-'+i+'"><span class="option-icon">'+icon('plug')+'</span><span class="added-text"><strong>'+esc(s.label)+'</strong><span class="mono" title="'+esc(s.skillDir)+'">'+esc(s.skillDir)+'</span>'+(s.instructionFile?'<small>Reminder file: '+esc(s.instructionFile)+'</small>':'')+errorFor(owner)+'</span>'+
+      '<button class="btn btn-xs" data-integration-suggest="'+i+'"'+(busy?' disabled':'')+'>'+icon('plus')+'Add</button></li>';
+  }
+  function migrationReview(){
+    var m=integrationsUI.data && integrationsUI.data.migration;if(!m)return '';
+    var list=Array.isArray(m.checklist)?m.checklist:[],kept=Array.isArray(m.kept)?m.kept:[],errors=Array.isArray(m.errors)?m.errors:[];
+    if(!list.length && !kept.length && !errors.length)return '';
+    var retry=m.done===false && m.nextRetryAt?'<p class="settings-desc">Cleanup from the earlier release is not finished. Agent Ops tries again when it starts after <time datetime="'+esc(m.nextRetryAt)+'">'+esc(new Date(m.nextRetryAt).toLocaleString())+'</time>. Details are in the logs folder (Settings &gt; General).</p>':'';
+    return '<section class="settings-group integration-review"><h3>Review by hand</h3>'+
+      (errors.length?retry+'<ul class="review-list" role="alert">'+errors.map(function(e){return '<li><span>'+esc(e)+'</span></li>';}).join('')+'</ul>':'')+
+      '<p class="settings-desc">These files still mention the old product name. Edit them yourself; Agent Ops does not change text you wrote.'+(m.backup?' Backups: <code>'+esc(m.backup)+'</code>':'')+'</p>'+
+      (list.length?'<ul class="review-list">'+list.map(function(item){return '<li><code>'+esc(item.file)+(item.line?':'+esc(item.line):'')+'</code><span>'+esc(item.text)+'</span></li>';}).join('')+'</ul>':'')+
+      (kept.length?'<p class="settings-desc">Kept unchanged:</p><ul class="review-list">'+kept.map(function(k){return '<li><span>'+esc(k)+'</span></li>';}).join('')+'</ul>':'')+'</section>';
+  }
+  function integrationsBody(){
+    if(!integrationsUI.data && !integrationsUI.loading && !integrationsUI.error)loadIntegrations();
+    var ro=integrationReadOnly(),general=integrationsUI.error && !integrationsUI.errorFor;
+    var head='<p class="settings-desc">Choose the folders your AI clients read skills from. Agent Ops installs the task-plan skill (v'+esc(integrationsUI.data && integrationsUI.data.skillVersion || '')+') there so each client keeps its plan in <code>.tasks/</code>. Files you changed are never overwritten without asking.</p>';
+    if(!integrationsUI.data)return '<section class="settings-group">'+(general?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p><button class="btn btn-xs" data-integrations-reload>Try again</button>':'<p class="setup-empty" role="status">Loading…</p>')+'</section>';
+    var targets=integrationTargets(),suggestions=integrationSuggestions();
+    return '<section class="settings-group">'+head+(ro?'<p class="callout callout-danger" role="alert">'+icon('alertCircle')+'<span>'+esc(ro)+'</span></p>':'')+
+      (general?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'')+addFolderControls()+
+      (targets.length?'<ul class="project-list">'+targets.map(integrationCard).join('')+'</ul>':'<div class="settings-empty"><strong>No folders yet.</strong><span>Add a folder, or one found on this computer below.</span></div>')+'</section>'+
+      (suggestions.length?'<section class="settings-group" id="integration-suggestions"><h3>Found on this computer</h3><p class="settings-desc">Suggestions only. Nothing is added until you choose it.</p><ul class="added-list card">'+suggestions.map(suggestionRow).join('')+'</ul></section>':'')+migrationReview();
+  }
+  // First-run step: suggestions and listed folders that need the skill, all unchecked until the owner checks them.
+  function setupRows(){
+    var rows=integrationSuggestions().map(function(s,i){return {key:'s'+i,label:s.label,detail:s.skillDir,note:'Found on this computer',suggestion:s};});
+    integrationTargets().forEach(function(t){var action=t.enabled && (t.state==='not-installed'?'install':t.state==='update-available'?'update':'');if(action)rows.push({key:'t-'+t.id,label:t.label,detail:t.skillDir,note:skillStateText(t),target:t,action:action});});
+    return rows;
+  }
+  function setupPicks(){if(setup.picked===null)setup.picked={};return setup.picked;}
+  function setupClientsBody(){
+    var picks=setupPicks(),ro=integrationReadOnly(),busy=!!setup.busy;
+    var lead='<h1 id="onboarding-title">Connect AI clients</h1><p class="onboarding-lead">Optional. Check the folders your AI clients read skills from; Agent Ops installs the task-plan skill there so they keep their plans in <code>.tasks/</code>. Add other folders any time in Settings → Integrations.</p>';
+    if(!integrationsUI.data)return lead+(integrationsUI.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(integrationsUI.error)+'</span></p>':'<p class="setup-empty" role="status">Loading…</p>');
+    var rows=setupRows();
+    var list=rows.length?'<ul class="added-list card">'+rows.map(function(r){
+      var id='setup-client-'+r.key;
+      return '<li class="added-row"><input type="checkbox" class="setup-check" id="'+esc(id)+'" data-setup-client="'+esc(r.key)+'"'+(picks[r.key]?' checked':'')+(ro || busy?' disabled':'')+'><label class="added-text" for="'+esc(id)+'"><strong>'+esc(r.label)+'</strong><span class="mono">'+esc(r.detail)+'</span><small>'+esc(r.note)+'</small></label></li>';
+    }).join('')+'</ul>':'<p class="setup-empty">No AI client folders were found. You can add folders later in Settings → Integrations.</p>';
+    return lead+(ro?'<p class="callout callout-danger" role="alert">'+icon('alertCircle')+'<span>'+esc(ro)+'</span></p>':'')+list+
+      (setup.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(setup.error)+'</span></p>':'');
+  }
+  async function setupInstallClients(){
+    if(setup.busy)return false;
+    var picks=setupPicks(),list=integrationReadOnly()?[]:setupRows().filter(function(r){return picks[r.key];});
+    if(!list.length){setupGo(SETUP_LAST);return true;}
+    var failed=[];
+    var ok=await runSettingsAction('setup','installing',async function(){
+      for(var i=0;i<list.length;i++){
+        var r=list[i];
+        try{
+          var id=r.target?r.target.id:'',action=r.action || 'install';
+          if(r.suggestion){
+            var body={skillDir:r.suggestion.skillDir};if(r.suggestion.instructionFile)body.instructionFile=r.suggestion.instructionFile;
+            var added=await settingsRequest('/api/integrations','POST',body);integrationsUI.data=added;id=added.added;
+          }
+          integrationsUI.data=await settingsRequest('/api/integrations/'+encodeURIComponent(id)+'/'+action,'POST',{});
+        }catch(e){failed.push(r.label+': '+e.message);}
+      }
+      if(failed.length)throw Error(failed.join(' '));
+    });
+    setup.picked=null;
+    if(ok)setupGo(SETUP_LAST);
+    return ok;
+  }
   // A crash notice is non-modal: it never takes focus and stays until dismissed.
   var crashUI={error:'',busy:false};
   function showCrash(c){
@@ -2180,15 +2223,16 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(ok){setup.open=false;setup.step=0;setup.visited=0;D.setupRequired=false;renderSetup();render();renderUpdate();get();}
     return ok;
   }
-  function openSetup(){setup.open=true;setup.step=0;setup.visited=0;setup.error='';setup.notice='';setup.confirmSkip=false;loadSettings();renderSetup();renderUpdate();focusSetupPrimary();}
+  function openSetup(){setup.open=true;setup.step=0;setup.visited=0;setup.error='';setup.notice='';setup.confirmSkip=false;setup.picked=null;loadSettings();renderSetup();renderUpdate();focusSetupPrimary();}
   function syncSetup(){
     if(D.setupRequired && !setup.open){openSetup();return;}
     renderSetup();
   }
   function setupGo(step){
-    if(step===2 && !settingsProjects().length)return;
-    setup.step=Math.max(0,Math.min(2,step));setup.visited=Math.max(setup.visited,setup.step);setup.error='';setup.notice='';setup.confirmSkip=false;
+    if(step>=2 && !settingsProjects().length)return;
+    setup.step=Math.max(0,Math.min(SETUP_LAST,step));setup.visited=Math.max(setup.visited,setup.step);setup.error='';setup.notice='';setup.confirmSkip=false;
     if(setup.step===1 && !settingsData)loadSettings();
+    if(setup.step===2 && !integrationsUI.data)loadIntegrations();
     renderSetup();focusSetupPrimary();
   }
   function focusSetupPrimary(){var el=$('setup-next') || $('setup-finish');if(el && !el.disabled)el.focus();else if($('setup-choose'))$('setup-choose').focus();}
@@ -2254,7 +2298,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var host=$('onboarding');if(!host)return;
     host.hidden=!setup.open;
     if(!setup.open){if(host.innerHTML)host.innerHTML='';return;}
-    var projects=settingsProjects(),count=projects.length,data=settingsData || {},body='',primary='',last=setup.step===2,busy=setup.busy;
+    var projects=settingsProjects(),count=projects.length,data=settingsData || {},body='',primary='',last=setup.step===SETUP_LAST,busy=setup.busy;
     if(setup.step===0){
       body='<p class="eyebrow">Welcome to Agent Ops</p><h1 id="onboarding-title">Your work ledger for every repository</h1>'+
         '<p class="onboarding-lead">Agent Ops reads the plan files in each project\u2019s <code>.tasks</code> folder and shows goals, milestones, step summaries and progress in one place. It never runs agents; orchestration lives in Orca.</p>'+
@@ -2267,6 +2311,9 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       body='<h1 id="onboarding-title">Add your projects</h1><p class="onboarding-lead">Choose a repository, or a folder that contains several repositories. You can change this any time in Settings \u2192 Projects.</p>'+addControls('setup')+
         (settingsData?(count?'<ul class="added-list card">'+projects.map(setupProjectRow).join('')+'</ul>'+(plansFound?'':'<p class="callout callout-warning" role="status">'+icon('alert')+'<span>No plans yet. Plans appear when a repository has <code>.tasks/*.md</code> in its main checkout.</span></p>'):'<p class="setup-empty">No projects yet.</p>'):'<p class="setup-empty" role="status">Loading…</p>');
       primary='<button class="btn btn-primary btn-lg" id="setup-next" data-setup-next'+(count?'':' disabled title="Add a project to continue"')+'>Continue'+kbd(['Ctrl','Enter'])+'</button>';
+    }else if(setup.step===2){
+      body=setupClientsBody();
+      primary='<button class="btn btn-ghost btn-lg" id="setup-clients-skip" data-setup-clients-skip'+(busy?' disabled':'')+'>Skip</button><button class="btn btn-primary btn-lg" id="setup-next" data-setup-next'+(busy?' disabled':'')+'>'+(busy==='installing'?spinner()+'Installing…':'Continue')+kbd(['Ctrl','Enter'])+'</button>';
     }else{
       body='<h1 id="onboarding-title">A few preferences</h1><p class="onboarding-lead">Change these any time in Settings.</p><div class="setting-list">'+
         toggleRow('setup','startWithWindows','Start with Windows','Open Agent Ops in the tray when you sign in.',data.startWithWindows,data.startupManaged===false?'Available in the installed app only.':'')+
@@ -2275,7 +2322,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
         (setup.error?'<p class="field-msg is-error" role="alert">'+icon('alertCircle')+'<span>'+esc(setup.error)+'</span></p>':'');
       primary='<button class="btn btn-primary btn-lg" id="setup-finish" data-setup-finish'+(busy?' disabled':'')+'>'+(busy==='finishing'?spinner()+'Opening…':'Open ledger')+kbd(['Ctrl','Enter'])+'</button>';
     }
-    var bars='<div class="setup-progress">'+SETUP_STEPS.map(function(name,i){return '<button class="setup-bar'+(i===setup.step?' on':i<setup.step?' done':'')+'" data-setup-goto="'+i+'" aria-label="Step '+(i+1)+': '+name+'"'+(i===setup.step?' aria-current="step"':'')+(i>setup.visited || i===2 && !count?' disabled':'')+'></button>';}).join('')+'<span>Step '+(setup.step+1)+' of 3</span></div>';
+    var bars='<div class="setup-progress">'+SETUP_STEPS.map(function(name,i){return '<button class="setup-bar'+(i===setup.step?' on':i<setup.step?' done':'')+'" data-setup-goto="'+i+'" aria-label="Step '+(i+1)+': '+name+'"'+(i===setup.step?' aria-current="step"':'')+(i>setup.visited || i>=2 && !count?' disabled':'')+'></button>';}).join('')+'<span>Step '+(setup.step+1)+' of '+SETUP_STEPS.length+'</span></div>';
     var foot=setup.confirmSkip?
       '<div class="setup-confirm" role="alertdialog" aria-labelledby="setup-confirm-title" aria-describedby="setup-confirm-text"><span class="banner-text"><strong id="setup-confirm-title">Skip setup?</strong><span id="setup-confirm-text">You can finish it later from Settings.</span></span><button class="btn btn-ghost" id="setup-keep" data-setup-keep>Keep going</button><button class="btn btn-primary" id="setup-skip-confirm" data-setup-skip'+(busy?' disabled':'')+'>Skip</button></div>':
       (!last?'<button class="btn btn-ghost" id="setup-skip" data-setup-skip'+(busy?' disabled':'')+'>Set up later</button>':'<span></span>')+
@@ -2310,7 +2357,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var error=updateError();
     if(updateInstalling())status='<div class="setting-status" role="status">'+spinner()+'<span>Updating to '+esc(s.latest || '')+'…</span></div>';
     else if(error)status='<div class="setting-status is-error" role="alert">'+icon('alertCircle')+'<span>'+(updateUI.lastAction==='apply'?'Update failed. ':'Couldn\u2019t check for updates. ')+esc(error)+'</span><button class="btn btn-xs" data-update-action="'+(updateUI.lastAction==='apply'?'apply':'check')+'"'+(busy?' disabled':'')+'>Try again</button></div>';
-    else if(s.available && !s.skipped)status='<div class="setting-status"><span>Version '+esc(s.latest)+' is available.</span><button class="btn btn-ghost btn-xs" data-update-action="skip"'+(busy?' disabled':'')+'>Skip this version</button><button class="btn btn-primary btn-xs" id="settings-update-apply" data-update-action="apply"'+(busy || saving?' disabled':'')+'>Update and restart</button></div>';
+    else if(s.available && !s.skipped)status='<div class="setting-status"><span>Version '+esc(s.latest)+' is available.</span><button class="btn btn-ghost btn-xs" data-update-action="skip"'+(busy?' disabled':'')+'>Skip this version</button><button class="btn btn-primary btn-xs" id="settings-update-apply" data-update-action="apply"'+(busy?' disabled':'')+'>Update and restart</button></div>';
     else if(s.available && s.skipped)status='<div class="setting-status"><span>Version '+esc(s.latest)+' skipped.</span></div>';
     else if(s.checkedAt && !checking)status='<div class="setting-status" role="status"><span>You\u2019re on the latest version. Last checked '+esc(hhmm(s.checkedAt))+'.</span></div>';
     var notes=s.notes?'<details class="release-notes"><summary>Release notes</summary><div class="update-notes">'+esc(s.notes)+'</div></details>':'';
@@ -2340,6 +2387,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var meta=SETTINGS_SECTIONS.find(function(s){return s[0]===section;});
     if(section==='general')return settingsHead('General','General',esc(meta[2]))+group('App',settingItemHTML('startup')+settingItemHTML('notifications')+settingItemHTML('theme')+settingItemHTML('shortcuts'))+group('Plans',settingItemHTML('archive'))+group('Maintenance',settingItemHTML('data-folder')+settingItemHTML('setup-again'));
     if(section==='about')return settingsHead('About','About',esc(meta[2]))+group('',aboutRows());
+    if(section==='integrations')return settingsHead('Integrations','Integrations',esc(meta[2]))+integrationsBody();
     if(section.indexOf('project:')===0){
       var id=section.slice(8),project=settingsProjects().find(function(p){return p.id===id;});
       if(project)return settingsHead('Projects',project.name,'<span class="mono">'+esc(project.path)+'</span>')+fieldMessage(settingsUI)+'<ul class="project-list">'+projectCard(project)+'</ul>';
@@ -2358,19 +2406,21 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
         var items=matches.items.filter(function(i){return i.section===s[0];});
         if(!items.length)return '';
         if(s[0]==='projects')return '<section class="settings-group"><h3>Projects</h3>'+projectsBody()+'</section>';
+        if(s[0]==='integrations')return '<div class="settings-group"><h3>Integrations</h3>'+integrationsBody()+'</div>';
         return group(s[1],items.map(function(i){return settingItemHTML(i.id);}).join(''));
       }).join('');
       if(matches.projects.length && !matches.items.some(function(i){return i.id==='projects';}))groups+='<section class="settings-group"><h3>Projects</h3><ul class="project-list">'+matches.projects.map(projectCard).join('')+'</ul></section>';
       content=settingsHead('Search','Search results','')+(groups || '<div class="settings-empty"><span>No settings found for \u201c'+esc(settingsUI.query.trim())+'\u201d</span><button class="link-btn" data-settings-clear-search>Clear search</button></div>');
     }else content=settingsSectionHTML(settingsUI.section);
     var notices=(data.readOnly?'<p class="callout callout-danger" role="alert">'+icon('alertCircle')+'<span>'+esc(data.readOnly)+'</span></p>':'')+(data.warning?'<p class="callout callout-warning" role="status">'+icon('alert')+'<span>'+esc(data.warning)+'</span></p>':'');
-    var showApp=!matches || matches.items.some(function(i){return i.section==='general';}),showAbout=!matches || matches.items.some(function(i){return i.section==='about';});
+    var showApp=!matches || matches.items.some(function(i){return i.section==='general';}),showAbout=!matches || matches.items.some(function(i){return i.section==='about';}),showIntegrations=!matches || matches.items.some(function(i){return i.section==='integrations';});
     var projectNav=projects.length?projects.map(function(p){return navItem('project:'+p.id,p.name,projectGlyph(p),!matches && settingsUI.section==='project:'+p.id,' title="'+esc(p.path)+'"').replace('</span></button>','</span>'+(p.exists?'':'<span class="dot" aria-label="Folder not found"></span>')+'</button>');}).join('')
       :'<p class="settings-nav-empty">'+(matches?'No matching projects.':'No projects added yet.')+'</p>';
     paint(host,'<div class="settings-shell"><aside class="settings-nav" aria-label="Settings sections"><button class="btn btn-ghost settings-back" id="settings-close" data-settings-close>'+icon('chevronLeft')+'Back to ledger</button>'+
       '<div class="search-field">'+icon('search')+'<input type="search" class="input settings-search" id="settings-search" placeholder="Search settings" aria-label="Search settings" value="'+esc(settingsUI.query)+'" autocomplete="off"><kbd class="kbd">Ctrl F</kbd></div>'+
       (showApp?'<div class="settings-nav-heading">App</div><nav class="settings-nav-group" aria-label="App settings">'+navItem('general','General',icon('sliders'),!matches && settingsUI.section==='general')+'</nav>':'')+
       '<div class="settings-nav-heading">Projects</div><div class="settings-nav-projects">'+navItem('projects','All projects',icon('folder'),!matches && settingsUI.section==='projects')+projectNav+(settingsLocked() || matches?'':'<button class="settings-nav-item" id="settings-nav-add" data-settings-add-nav>'+icon('plus')+'<span>Add project</span></button>')+'</div>'+
+      (showIntegrations?'<div class="settings-nav-heading">Integrations</div><nav class="settings-nav-group" aria-label="Integrations">'+navItem('integrations','AI clients',icon('plug'),!matches && settingsUI.section==='integrations')+'</nav>':'')+
       (showAbout?'<div class="settings-nav-heading">About</div><nav class="settings-nav-group" aria-label="About">'+navItem('about','About',icon('info'),!matches && settingsUI.section==='about')+'</nav>':'')+'</aside>'+
       '<main class="settings-main" id="settings-main"><div class="settings-content"><h1 class="sr-only" id="settings-title">Settings</h1>'+notices+content+'</div></main></div>');
   }
@@ -2378,7 +2428,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(!settingsUI.open)settingsUI.returnTo=document.activeElement;
     settingsUI.open=true;settingsUI.section=section || settingsUI.section || 'general';settingsUI.query='';settingsUI.error='';settingsUI.notice='';settingsUI.confirmRemove='';
     settingsUI.adding=!!(options && options.add);
-    renderSettings();loadSettings();
+    renderSettings();loadSettings();if(settingsUI.section==='integrations')loadIntegrations();
     var target=settingsUI.adding?$('settings-choose'):$('settings-search');if(target)target.focus();
   }
   function closeSettings(){
@@ -2397,7 +2447,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(!setup.open && !settingsUI.open)return false;
     if(hit('[data-settings-close]')){closeSettings();return true;}
     if(hit('[data-settings-clear-search]')){settingsUI.query='';renderSettings();if($('settings-search'))$('settings-search').focus();return true;}
-    if((el=hit('[data-settings-section]'))){settingsUI.section=el.getAttribute('data-settings-section');settingsUI.query='';settingsUI.confirmRemove='';renderSettings();if($('settings-main'))$('settings-main').scrollTop=0;return true;}
+    if((el=hit('[data-settings-section]'))){settingsUI.section=el.getAttribute('data-settings-section');settingsUI.query='';settingsUI.confirmRemove='';integrationsUI.confirm='';if(settingsUI.section==='integrations')loadIntegrations();renderSettings();if($('settings-main'))$('settings-main').scrollTop=0;return true;}
     if(hit('[data-settings-add-nav]')){settingsUI.section='projects';settingsUI.query='';settingsUI.adding=true;settingsUI.error='';settingsUI.notice='';renderSettings();if($('settings-choose'))$('settings-choose').focus();return true;}
     if(hit('[data-settings-add]')){settingsUI.adding=!settingsUI.adding;settingsUI.error='';settingsUI.notice='';renderSettings();if(settingsUI.adding && $('settings-choose'))$('settings-choose').focus();return true;}
     if((el=hit('[data-project-choose]'))){chooseFolder(el.getAttribute('data-project-choose'));return true;}
@@ -2410,9 +2460,22 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(hit('[data-open-logs]')){openFolderTarget('logs');return true;}
     if(hit('[data-copy-diagnostics]')){copyDiagnostics();return true;}
     if(hit('[data-settings-check-updates]')){updateUI.card=false;updateAction('check');return true;}
+    if((el=hit('[data-integration-action]'))){integrationAction(el.getAttribute('data-integration-target'),el.getAttribute('data-integration-action'));return true;}
+    if((el=hit('[data-integration-diff]'))){integrationDiff(el.getAttribute('data-integration-diff'));return true;}
+    if((el=hit('[data-integration-edit]'))){startEdit(el.getAttribute('data-integration-edit'));return true;}
+    if((el=hit('[data-integration-drop]'))){dropTarget(el.getAttribute('data-integration-drop'));return true;}
+    if((el=hit('[data-integration-suggest]'))){var sg=integrationSuggestions()[Number(el.getAttribute('data-integration-suggest'))];if(sg){var sb={skillDir:sg.skillDir};if(sg.instructionFile)sb.instructionFile=sg.instructionFile;addIntegration(sb,'suggestion-'+el.getAttribute('data-integration-suggest'));}return true;}
+    if(hit('[data-integration-choose]')){chooseSkillsFolder();return true;}
+    if(hit('[data-integration-paste]')){integrationsUI.pasting=true;integrationsUI.error='';integrationsUI.errorFor='';renderSettings();if($('integration-path'))$('integration-path').focus();return true;}
+    if(hit('[data-integration-add]')){pastedIntegration();return true;}
+    if(hit('[data-integration-pick-file]')){chooseInstructionFile();return true;}
+    if(hit('[data-integration-save]')){saveEdit();return true;}
+    if(hit('[data-integration-cancel]')){integrationsUI.editing='';integrationsUI.error='';integrationsUI.errorFor='';renderSettings();return true;}
+    if(hit('[data-integrations-reload]')){integrationsUI.error='';loadIntegrations();renderSettings();return true;}
     if(hit('[data-setup-replay]')){closeSettings();openSetup();return true;}
     if((el=hit('[data-setup-goto]'))){setupGo(Number(el.getAttribute('data-setup-goto')));return true;}
-    if(hit('[data-setup-next]')){if(setup.step===1 && !settingsProjects().length)return true;setupGo(setup.step+1);return true;}
+    if(hit('[data-setup-next]')){if(setup.step===1 && !settingsProjects().length)return true;if(setup.step===2){setupInstallClients();return true;}setupGo(setup.step+1);return true;}
+    if(hit('[data-setup-clients-skip]')){setupGo(SETUP_LAST);return true;}
     if(hit('[data-setup-back]')){setupGo(setup.step-1);return true;}
     if(hit('[data-setup-keep]')){setup.confirmSkip=false;renderSetup();focusSetupPrimary();return true;}
     if(hit('[data-setup-skip]') || hit('[data-setup-finish]')){finishSetup();return true;}
@@ -2424,6 +2487,8 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(target.id==='settings-search'){settingsUI.query=target.value;clearTimeout(settingsSearchTimer);settingsSearchTimer=setTimeout(renderSettings,150);return true;}
     var scope=marked(target,'data-project-path');
     if(scope){scopeState(scope).path=target.value;return true;}
+    var field=marked(target,'data-integration-input');
+    if(field && INTEGRATION_FIELDS.indexOf(field)>=0){integrationsUI[field]=target.value;return true;}
     return false;
   }
   var settingsSearchTimer=null;
@@ -2432,6 +2497,12 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(field){saveSetting(marked(target,'data-scope') || 'settings',field,target.checked);return true;}
     var project=marked(target,'data-project-toggle');
     if(project){toggleProject(project,target.checked);return true;}
+    var client=marked(target,'data-setup-client');
+    if(client){setupPicks()[client]=!!target.checked;renderSetup();return true;}
+    var enabled=marked(target,'data-integration-enabled');
+    if(enabled){changeTarget(enabled,{enabled:!!target.checked},'enable');return true;}
+    var reminder=marked(target,'data-integration-instructions');
+    if(reminder){integrationAction(reminder,target.checked?'instructions-on':'instructions-off');return true;}
     return false;
   }
   function typingIn(target){return !!target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName || '') && !/^(checkbox|radio|button)$/.test(target.type || '') || target.isContentEditable);}
@@ -2456,12 +2527,16 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(themeKey(e))return true;
     var scope=marked(e.target,'data-project-path');
     if(e.key==='Enter' && scope){e.preventDefault();addProject(scope,scopeState(scope).path);return true;}
+    var field=marked(e.target,'data-integration-input');
+    if(field && e.key==='Enter'){e.preventDefault();if(field.indexOf('edit')===0)saveEdit();else pastedIntegration();return true;}
+    if(field && e.key==='Escape'){e.preventDefault();if(field.indexOf('edit')===0){integrationsUI.editing='';renderSettings();}else{integrationsUI.pasting=false;integrationsUI.path='';integrationsUI.instr='';renderSettings();if($('integration-paste'))$('integration-paste').focus();}return true;}
     if(e.key==='Escape' && scope){e.preventDefault();var ps=scopeState(scope);ps.pasting=false;ps.path='';ps.error='';renderPanels();if($(scope+'-paste'))$(scope+'-paste').focus();return true;}
     if(setup.open){
       if(trapSetupFocus(e))return true;
       if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){
         e.preventDefault();
-        if(setup.step<2){if(setup.step===1 && !settingsProjects().length)return true;setupGo(setup.step+1);}else finishSetup();
+        if(setup.step===2)setupInstallClients();
+        else if(setup.step<SETUP_LAST){if(setup.step===1 && !settingsProjects().length)return true;setupGo(setup.step+1);}else finishSetup();
         return true;
       }
       if(e.key==='Escape'){e.preventDefault();setup.confirmSkip=!setup.confirmSkip;renderSetup();if(setup.confirmSkip && $('setup-keep'))$('setup-keep').focus();else focusSetupPrimary();}
@@ -2493,8 +2568,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
 
   function connection(online) { $('live').className = online ? 'live' : 'live off'; $('connection').textContent = online ? 'Live' : 'Reconnecting…'; }
-  function get() { if(dragged || saving) return Promise.resolve(); return fetch('/api/state', { cache: 'no-store' }).then(function (r) { if(!r.ok) throw Error('State request failed: '+r.status); return r.json(); }).then(function (j) {
-    if (dragged || saving) return;
+  function get() { return fetch('/api/state', { cache: 'no-store' }).then(function (r) { if(!r.ok) throw Error('State request failed: '+r.status); return r.json(); }).then(function (j) {
     if (!j.state || !Array.isArray(j.state.plans) || !Array.isArray(j.activity)) throw Error(j.error || 'Invalid state response');
     if(D.appVersion && j.appVersion && D.appVersion!==j.appVersion){save('wb-update-view',{version:j.appVersion,ui:ui,scroll:$('view').scrollTop,horizontal:$('view').scrollLeft,quick:{key:quick.key,tab:quick.tab,sequence:quick.sequence,scroll:$('quick-plan-scroll') && $('quick-plan-scroll').scrollTop}});location.reload();return j;}
     var restored=restoreUpdateView(j);

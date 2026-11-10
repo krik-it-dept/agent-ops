@@ -3,6 +3,48 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v0.3.0 - A read-only work ledger
+
+Agent Ops now only reads plans. Orchestration (worktrees, workers, hand-offs)
+belongs to Orca. The previous release is v0.2.3; v0.2.1 to v0.2.3 update to this
+release in the app. An older installation cannot, and is reinstalled once from
+the package.
+
+- Keeps the v0.2.2 and v0.2.3 desktop workspace, command search, Geist font
+  and the optional Done archive. Archive is a read-only view filter: it never edits or
+  moves a plan file.
+- Run reporting is retired: no run history, no executor or agent attribution,
+  no worktree slots, and no status changes from the app. `task-sync.mjs` and
+  `task-report.mjs` stay as stubs that exit 0, so older sessions and hooks keep
+  working; `task-report.mjs --run-cli ... -- <CLI> <arguments>` runs the CLI
+  unchanged.
+- The update migrates once, with backups of every file it changes or deletes:
+  it removes the Claude reporting hooks (also from Orca's Claude profiles) and
+  the managed reporting instruction blocks, replaces task-plan skills that were
+  never edited, keeps edited ones as **Modified locally**, deletes the old run
+  history and lists text you wrote that still uses the old name. Text outside
+  the managed markers is never edited.
+- The task-plan skill is static (plan format and location, Orca mapping) and
+  built into the app. **Settings > Integrations** is a list of skills folders
+  you choose: add one with the folder picker or a pasted path, or from the
+  folders found on this computer (Claude Code, Codex, Antigravity / Gemini and
+  Orca profiles are only suggested, never added on their own). Per folder you
+  can install or update the skill, view a diff of local changes with **Keep
+  mine** and **Replace**, remove the skill, edit the path, turn the folder off
+  or take it off the list, and add an optional one-line reminder to its
+  instruction file. First-run setup lists the same suggestions, unchecked.
+  The migration seeds the list from the skill folders it finds. Updates never
+  write AI client files; a newer skill shows as **Update available**.
+- Renamed to Agent Ops everywhere: data folder `%LOCALAPPDATA%\AgentOps`
+  (settings are copied once from the old folder), the `agent-ops:` protocol,
+  the **Agent Ops** startup entry (the old protocol and startup entry are
+  removed), `AGENT_OPS_*` variables and the `X-Agent-Ops` request header.
+  The app's Edge profile lives in the new data folder, so preferences kept in
+  the browser (stars, recent plans, collapsed groups, view settings) start
+  fresh once; plans and settings are unaffected.
+- The plan list, board, history and summary no longer show agents, executors,
+  run evidence or slots.
+
 ## v0.2.3 - Sidebar header spacing
 
 - Move the sidebar toggle to the left edge of the header and remove the fixed

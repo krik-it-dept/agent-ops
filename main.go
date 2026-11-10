@@ -30,26 +30,27 @@ import (
 	"unicode/utf8"
 
 	"fyne.io/systray"
-	"golang.org/x/sys/windows/registry"
 )
 
 var (
 	addr = "127.0.0.1:7790"
-	// reposDir is set only by --repos-dir or KRIK_REPOS_DIR and then replaces the
-	// configured projects for this run. stateFile and slotsFile fall back to config.json.
+	// reposDir is set only by --repos-dir or AGENT_OPS_REPOS_DIR and then replaces the
+	// configured projects for this run. stateFile falls back to config.json.
 	reposDir   string
-	slotsFile  string
 	stateFile  string
 	scriptFile = defaultCollector()
+	// --slots-file is still accepted from earlier releases' relaunch arguments and
+	// ignored: worktree slots are retired.
+	ignoredSlotsFile string
 	// Values given by flag or environment; restarts preserve exactly these.
-	explicitRepos, explicitState, explicitSlots bool
+	explicitRepos, explicitState bool
 	// Legacy built-in paths received as launch values; used only for migration.
 	legacyLaunch legacyPaths
 )
 
 const (
 	runKey     = `Software\Microsoft\Windows\CurrentVersion\Run`
-	runName    = "KRIK Workboard"
+	runName    = "Agent Ops"
 	staleAfter = 120 * time.Minute
 	maxEvents  = 3000
 )
@@ -66,18 +67,11 @@ var fontFiles embed.FS
 // ---------- state from tasks-overview.mjs ----------
 
 type Step struct {
-	ExecutionHistory *struct {
-		VerifiedAt time.Time `json:"verifiedAt"`
-	} `json:"executionHistory"`
-	Execution *struct {
-		State string `json:"state"`
-	} `json:"execution"`
-	Executors []string `json:"executors"`
-	Line      int      `json:"line"`
-	Milestone string   `json:"milestone,omitempty"`
-	Index     int      `json:"index"`
-	Status    string   `json:"status"`
-	Text      string   `json:"text"`
+	Line      int    `json:"line"`
+	Milestone string `json:"milestone,omitempty"`
+	Index     int    `json:"index"`
+	Status    string `json:"status"`
+	Text      string `json:"text"`
 }
 type Milestone struct {
 	ID      string `json:"id"`
@@ -95,27 +89,19 @@ type Entry struct {
 	Open   bool   `json:"open"`
 }
 type Plan struct {
-	HistoricalExecutors []string             `json:"historicalExecutors"`
-	ExecutionReports    []ExecutionReport    `json:"executionReports"`
-	ExecutionUpdatedAt  time.Time            `json:"executionUpdatedAt"`
-	Executors           []string             `json:"executors"`
-	ExecutorSource      string               `json:"executorSource"`
-	Agent               string               `json:"agent"`
-	AgentSource         string               `json:"agentSource"`
-	Revision            string               `json:"revision"`
-	Owner               string               `json:"owner"`
-	Project             string               `json:"project,omitempty"`
-	ProjectName         string               `json:"projectName,omitempty"`
-	Root                string               `json:"root,omitempty"`
-	Repo                string               `json:"repo"`
-	Name                string               `json:"name"`
-	Status              string               `json:"status"`
-	Mtime               time.Time            `json:"mtime"`
-	Slot                *struct{ By string } `json:"slot"`
-	Decisions           []Entry              `json:"decisions"`
-	Questions           []Entry              `json:"questions"`
-	Milestones          []Milestone          `json:"milestones"`
-	Steps               []Step               `json:"steps"`
+	Revision    string      `json:"revision"`
+	Owner       string      `json:"owner"`
+	Project     string      `json:"project,omitempty"`
+	ProjectName string      `json:"projectName,omitempty"`
+	Root        string      `json:"root,omitempty"`
+	Repo        string      `json:"repo"`
+	Name        string      `json:"name"`
+	Status      string      `json:"status"`
+	Mtime       time.Time   `json:"mtime"`
+	Decisions   []Entry     `json:"decisions"`
+	Questions   []Entry     `json:"questions"`
+	Milestones  []Milestone `json:"milestones"`
+	Steps       []Step      `json:"steps"`
 }
 type State struct {
 	Plans    []Plan         `json:"plans"`
@@ -133,33 +119,15 @@ type ProjectState struct {
 	Repos   int    `json:"repos"`
 	Plans   int    `json:"plans"`
 }
-type ExecutionReport struct {
-	ID          string    `json:"id"`
-	Agent       string    `json:"agent"`
-	Coordinator string    `json:"coordinator"`
-	Event       string    `json:"event"`
-	At          time.Time `json:"at"`
-	Task        struct {
-		Text string `json:"text"`
-	} `json:"task"`
-	Result string `json:"result"`
-}
-
-func executionEvent(p Plan, r ExecutionReport) Event {
-	return Event{TS: r.At, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "execution-report", Text: r.Task.Text, Extra: r.Event + ": " + r.Result, Actor: r.Agent, Agent: r.Coordinator, Executors: []string{r.Agent}}
-}
-
 type Event struct {
-	Executors []string  `json:"executors"`
-	Agent     string    `json:"agent,omitempty"`
-	TS        time.Time `json:"ts"`
-	Project   string    `json:"project,omitempty"`
-	Repo      string    `json:"repo"`
-	Plan      string    `json:"plan"`
-	Kind      string    `json:"kind"` // new, closed, status, done, blocked, partial, decision, question, answer, milestone, waiting, stale
-	Text      string    `json:"text"`
-	Extra     string    `json:"extra,omitempty"`
-	Actor     string    `json:"actor"`
+	TS      time.Time `json:"ts"`
+	Project string    `json:"project,omitempty"`
+	Repo    string    `json:"repo"`
+	Plan    string    `json:"plan"`
+	Kind    string    `json:"kind"` // new, closed, status, done, blocked, partial, decision, question, answer, milestone, waiting, stale
+	Text    string    `json:"text"`
+	Extra   string    `json:"extra,omitempty"`
+	Actor   string    `json:"actor"`
 }
 
 var (
@@ -181,30 +149,21 @@ var (
 	printVersion        bool
 	applyUpdateFile     string
 	updateFeed          string
+	migrateMode         bool
+	migrateRuntime      string
+	dataDirGiven        bool
 )
 
 func defaultCollector() string {
 	exe, _ := os.Executable()
 	home, _ := os.UserHomeDir()
-	candidates := []string{filepath.Join(filepath.Dir(exe), "tasks-overview.mjs"), filepath.Join(home, ".claude", "tools", "workboard", "tasks-overview.mjs"), filepath.Join(home, ".claude", "tools", "tasks-overview.mjs")}
+	candidates := []string{filepath.Join(filepath.Dir(exe), "tasks-overview.mjs"), filepath.Join(home, legacyRuntimeRel, "tasks-overview.mjs")}
 	for _, file := range candidates {
 		if _, err := os.Stat(file); err == nil {
 			return file
 		}
 	}
 	return candidates[0]
-}
-
-func collectorCompanion(name string) string {
-	file := filepath.Join(filepath.Dir(scriptFile), name)
-	if _, err := os.Stat(file); err == nil {
-		return file
-	}
-	legacy := filepath.Join(filepath.Dir(scriptFile), "workboard", name)
-	if _, err := os.Stat(legacy); err == nil {
-		return legacy
-	}
-	return file
 }
 
 func config() {
@@ -215,34 +174,37 @@ func config() {
 		return fallback
 	}
 	flag.StringVar(&reposDir, "repos-dir", "", "Folder of repositories; replaces the configured projects for this run")
-	flag.StringVar(&slotsFile, "slots-file", "", "Optional slots JSON file")
+	flag.StringVar(&ignoredSlotsFile, "slots-file", "", "Ignored; accepted from earlier releases")
 	flag.StringVar(&stateFile, "state-file", "", `Generated state JSON file (default <data-dir>\state\tong-hop-chung.json)`)
-	flag.StringVar(&scriptFile, "script", env("KRIK_SCRIPT", scriptFile), "Overview Node script")
-	flag.StringVar(&addr, "addr", env("KRIK_ADDR", addr), "Loopback listen address")
-	flag.StringVar(&dataDir, "data-dir", filepath.Join(os.Getenv("LOCALAPPDATA"), "krik-workboard"), "Persistence directory")
+	flag.StringVar(&scriptFile, "script", env("AGENT_OPS_SCRIPT", scriptFile), "Overview Node script")
+	flag.StringVar(&addr, "addr", env("AGENT_OPS_ADDR", addr), "Loopback listen address")
+	flag.StringVar(&dataDir, "data-dir", defaultDataDir(), "Persistence directory")
 	flag.BoolVar(&background, "background", false, "Start tray without opening a window")
 	flag.StringVar(&activation, "activate", "", "Toast activation URI")
 	home, _ := os.UserHomeDir()
-	flag.StringVar(&profileDir, "profile-dir", home, "Profile whose managed reporting instructions are updated")
+	flag.StringVar(&profileDir, "profile-dir", home, "Profile whose AI client files Settings > Integrations manages")
 	flag.BoolVar(&disableUpdateChecks, "no-update-check", false, "Disable automatic release checks (manual checks remain available)")
 	flag.BoolVar(&printVersion, "version", false, "Print the application version and exit")
 	flag.StringVar(&applyUpdateFile, "apply-update", "", "Internal verified update-helper manifest")
 	flag.StringVar(&updateFeed, "update-feed", "", "Loopback http://127.0.0.1:<port> release feed for isolated update tests")
+	flag.BoolVar(&migrateMode, "migrate", false, "Run the one-time migration from earlier releases for --profile-dir, print the result and exit")
+	flag.StringVar(&migrateRuntime, "runtime-dir", "", "With --migrate: the install folder whose run history registries are deleted")
 	flag.Parse()
 	// Precedence: flag > environment > config.json (applied by initSettings) > default.
 	given := map[string]bool{}
 	flag.Visit(func(f *flag.Flag) { given[f.Name] = true })
+	dataDirGiven = given["data-dir"]
 	for _, item := range []struct {
 		name, env string
 		value     *string
-	}{{"repos-dir", "KRIK_REPOS_DIR", &reposDir}, {"slots-file", "KRIK_SLOTS_FILE", &slotsFile}, {"state-file", "KRIK_STATE_FILE", &stateFile}} {
+	}{{"repos-dir", "AGENT_OPS_REPOS_DIR", &reposDir}, {"state-file", "AGENT_OPS_STATE_FILE", &stateFile}} {
 		if !given[item.name] {
 			*item.value = os.Getenv(item.env)
 		}
 	}
 	// Restarting from a staging helper must preserve the resolved configuration,
 	// including when the original launch used relative paths.
-	for _, value := range []*string{&reposDir, &slotsFile, &stateFile, &scriptFile, &dataDir, &profileDir} {
+	for _, value := range []*string{&reposDir, &stateFile, &scriptFile, &dataDir, &profileDir} {
 		if *value == "" {
 			continue
 		}
@@ -258,12 +220,18 @@ func config() {
 		value     *string
 		legacy    string
 		migration *string
-	}{{&reposDir, legacyDefaults.repos, &legacyLaunch.repos}, {&stateFile, legacyDefaults.state, &legacyLaunch.state}, {&slotsFile, legacyDefaults.slots, &legacyLaunch.slots}} {
+	}{{&reposDir, legacyDefaults.repos, &legacyLaunch.repos}, {&stateFile, legacyDefaults.state, &legacyLaunch.state}} {
 		if *item.value != "" && samePath(*item.value, item.legacy) {
 			*item.migration, *item.value = *item.value, ""
 		}
 	}
-	explicitRepos, explicitState, explicitSlots = reposDir != "", stateFile != "", slotsFile != ""
+	explicitRepos, explicitState = reposDir != "", stateFile != ""
+	// Releases before v0.3.0 used another data folder and relaunch an update with
+	// it. The installed app now always uses the Agent Ops folder; the old one is
+	// only read once to copy config.json (see adoptLegacyConfig).
+	if samePath(dataDir, legacyDefaultDataDir()) {
+		dataDir = defaultDataDir()
+	}
 }
 
 func samePath(a, b string) bool {
@@ -281,9 +249,6 @@ func launchArgs() []string {
 	if explicitState {
 		args = append(args, "--state-file", stateFile)
 	}
-	if explicitSlots {
-		args = append(args, "--slots-file", slotsFile)
-	}
 	if disableUpdateChecks {
 		args = append(args, "--no-update-check")
 	}
@@ -298,6 +263,9 @@ func main() {
 	if printVersion {
 		fmt.Println(appVersion)
 		return
+	}
+	if migrateMode {
+		os.Exit(runMigrateCommand(os.Stdout))
 	}
 	if applyUpdateFile != "" {
 		if err := applyUpdateManifest(applyUpdateFile); err != nil {
@@ -330,9 +298,37 @@ func main() {
 	}()
 	logInfo("agent ops started", "version", appVersion, "commit", appCommit, "pid", os.Getpid(), "addr", addr, "dataDir", dataDir, "background", background, "updateChecks", !disableUpdateChecks)
 	if defaultInstance() {
-		registerProtocol()
-		migrateStartup()
+		exe, _ := os.Executable()
+		// The previous release's protocol and Run value are removed only once a
+		// migration is recorded, which the update helper does after this version
+		// passed its startup check: a rollback before that finds them intact.
+		removeLegacy := readMigrationResult(dataDir) != nil
+		if err := registerProtocol(exe, removeLegacy); err != nil {
+			logWarn("could not register the agent-ops: protocol", "error", err.Error())
+		}
+		if err := migrateStartup(exe, removeLegacy); err != nil {
+			logWarn("could not update Start with Windows", "error", err.Error())
+		}
 		_ = registerToastApp(dataDir)
+	}
+	// An unfinished migration from earlier releases runs again once its backoff has
+	// passed, before settings and data are loaded so it does not race the app.
+	if r, ran, err := retryMigration(appMigrationOptions()); ran {
+		if err != nil {
+			logWarn("migration retry failed", "error", err.Error())
+		} else {
+			logInfo("migration retried", "done", r.Done, "attempts", r.Attempts, "problems", len(r.Errors), "nextRetry", r.NextRetryAt)
+			for _, problem := range r.Errors {
+				logWarn("migration item needs attention", "detail", problem)
+			}
+		}
+	}
+	if samePath(dataDir, defaultDataDir()) {
+		if copied, err := adoptLegacyConfig(dataDir, legacyDefaultDataDir()); err != nil {
+			logWarn("previous settings were not copied", "error", err.Error())
+		} else if copied {
+			logInfo("copied the previous settings into the data folder")
+		}
 	}
 	initSettings()
 	loadPersisted()
@@ -368,30 +364,6 @@ func main() {
 
 func signature() string {
 	h := sha1.New()
-	attributionFile := os.Getenv("KRIK_AGENT_MAP")
-	if attributionFile == "" {
-		attributionFile = collectorCompanion("agent-attributions.json")
-	}
-	if data, err := os.ReadFile(attributionFile); err == nil {
-		h.Write(data)
-	}
-	historyFile := os.Getenv("KRIK_HISTORY_MAP")
-	if historyFile == "" {
-		historyFile = collectorCompanion("historical-executions.json")
-	}
-	if data, err := os.ReadFile(historyFile); err == nil {
-		h.Write(data)
-	}
-	reportsDir := os.Getenv("KRIK_EXECUTION_DIR")
-	if reportsDir == "" {
-		reportsDir = filepath.Join(filepath.Dir(stateFile), "workboard-executions")
-	}
-	reports, _ := filepath.Glob(filepath.Join(reportsDir, "*.json"))
-	for _, file := range reports {
-		if st, err := os.Stat(file); err == nil {
-			fmt.Fprintf(h, "report|%s|%d|%d\n", file, st.Size(), st.ModTime().UnixNano())
-		}
-	}
 	for _, p := range effectiveProjects() {
 		repos, err := projectRepos(p)
 		// A project appearing or disappearing (drive unplugged, folder renamed) changes the signature.
@@ -402,11 +374,6 @@ func signature() string {
 					fmt.Fprintf(h, "%s|%d|%d\n", f, st.Size(), st.ModTime().UnixNano())
 				}
 			}
-		}
-	}
-	if slotsFile != "" {
-		if st, err := os.Stat(slotsFile); err == nil {
-			fmt.Fprintf(h, "slots|%d|%d\n", st.Size(), st.ModTime().UnixNano())
 		}
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
@@ -449,14 +416,10 @@ func planKey(p Plan) string {
 // helper at the same config.json; explicit overrides are passed as flags.
 func collectorCommand(ctx context.Context) *exec.Cmd {
 	args := []string{scriptFile, "--state-file", stateFile}
-	overrides := map[string]string{"AGENT_OPS_CONFIG": configFilePath(dataDir), "KRIK_STATE_FILE": stateFile, "KRIK_TASKS_OUT_DIR": filepath.Dir(stateFile), "KRIK_SLOTS_FILE": "", "KRIK_REPOS_DIR": ""}
-	if slotsFile != "" {
-		args = append(args, "--slots-file", slotsFile)
-		overrides["KRIK_SLOTS_FILE"] = slotsFile
-	}
+	overrides := map[string]string{"AGENT_OPS_CONFIG": configFilePath(dataDir), "AGENT_OPS_STATE_FILE": stateFile, "AGENT_OPS_REPOS_DIR": ""}
 	if reposDir != "" {
 		args = append(args, "--repos-dir", reposDir)
-		overrides["KRIK_REPOS_DIR"] = reposDir
+		overrides["AGENT_OPS_REPOS_DIR"] = reposDir
 	}
 	cmd := hidden(exec.CommandContext(ctx, "node", args...))
 	for _, v := range os.Environ() {
@@ -523,7 +486,7 @@ func refresh(first bool) {
 	if len(effectiveProjects()) == 0 {
 		// Nothing to collect: no Node process, no error, an empty board.
 		st = State{Plans: []Plan{}, Projects: []ProjectState{}}
-		raw = []byte(`{"generatedAt":"` + time.Now().UTC().Format(time.RFC3339) + `","slots":{},"projects":[],"plans":[]}`)
+		raw = []byte(`{"generatedAt":"` + time.Now().UTC().Format(time.RFC3339) + `","projects":[],"plans":[]}`)
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -710,22 +673,19 @@ func entryTime(e Entry) (time.Time, bool) {
 func seed(cur map[string]Plan) []Event {
 	var out []Event
 	for _, p := range cur {
-		for _, r := range p.ExecutionReports {
-			out = append(out, executionEvent(p, r))
-		}
 		for _, d := range p.Decisions {
 			if t, ok := entryTime(d); ok {
-				out = append(out, Event{TS: t, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "decision", Text: d.Text, Extra: d.When, Actor: actor(p), Agent: p.Agent})
+				out = append(out, Event{TS: t, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "decision", Text: d.Text, Extra: d.When, Actor: actor(p)})
 			}
 		}
 		for _, q := range p.Questions {
 			if t, ok := entryTime(q); ok {
-				out = append(out, Event{TS: t, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "question", Text: q.Ask, Extra: q.Answer, Actor: actor(p), Agent: p.Agent})
+				out = append(out, Event{TS: t, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "question", Text: q.Ask, Extra: q.Answer, Actor: actor(p)})
 			}
 		}
 		for _, m := range p.Milestones {
 			if msDone(m) && strings.TrimSpace(m.Summary) != "" {
-				out = append(out, Event{TS: p.Mtime, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "milestone", Text: m.ID + ": " + m.Title, Extra: m.Summary, Actor: actor(p), Agent: p.Agent})
+				out = append(out, Event{TS: p.Mtime, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "milestone", Text: m.ID + ": " + m.Title, Extra: m.Summary, Actor: actor(p)})
 			}
 		}
 	}
@@ -741,9 +701,6 @@ func stage(s string) string {
 }
 
 func actor(p Plan) string {
-	if p.Slot != nil && p.Slot.By != "" {
-		return p.Slot.By
-	}
 	if strings.TrimSpace(p.Owner) != "" {
 		return p.Owner
 	}
@@ -863,28 +820,18 @@ func diff(old, cur map[string]Plan) []Event {
 	now := time.Now()
 	var out []Event
 	add := func(p Plan, kind, text, extra string) {
-		out = append(out, Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: kind, Text: text, Extra: extra, Actor: actor(p), Agent: p.Agent, Executors: p.Executors})
+		out = append(out, Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: kind, Text: text, Extra: extra, Actor: actor(p)})
 	}
 	for k, p := range cur {
 		o, ok := old[k]
-		knownReports := map[string]bool{}
-		for _, r := range o.ExecutionReports {
-			knownReports[r.ID] = true
-		}
-		for _, r := range p.ExecutionReports {
-			if !knownReports[r.ID] {
-				out = append(out, executionEvent(p, r))
-			}
-		}
 		if !ok {
 			add(p, "new", "Mở plan mới", p.Status)
 			if strings.EqualFold(stage(p.Status), "Waiting for owner") {
 				add(p, "waiting", "Cần bạn xử lý", p.Status)
 			}
 			for _, s := range p.Steps {
-				if s.Status == "blocked" && s.Execution == nil {
+				if s.Status == "blocked" {
 					add(p, "blocked", s.Text, "")
-					out[len(out)-1].Executors = s.Executors
 				}
 			}
 			for _, q := range p.Questions {
@@ -893,12 +840,6 @@ func diff(old, cur map[string]Plan) []Event {
 				}
 			}
 			continue
-		}
-		if o.Agent != "" && p.Agent != "" && o.Agent != p.Agent {
-			add(p, "assignment", p.Agent, "")
-		}
-		if len(p.ExecutionReports) == 0 && len(p.HistoricalExecutors) == 0 && executorLabel(o.Executors) != executorLabel(p.Executors) {
-			add(p, "execution", executorLabel(p.Executors), p.Agent)
 		}
 		if stage(o.Status) != stage(p.Status) {
 			add(p, "status", stage(o.Status)+" → "+stage(p.Status), p.Status)
@@ -914,22 +855,16 @@ func diff(old, cur map[string]Plan) []Event {
 				was := ""
 				if matches[i] >= 0 {
 					was = before[matches[i]].Status
-					if s.Execution == nil && s.ExecutionHistory == nil && executorLabel(before[matches[i]].Executors) != executorLabel(s.Executors) {
-						add(p, "step-assignment", s.Text, executorLabel(s.Executors))
-						out[len(out)-1].Executors = s.Executors
-					}
 				}
-				if was == s.Status || s.Execution != nil {
+				if was == s.Status {
 					continue
 				}
 				switch s.Status {
 				case "done", "blocked", "partial":
 					add(p, s.Status, s.Text, "")
-					out[len(out)-1].Executors = s.Executors
 				case "doing":
 					if was != "" {
 						add(p, "doing", s.Text, "")
-						out[len(out)-1].Executors = s.Executors
 					}
 				}
 			}
@@ -976,11 +911,7 @@ func diff(old, cur map[string]Plan) []Event {
 
 func isStale(p Plan, now time.Time) bool {
 	active := map[string]bool{"planning": true, "implementing": true, "reviewing": true, "fixing review": true, "testing": true}
-	last := p.Mtime
-	if p.ExecutionUpdatedAt.After(last) {
-		last = p.ExecutionUpdatedAt
-	}
-	return active[strings.ToLower(stage(p.Status))] && !last.IsZero() && now.Sub(last) >= staleAfter
+	return active[strings.ToLower(stage(p.Status))] && !p.Mtime.IsZero() && now.Sub(p.Mtime) >= staleAfter
 }
 
 func staleEvents(cur map[string]Plan, seen map[string]time.Time, now time.Time) []Event {
@@ -1014,7 +945,7 @@ func staleEventsQuiet(cur map[string]Plan, seen map[string]time.Time, now time.T
 			continue
 		}
 		seen[k] = p.Mtime
-		e := Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Workboard"}
+		e := Event{TS: now, Project: p.Project, Repo: p.Repo, Plan: p.Name, Kind: "stale", Text: fmt.Sprintf("Đứng im %d phút khi đang %s", int(now.Sub(p.Mtime).Minutes()), stage(p.Status)), Actor: "Agent Ops"}
 		fresh = append(fresh, e)
 		if !quiet[k] {
 			announce = append(announce, e)
@@ -1110,14 +1041,18 @@ func persist(fresh []Event) {
 // ---------- HTTP ----------
 
 func serve(ln net.Listener) {
+	server := &http.Server{Handler: localBoundary(recoverHandler(newServeMux())), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	_ = server.Serve(ln)
+}
+
+// newServeMux registers every route. The app is a read-only ledger: the only
+// writes are settings, projects, integrations, updates, diagnostics and the
+// refresh request; no route changes a plan.
+func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	updateRoutes(mux)
 	settingsRoutes(mux)
 	diagnosticsRoutes(mux)
-	mux.HandleFunc("/api/plans/status", handlePlanStatus)
-	mux.HandleFunc("/api/plans/agent", handleReadOnlyAgent)
-	mux.HandleFunc("/api/plans/executor", handleReadOnlyAgent)
-	mux.HandleFunc("/api/plans/step-executor", handleReadOnlyAgent)
 	icons, _ := fs.Sub(iconFiles, "web/icons")
 	mux.Handle("/icons/", http.StripPrefix("/icons/", http.FileServer(http.FS(icons))))
 	fonts, _ := fs.Sub(fontFiles, "web/fonts")
@@ -1170,8 +1105,7 @@ func serve(ln net.Listener) {
 			}
 		}
 	})
-	server := &http.Server{Handler: localBoundary(recoverHandler(mux)), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
-	_ = server.Serve(ln)
+	return mux
 }
 
 func handleState(w http.ResponseWriter, r *http.Request) {
@@ -1197,7 +1131,7 @@ func handleState(w http.ResponseWriter, r *http.Request) {
 	}
 	evJSON, _ := json.Marshal(ev)
 	if st == nil {
-		st = []byte(`{"plans":[],"slots":{}}`)
+		st = []byte(`{"plans":[]}`)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
@@ -1224,13 +1158,13 @@ func broadcast() {
 
 func activationPlan(uri string) string {
 	u, err := url.Parse(uri)
-	if err != nil || u.Scheme != "krik-workboard" {
+	if err != nil || u.Scheme != protocolScheme {
 		return ""
 	}
 	return u.Query().Get("plan")
 }
 func planURI(key string) string {
-	return "krik-workboard:open?" + url.Values{"plan": {key}}.Encode()
+	return protocolScheme + ":open?" + url.Values{"plan": {key}}.Encode()
 }
 func eventKey(e Event) string {
 	if e.Project != "" {
@@ -1263,38 +1197,6 @@ func openWindowAt(fragment string) {
 	}
 	_ = hidden(exec.Command("rundll32", "url.dll,FileProtocolHandler", target)).Start()
 }
-func protocolCommand(exe string) string { return `"` + exe + `" --activate "%1"` }
-
-func registerProtocol() {
-	exe, err := os.Executable()
-	if err != nil {
-		return
-	}
-	k, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Classes\krik-workboard`, registry.SET_VALUE|registry.CREATE_SUB_KEY)
-	if err != nil {
-		return
-	}
-	defer k.Close()
-	_ = k.SetStringValue("", "URL:KRIK Workboard")
-	_ = k.SetStringValue("URL Protocol", "")
-	c, _, err := registry.CreateKey(k, `shell\open\command`, registry.SET_VALUE)
-	if err != nil {
-		return
-	}
-	defer c.Close()
-	_ = c.SetStringValue("", protocolCommand(exe))
-}
-func migrateStartup() {
-	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.QUERY_VALUE|registry.SET_VALUE)
-	if err != nil {
-		return
-	}
-	defer k.Close()
-	v, _, err := k.GetStringValue(runName)
-	if err == nil && !strings.Contains(v, "--background") {
-		_ = k.SetStringValue(runName, strings.TrimSpace(v)+" --background")
-	}
-}
 
 var notifyKinds = map[string]string{"waiting": "Cần bạn xử lý", "blocked": "Bị chặn", "stale": "Đứng im", "question": "Câu hỏi mới"}
 
@@ -1304,9 +1206,6 @@ func notify(fresh []Event) {
 	}
 	for _, e := range fresh {
 		title, ok := notifyKinds[e.Kind]
-		if e.Kind == "execution-report" && strings.HasPrefix(e.Extra, "blocked:") {
-			title, ok = notifyKinds["blocked"], true
-		}
 		if !ok || (e.Kind == "question" && e.Extra != "" && !strings.HasPrefix(strings.ToLower(e.Extra), "open")) {
 			continue
 		}
@@ -1472,28 +1371,4 @@ func updateTray() {
 	n := len(prev)
 	mu.Unlock()
 	systray.SetTooltip(fmt.Sprintf("Agent Ops · %d plans · %d waiting for you · %d blocked", n, waiting, blocked))
-}
-
-func startupEnabled() bool {
-	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.QUERY_VALUE)
-	if err != nil {
-		return false
-	}
-	defer k.Close()
-	_, _, err = k.GetStringValue(runName)
-	return err == nil
-}
-
-func setStartup(on bool) {
-	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.SET_VALUE)
-	if err != nil {
-		return
-	}
-	defer k.Close()
-	if on {
-		exe, _ := os.Executable()
-		_ = k.SetStringValue(runName, `"`+exe+`" --background`)
-	} else {
-		_ = k.DeleteValue(runName)
-	}
 }

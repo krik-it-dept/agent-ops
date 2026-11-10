@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -202,13 +201,11 @@ type updateBackup struct {
 	existed        bool
 }
 
-func profileUpdateFiles(profile string) []string {
-	return []string{filepath.Join(profile, ".agents", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".claude", "skills", "task-plan", "SKILL.md"), filepath.Join(profile, ".codex", "AGENTS.md"), filepath.Join(profile, ".gemini", "GEMINI.md"), filepath.Join(profile, ".claude", "CLAUDE.md"), filepath.Join(profile, ".claude", "settings.json"), filepath.Join(profile, ".agents", "workboard-integrations.json")}
-}
-
 // Back up every replacement and removal before writing any target. The returned
-// rollback covers runtime files, removed files and managed instructions, never
-// task/history/preferences data.
+// rollback covers the install folder only (runtime files and removed files),
+// never AI client files, task, history or preferences data. Client files the
+// migration changed are undone separately by rollbackClients, which restores
+// only files that still hold what the migration wrote.
 func installUpdateFiles(m updateManifest) (func() error, error) {
 	backupDir := filepath.Join(filepath.Dir(m.Package), "backup")
 	if err := os.Mkdir(backupDir, 0700); err != nil {
@@ -225,7 +222,7 @@ func installUpdateFiles(m updateManifest) (func() error, error) {
 		removals = append(removals, filepath.Join(m.Root, filepath.FromSlash(name)))
 	}
 	targets = append(targets, removals...)
-	alias := filepath.Join(m.Root, "krik-workboard.exe")
+	alias := filepath.Join(m.Root, legacyAliasExe)
 	_, aliasErr := os.Stat(alias)
 	hasAlias := aliasErr == nil
 	if aliasErr != nil && !os.IsNotExist(aliasErr) {
@@ -234,7 +231,6 @@ func installUpdateFiles(m updateManifest) (func() error, error) {
 	if hasAlias {
 		targets = append(targets, alias)
 	}
-	targets = append(targets, profileUpdateFiles(m.Profile)...)
 	// Folders that do not exist yet; rollback removes them again if empty.
 	var createdDirs []string
 	seenDirs := map[string]bool{}
@@ -376,7 +372,10 @@ func applyUpdateManifest(file string) error {
 	if err != nil || !strings.EqualFold(exe, filepath.Join(m.Package, "agent-ops.exe")) {
 		return errors.New("Update helper must run from the verified staging package")
 	}
-	_ = initLogging(m.Data, "update.log")
+	// The new version's data folder: its log is where Settings > Open logs folder
+	// points after the update (the previous release's folder is only read once).
+	appData, legacyData := helperDataDirs(m.Data)
+	_ = initLogging(appData, "update.log")
 	logInfo("update helper started", "tag", m.Tag, "handoff", m.Version, "files", len(m.Hashes), "remove", len(m.Remove), "parent", m.ParentPID)
 	parent, err := openUpdateParent(m.ParentPID, m.Root)
 	if err != nil {
@@ -398,9 +397,21 @@ func applyUpdateManifest(file string) error {
 		_, _ = launchUpdatedApp(m)
 		return err
 	}
+	var migrated *migrationResult
 	recoverOld := func(cause error) error {
+		// Client files first: only those the migration changed and nobody touched since.
+		problems := rollbackClients(migrated)
+		for _, p := range problems {
+			logWarn("client file left as it is", "detail", p)
+		}
 		restoreErr := rollback()
-		message := "The update could not start. The previous version and reporting instructions were restored."
+		message := "The update could not start. The previous version was restored."
+		if migrated != nil {
+			message = "The update could not start. The previous version and the AI client files the update changed were restored."
+		}
+		if len(problems) > 0 {
+			message += fmt.Sprintf(" %d AI client file(s) changed after the update and were left as they are; see update.log in %s.", len(problems), filepath.Join(appData, "logs"))
+		}
 		if restoreErr != nil {
 			message = "Update recovery was incomplete. Restore the saved files from the update staging backup before retrying."
 		}
@@ -411,15 +422,16 @@ func applyUpdateManifest(file string) error {
 		return failure
 	}
 	message := "Updated to " + m.Tag
-	// Only a package that still ships the reporting installer runs it.
-	if m.Hashes[integrationInstaller] != "" {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		installed, err := runUpdateCommand(ctx, "node", filepath.Join(m.Root, filepath.FromSlash(integrationInstaller)), "--home", m.Profile, "--runtime-dir", m.Root)
-		cancel()
+	// The one-time migration from releases before v0.3.0: client files now (a
+	// rollback restores them), run history only after the new version is healthy.
+	migration := migrationOptions{Profile: m.Profile, DataDir: appData, LegacyDataDir: legacyData, RuntimeDir: m.Root}
+	if !migrationDone(appData) {
+		result, err := migrateClients(migration)
+		migrated = result
 		if err != nil {
-			return recoverOld(errors.New("Reporting instruction update failed"))
+			return recoverOld(fmt.Errorf("Client migration failed: %w", err))
 		}
-		message += keptIntegrationsNote(installed)
+		logInfo("client migration finished", "hooks", len(result.HooksRemoved), "blocks", len(result.BlocksRemoved), "skills", len(result.SkillsReplaced), "kept", len(result.Kept), "problems", len(result.Errors))
 	}
 	cmd, err := launchUpdatedApp(m)
 	if err != nil {
@@ -431,31 +443,26 @@ func applyUpdateManifest(file string) error {
 		return recoverOld(errors.New("Updated application failed its startup check"))
 	}
 	logInfo("update installed and healthy", "tag", m.Tag, "pid", cmd.Process.Pid)
-	return writeUpdateJSON(resultFile, updateResult{"updated", m.Tag, message})
+	if migrated != nil {
+		retireLegacyData(migration, migrated)
+		if err := finishMigration(migration, migrated); err != nil {
+			logWarn("could not record the migration", "error", err.Error())
+		}
+		for _, problem := range migrated.Errors {
+			logWarn("migration item needs attention", "detail", problem)
+		}
+		message += migrationSummary(migrated)
+	}
+	// The new version reads its result from its own data folder.
+	return writeUpdateJSON(filepath.Join(appData, "update-result.json"), updateResult{"updated", m.Tag, message})
 }
 
-const integrationInstaller = "integrations/install-task-reporting.mjs"
-
-// keptIntegrationsNote names the skill, hook and instruction files the reporting
-// installer left alone because the owner changed or removed them.
-func keptIntegrationsNote(installerOutput []byte) string {
-	var out struct {
-		Kept []struct {
-			File   string `json:"file"`
-			Reason string `json:"reason"`
-		} `json:"kept"`
+// helperDataDirs maps the handoff's data folder to the new version's: the
+// default folder of releases before v0.3.0 becomes the Agent Ops folder, and the
+// old one is migrated. Any other folder (an isolated install) stays as it is.
+func helperDataDirs(data string) (appData, legacyData string) {
+	if samePath(data, legacyDefaultDataDir()) {
+		return defaultDataDir(), data
 	}
-	if json.Unmarshal(installerOutput, &out) != nil || len(out.Kept) == 0 {
-		return ""
-	}
-	seen := map[string]bool{}
-	files := []string{}
-	for _, k := range out.Kept {
-		item := k.File + " (" + k.Reason + ")"
-		if !seen[item] {
-			seen[item] = true
-			files = append(files, item)
-		}
-	}
-	return ". Your changes were kept, so these were not updated: " + strings.Join(files, "; ")
+	return data, ""
 }

@@ -1,6 +1,6 @@
 // Run only against an extracted release in an isolated profile and task root.
 import assert from 'node:assert/strict';
-import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,readdirSync,rmSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,readdirSync,rmSync,existsSync} from 'node:fs';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn,spawnSync} from 'node:child_process';
@@ -9,7 +9,26 @@ import {createServer} from 'node:net';
 import {request} from 'node:http';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const fixture=mkdtempSync(join(root,'.test-release-'));
-let app,firstRun;
+const children=[];let passed=false;
+const sleep=ms=>new Promise(res=>setTimeout(res,ms));
+const freePort=async()=>{const s=createServer();await new Promise((res,rej)=>{s.once('error',rej);s.listen(0,'127.0.0.1',res);});const port=s.address().port;await new Promise(res=>s.close(res));return port;};
+// Starts the app on a free port and waits for /api/state. Another process (a
+// parallel test, the owner's app) can take the port between the check and the
+// app's listen; an app that exits before serving is started again on a new port.
+async function startApp(label,exe,args,env){
+  for(let attempt=1;;attempt++){
+    const port=await freePort(),base='http://127.0.0.1:'+port;
+    const child=spawn(exe,[...args,'--addr','127.0.0.1:'+port],{windowsHide:true,stdio:'ignore',env});children.push(child);
+    for(let i=0;i<100;i++){
+      try{const response=await fetch(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)return {child,base,response};}catch{/* Retry only while the isolated process is starting. */}
+      if(child.exitCode!==null)break;
+      await sleep(100);
+    }
+    if(child.exitCode===null)throw Error(label+' did not start');
+    if(attempt>=3)throw Error(label+' exited before serving (exit code '+child.exitCode+', '+attempt+' attempts)');
+    console.log(label+' exited before serving (exit code '+child.exitCode+'); starting it again on a new port.');
+  }
+}
 const put=(file,text)=>{mkdirSync(dirname(file),{recursive:true});writeFileSync(file,text);};
 const run=(file,args)=>{const p=spawnSync(file,args,{encoding:'utf8',windowsHide:true});assert.equal(p.status,0,p.stderr||p.stdout||p.error?.message);};
 try {
@@ -19,41 +38,44 @@ try {
   const listed=[];
   function list(dir){for(const entry of readdirSync(dir,{withFileTypes:true})){const file=join(dir,entry.name);if(entry.isDirectory())list(file);else listed.push(file.slice(pkg.length+1).replaceAll('\\','/'));}}
   list(pkg);
-  // The bridge package keeps exactly the v0.2.0 file set: the v0.2.0 updater rejects anything else.
-  assert.deepEqual(listed.sort(),['agent-ops.exe','tasks-overview.mjs','task-sync.mjs','task-report.mjs','plan-reader.mjs','execution-roles.mjs','execution-reports.mjs','historical-executions.mjs','agent-attribution.mjs','NOTICE.md','INSTALL.md','scripts/install.ps1','integrations/install-task-reporting.mjs','skills/task-plan/SKILL.md'].sort());
+  // Exactly the v0.3.0 file set: the app, the collector, two stubs, the migration shim and the installer.
+  assert.deepEqual(listed.sort(),['agent-ops.exe','tasks-overview.mjs','task-sync.mjs','task-report.mjs','plan-reader.mjs','NOTICE.md','INSTALL.md','scripts/install.ps1','integrations/install-task-reporting.mjs'].sort());
   // The manifest asset describes the package exactly: every file, its size and digest.
   const manifest=JSON.parse(readFileSync(join(root,'dist','agent-ops-windows-amd64.manifest.json'),'utf8'));
-  assert.equal(manifest.format,1);assert.match(manifest.version,/^v\d+\.\d+\.\d+(-dev\.[0-9a-f]+)?$/);assert.deepEqual(manifest.remove,[]);
+  assert.equal(manifest.format,1);assert.match(manifest.version,/^v\d+\.\d+\.\d+(-dev\.[0-9a-f]+)?$/);
+  assert.deepEqual(manifest.remove.sort(),['agent-attribution.mjs','execution-reports.mjs','execution-roles.mjs','historical-executions.mjs','skills/task-plan/SKILL.md']);
   assert.deepEqual(manifest.files.map(f=>f.path).sort(),listed.slice().sort());
   for(const f of manifest.files){const body=readFileSync(join(pkg,f.path));assert.equal(f.size,body.length,f.path);assert.equal(f.sha256,createHash('sha256').update(body).digest('hex'),f.path);}
   const reported=spawnSync('node',['-e',"process.stdout.write(require('node:child_process').execFileSync(process.argv[1],['--version'],{encoding:'utf8',windowsHide:true}))",join(pkg,'agent-ops.exe')],{encoding:'utf8',windowsHide:true}).stdout.trim();
   assert.equal(reported,manifest.version,'the manifest names the packaged version');
   const runtime=join(fixture,'installed runtime'),profile=join(fixture,'profile');
-  put(join(runtime,'historical-executions.json'),'private fixture sentinel');
+  // An earlier install: a retired module, a run history registry and owner instructions.
+  put(join(runtime,'execution-reports.mjs'),'retired module');put(join(runtime,'agent-attributions.json'),'{"old":"history"}');
   put(join(profile,'.codex','AGENTS.md'),'# Existing instructions\nPreserve this.\n');
   const installer=[...psArgs,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',runtime,'-ProfileDir',profile,'-NoLaunch'];
   run('powershell.exe',installer);run('powershell.exe',installer);
-  assert.equal(readFileSync(join(runtime,'historical-executions.json'),'utf8'),'private fixture sentinel');
-  const instructions=readFileSync(join(profile,'.codex','AGENTS.md'),'utf8');
-  assert.ok(instructions.startsWith('# Existing instructions\nPreserve this.\n'));
-  assert.equal(instructions.split('<!-- workboard-task-reporting:start -->').length,2);
-  const skill=readFileSync(join(profile,'.agents','skills','task-plan','SKILL.md'),'utf8');
-  assert.ok(skill.includes(runtime.replaceAll('\\','/')));assert.ok(!skill.includes('{{WORKBOARD_DIR}}'));
-  const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','delivery.md'),state=join(fixture,'output','state.json'),slots=join(fixture,'slots.json');
+  assert.ok(!existsSync(join(runtime,'execution-reports.mjs')),'retired module removed');
+  assert.ok(!existsSync(join(runtime,'agent-attributions.json')),'old run history deleted');
+  assert.ok(readFileSync(join(runtime,'task-sync.mjs'),'utf8').includes('no longer records runs'),'task-sync is the stub');
+  assert.equal(readFileSync(join(profile,'.codex','AGENTS.md'),'utf8'),'# Existing instructions\nPreserve this.\n','owner instructions untouched');
+  assert.ok(!existsSync(join(profile,'.agents','skills','task-plan','SKILL.md')),'the installer installs no skill by itself');
+  // An isolated -RuntimeDir without -ProfileDir skips the migration. The default profile
+  // here is a temp folder too (USERPROFILE, LOCALAPPDATA and APPDATA redirected), so even a
+  // regression could not reach the real home.
+  const home=join(fixture,'default-home'),hooked='{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"node C:/x/task-sync.mjs --claude-hook"}]}]}}';
+  put(join(home,'.claude','settings.json'),hooked);put(join(home,'AppData','Local','krik-workboard','activity.jsonl'),'{"kind":"execution-report"}\n');
+  const guarded=spawnSync('powershell.exe',[...psArgs,'-File',join(pkg,'scripts/install.ps1'),'-RuntimeDir',join(fixture,'second runtime'),'-NoLaunch'],{encoding:'utf8',windowsHide:true,env:{...process.env,USERPROFILE:home,LOCALAPPDATA:join(home,'AppData','Local'),APPDATA:join(home,'AppData','Roaming'),CLAUDE_CONFIG_DIR:''}});
+  assert.equal(guarded.status,0,guarded.stderr||guarded.stdout);assert.match(guarded.stdout,/Migration skipped/);
+  assert.equal(readFileSync(join(home,'.claude','settings.json'),'utf8'),hooked,'default profile hooks untouched');
+  assert.ok(existsSync(join(home,'AppData','Local','krik-workboard','activity.jsonl'))&&!existsSync(join(home,'AppData','Local','AgentOps','migration.json')),'default data folders untouched');
+  const migrated=JSON.parse(readFileSync(join(profile,'AppData','Local','AgentOps','migration.json'),'utf8'));
+  assert.ok(migrated.backup.startsWith(join(profile,'AppData','Local','AgentOps','backups')),'migration stays inside the isolated profile');
+  const repos=join(fixture,'repos'),plan=join(repos,'sample','.tasks','delivery.md'),state=join(fixture,'output','state.json');
   const source='Agent: Codex\nExecutor: Codex\nStatus: Implementing\nGoal: Verify isolated delivery\nNext: Finish test\n\n## M1: Delivery\n- [doing] Validate release\n';
-  put(plan,source);put(slots,'{}');mkdirSync(dirname(state),{recursive:true});
-  const server=createServer();await new Promise((res,rej)=>{server.once('error',rej);server.listen(0,'127.0.0.1',res);});
-  const port=server.address().port;await new Promise(res=>server.close(res));
-  const base='http://127.0.0.1:'+port;
-  app=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+port,'--repos-dir',repos,'--slots-file',slots,'--state-file',state,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',join(fixture,'data')],{windowsHide:true,stdio:'ignore',env:{...process.env,KRIK_AGENT_MAP:join(fixture,'no-agent-map.json'),KRIK_HISTORY_MAP:join(fixture,'no-history-map.json'),KRIK_EXECUTION_DIR:join(fixture,'executions')}});
-  let response;
-  for(let i=0;i<100;i++){
-    try{response=await fetch(base+'/api/state',{signal:AbortSignal.timeout(1000)});if(response.ok)break;}catch{/* Retry only while the isolated process is starting. */}
-    if(app.exitCode!==null)throw Error('Isolated app exited before serving');
-    await new Promise(res=>setTimeout(res,100));
-  }
-  assert.ok(response?.ok,'Isolated app did not start');
-  const stateResponse=await response.json();assert.equal(stateResponse.error,'');assert.equal(stateResponse.state.plans.length,1);assert.equal(stateResponse.state.plans[0].agent,'Codex');
+  put(plan,source);mkdirSync(dirname(state),{recursive:true});
+  const {base,response}=await startApp('Isolated app',join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--repos-dir',repos,'--state-file',state,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',join(fixture,'data')],{...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''});
+  const stateResponse=await response.json();assert.equal(stateResponse.error,'');assert.equal(stateResponse.state.plans.length,1);
+  for(const key of ['agent','executors','executionReports','slot'])assert.equal(key in stateResponse.state.plans[0],false,key);
   const page=await fetch(base),html=await page.text();assert.equal(page.status,200);assert.ok(html.includes('<title>Agent Ops</title>'));
   const script=html.match(/<script>([\s\S]*?)<\/script>/)[1].replaceAll('\r\n','\n').replaceAll('\r','\n');
   const digest=createHash('sha256').update(script).digest('base64');
@@ -64,27 +86,26 @@ try {
   assert.equal(rebindingStatus,403);
   assert.equal((await fetch(base+'/api/state',{headers:{Origin:'https://other.invalid'}})).status,403);
   assert.equal((await fetch(base+'/api/refresh',{method:'POST'})).status,403);
-  const refresh=await fetch(base+'/api/refresh',{method:'POST',headers:{'X-Workboard':'1',Origin:base}});
+  for(const path of ['/api/plans/status','/api/plans/agent']){
+    const gone=await fetch(base+path,{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base,'Content-Type':'application/json'},body:'{}'});
+    assert.equal(gone.status,404,path+' is retired');
+  }
+  const integrations=await (await fetch(base+'/api/integrations')).json();
+  assert.deepEqual(integrations.targets,[],'no folder is added without the owner');assert.equal(integrations.skillVersion,2);
+  assert.ok(integrations.suggestions.length>0 && integrations.suggestions.every(s=>s.skillDir.startsWith(profile)),'suggestions come from the isolated profile only');
+  const refresh=await fetch(base+'/api/refresh',{method:'POST',headers:{'X-Agent-Ops':'1',Origin:base}});
   assert.equal(refresh.status,200);assert.ok((await refresh.json()).refreshedAt);
   const controller=new AbortController(),stream=await fetch(base+'/events',{signal:controller.signal});
   assert.equal(stream.headers.get('content-type'),'text/event-stream');
   const chunk=await stream.body.getReader().read();assert.ok(new TextDecoder().decode(chunk.value).includes('retry: 3000'));controller.abort();
   assert.equal(readFileSync(plan,'utf8'),source);
   // First run without any path flags: setup mode, no collector error, then a project added through the API.
-  const freshServer=createServer();await new Promise((res,rej)=>{freshServer.once('error',rej);freshServer.listen(0,'127.0.0.1',res);});
-  const freshPort=freshServer.address().port;await new Promise(res=>freshServer.close(res));
-  const fresh='http://127.0.0.1:'+freshPort,freshData=join(fixture,'fresh-data');
-  const cleanEnv={...process.env,KRIK_REPOS_DIR:'',KRIK_STATE_FILE:'',KRIK_SLOTS_FILE:'',AGENT_OPS_CONFIG:'',KRIK_AGENT_MAP:join(fixture,'no-agent-map.json'),KRIK_HISTORY_MAP:join(fixture,'no-history-map.json'),KRIK_EXECUTION_DIR:join(fixture,'fresh-executions')};
-  firstRun=spawn(join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--addr','127.0.0.1:'+freshPort,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',freshData],{windowsHide:true,stdio:'ignore',env:cleanEnv});
-  let freshState;
-  for(let i=0;i<100;i++){
-    try{const r=await fetch(fresh+'/api/state',{signal:AbortSignal.timeout(1000)});if(r.ok){freshState=await r.json();break;}}catch{/* Retry only while the isolated process is starting. */}
-    if(firstRun.exitCode!==null)throw Error('First-run app exited before serving');
-    await new Promise(res=>setTimeout(res,100));
-  }
-  assert.ok(freshState,'First-run app did not start');
+  const freshData=join(fixture,'fresh-data');
+  const cleanEnv={...process.env,AGENT_OPS_REPOS_DIR:'',AGENT_OPS_STATE_FILE:'',AGENT_OPS_CONFIG:''};
+  const started=await startApp('First-run app',join(runtime,'agent-ops.exe'),['--background','--no-update-check','--profile-dir',profile,'--script',join(runtime,'tasks-overview.mjs'),'--data-dir',freshData],cleanEnv);
+  const fresh=started.base,freshState=await started.response.json();
   assert.equal(freshState.setupRequired,true);assert.equal(freshState.error,'');assert.deepEqual(freshState.state.plans,[]);assert.deepEqual(freshState.projects,[]);
-  const write=(path,method,body)=>fetch(fresh+path,{method,headers:{'X-Workboard':'1',Origin:fresh,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const write=(path,method,body)=>fetch(fresh+path,{method,headers:{'X-Agent-Ops':'1',Origin:fresh,'Content-Type':'application/json'},body:JSON.stringify(body)});
   assert.equal((await fetch(fresh+'/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:repos})})).status,403);
   // Setup can be skipped before any project exists; the board then shows the empty state.
   assert.equal((await write('/api/settings','PUT',{setupComplete:true,theme:'dark'})).status,200);
@@ -101,9 +122,18 @@ try {
   assert.ok(readFileSync(join(freshData,'state','tong-hop-chung.json'),'utf8').includes('"plans"'));
   assert.equal(readFileSync(plan,'utf8'),source);
   console.log('First-run smoke passed: setup mode without flags, setup skipped with no project, protected settings writes, project added, config.json and default state under the data folder.');
-  console.log('Release smoke passed: exact package allowlist, repeat install, preserved data/instructions, portable paths, real HTTP/SSE/F5, script CSP, request protection and unchanged task source.');
+  console.log('Release smoke passed: exact package allowlist and removals, repeat install with the migration inside the isolated profile, untouched owner instructions, retired write routes, integrations API, real HTTP/SSE/F5, script CSP, request protection and unchanged task source.');
+  passed=true;
 } finally {
-  for(const child of [app,firstRun])if(child && child.exitCode===null){const exited=new Promise(res=>child.once('exit',res));child.kill();await exited;}
+  // End each app with its whole process tree: a collector (node) the app started
+  // would otherwise keep handles inside the fixture and make the cleanup fail.
+  for(const child of children)if(child.exitCode===null){
+    const exited=new Promise(res=>child.once('exit',res));
+    spawnSync('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true});
+    if(child.exitCode===null)child.kill();
+    await Promise.race([exited,sleep(10000)]);
+  }
   if(dirname(fixture)!==root || !fixture.startsWith(join(root,'.test-release-')))throw Error('Unsafe cleanup path');
-  rmSync(fixture,{recursive:true,force:true});
+  if(passed)rmSync(fixture,{recursive:true,force:true,maxRetries:10,retryDelay:300});
+  else console.error('Smoke failed; the fixture is kept for diagnosis: '+fixture+' (app logs: data\\logs and fresh-data\\logs).');
 }

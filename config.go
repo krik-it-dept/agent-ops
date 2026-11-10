@@ -5,6 +5,7 @@ package main
 // Precedence for each value is flag > environment > config file > built-in default.
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -23,7 +24,6 @@ import (
 // migrate an existing installation into config.json on its first start.
 const (
 	legacyReposDir  = `D:\1_PROJECTS\_REPOS`
-	legacySlotsFile = `D:\1_PROJECTS\_WORKTREES\slots.json`
 	legacyStateFile = `D:\1_PROJECTS\tong-hop-chung.json`
 )
 
@@ -43,13 +43,76 @@ type AppConfig struct {
 	SetupComplete bool      `json:"setupComplete"`
 	Projects      []Project `json:"projects"`
 	StateFile     string    `json:"stateFile,omitempty"`
-	SlotsFile     string    `json:"slotsFile,omitempty"`
 	Notifications bool      `json:"notifications"`
 	// Theme is "system", "light" or "dark"; empty means system.
 	Theme string `json:"theme,omitempty"`
 	// Shortcuts turns the single-key shortcuts (/, comma, R, ?) on or off.
 	Shortcuts       bool `json:"shortcuts"`
 	AutoArchiveDone bool `json:"autoArchiveDone"`
+	// Integrations are the folders the owner chose to receive the task-plan skill.
+	Integrations []IntegrationTarget `json:"integrations,omitempty"`
+	// IntegrationsSeeded is set once the migration has seeded Integrations from
+	// detection, or the owner has changed the list. Later runs never add to it,
+	// so a folder the owner removed stays removed.
+	IntegrationsSeeded bool `json:"integrationsSeeded,omitempty"`
+}
+
+// IntegrationTarget is one folder that receives task-plan/SKILL.md, with an
+// optional instruction file for the one-line reminder. A skill file is updated or
+// removed only while it still hashes to SHA256 (or the reminder block to
+// InstructionSHA256); otherwise it is "modified locally". The hashes are content
+// hashes, so they stay valid when the folder path is edited.
+type IntegrationTarget struct {
+	ID              string `json:"id"`
+	Label           string `json:"label"`
+	SkillDir        string `json:"skillDir"`
+	InstructionFile string `json:"instructionFile,omitempty"`
+	// InstructionBlock is true while Agent Ops' reminder block is in InstructionFile.
+	InstructionBlock bool   `json:"instructionBlock"`
+	Enabled          bool   `json:"enabled"`
+	Source           string `json:"source"` // "detected" or "custom"
+	AddedAt          string `json:"addedAt,omitempty"`
+	Version          int    `json:"version,omitempty"`
+	SHA256           string `json:"sha256,omitempty"`
+	InstalledAt      string `json:"installedAt,omitempty"`
+	// Kept is the hash of a locally modified skill the owner chose to keep.
+	Kept              string `json:"kept,omitempty"`
+	InstructionSHA256 string `json:"instructionSha256,omitempty"`
+	// LegacySHA256 is the hash the previous reporting installer recorded for this
+	// folder's SKILL.md, so an unedited old copy still shows "Update available".
+	LegacySHA256 string `json:"legacySha256,omitempty"`
+}
+
+var integrationIDPattern = projectIDPattern
+
+const maxIntegrationLabel = 80
+
+func validateIntegrations(list []IntegrationTarget) error {
+	ids, dirs := map[string]bool{}, map[string]bool{}
+	for i, t := range list {
+		if !integrationIDPattern.MatchString(t.ID) {
+			return fmt.Errorf("integration %d has an invalid id", i+1)
+		}
+		if ids[t.ID] {
+			return fmt.Errorf("duplicate integration id %q", t.ID)
+		}
+		ids[t.ID] = true
+		if !filepath.IsAbs(t.SkillDir) || t.InstructionFile != "" && !filepath.IsAbs(t.InstructionFile) {
+			return fmt.Errorf("integration %q paths must be absolute", t.ID)
+		}
+		key := projectPathKey(t.SkillDir)
+		if dirs[key] {
+			return fmt.Errorf("integration folder %q is listed twice", t.SkillDir)
+		}
+		dirs[key] = true
+		if strings.TrimSpace(t.Label) == "" || len([]rune(t.Label)) > maxIntegrationLabel {
+			return fmt.Errorf("integration %q needs a label of at most %d characters", t.ID, maxIntegrationLabel)
+		}
+		if t.Source != "detected" && t.Source != "custom" {
+			return fmt.Errorf("integration %q source must be detected or custom", t.ID)
+		}
+	}
+	return nil
 }
 
 type RepoInfo struct {
@@ -154,12 +217,10 @@ func validateAppConfig(c *AppConfig) error {
 	if !validTheme(c.Theme) {
 		return fmt.Errorf("theme must be system, light or dark")
 	}
-	for _, file := range []string{c.StateFile, c.SlotsFile} {
-		if file != "" && !filepath.IsAbs(file) {
-			return fmt.Errorf("settings file paths must be absolute")
-		}
+	if c.StateFile != "" && !filepath.IsAbs(c.StateFile) {
+		return fmt.Errorf("settings file paths must be absolute")
 	}
-	return nil
+	return validateIntegrations(c.Integrations)
 }
 
 // readAppConfig returns an error wrapping fs.ErrNotExist when there is no file.
@@ -172,11 +233,27 @@ func readAppConfig(file string) (AppConfig, error) {
 		AppConfig
 		Notifications *bool `json:"notifications"`
 		Shortcuts     *bool `json:"shortcuts"`
+		// Integrations is a list, or the per-client map of v0.3.0 development
+		// builds, which is converted (see legacyIntegrationTargets).
+		Integrations json.RawMessage `json:"integrations"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return AppConfig{}, &configContentError{fmt.Errorf("invalid JSON: %w", err)}
 	}
 	c := raw.AppConfig
+	switch trimmed := bytes.TrimSpace(raw.Integrations); {
+	case len(trimmed) == 0 || string(trimmed) == "null":
+	case trimmed[0] == '{':
+		var old map[string]legacyIntegrationRecord
+		if err := json.Unmarshal(trimmed, &old); err != nil {
+			return AppConfig{}, &configContentError{fmt.Errorf("invalid integrations: %w", err)}
+		}
+		c.Integrations = legacyIntegrationTargets(old, profileDir)
+	default:
+		if err := json.Unmarshal(trimmed, &c.Integrations); err != nil {
+			return AppConfig{}, &configContentError{fmt.Errorf("invalid integrations: %w", err)}
+		}
+	}
 	c.Notifications = raw.Notifications == nil || *raw.Notifications
 	c.Shortcuts = raw.Shortcuts == nil || *raw.Shortcuts
 	if err := validateAppConfig(&c); err != nil {
@@ -231,7 +308,7 @@ func writeAppConfig(file string, c AppConfig) error {
 	return replaceUpdateFile(tmp, file)
 }
 
-type legacyPaths struct{ repos, state, slots string }
+type legacyPaths struct{ repos, state string }
 
 // loadOrMigrateConfig reads the config. Without one, an existing legacy repos
 // folder becomes a single folder project so an upgraded install looks the same.
@@ -266,7 +343,6 @@ func loadOrMigrateConfig(file string, legacy legacyPaths, now time.Time) (cfg Ap
 	cfg.Projects = []Project{{ID: projectIDFor(path), Path: path, Name: projectDisplayName(path), Kind: "folder", Enabled: true, AddedAt: now.UTC()}}
 	cfg.SetupComplete = true
 	cfg.StateFile = legacy.state
-	cfg.SlotsFile = legacy.slots
 	if writeErr := writeAppConfig(file, cfg); writeErr != nil {
 		return cfg, warning, fmt.Errorf("could not save migrated settings: %v", writeErr)
 	}

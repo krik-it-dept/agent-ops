@@ -2,6 +2,13 @@
 
 Audit date: 2026-11-09. Target: a private, trusted-local Windows x64 desktop tool, not a public multi-user service.
 
+## v0.3.0 changes to this audit (2026-11-10)
+
+- The app is a read-only work ledger: the plan status write endpoint, agent and executor attribution, slots and run reporting are removed. The only write routes left are settings, projects, integrations, updates, diagnostics and refresh (tested from the route registrations).
+- `task-sync.mjs` and `task-report.mjs` are stubs (exit 0; `--run-cli` runs the CLI unchanged). Claude reporting hooks, managed instruction blocks and unedited old skills are removed once by the migration, with backups and atomic writes; owner text outside the markers is never edited. The migration and its update path are covered by Go tests on temporary profiles and by the isolated N-1 to N update test.
+- The task-plan skill is static and embedded; the app installs it only on the owner's action in Settings > Integrations, with a hash guard, diff, keep and replace.
+- Items below that mention status writes, reporting helpers, skill rendering or the font CDN describe earlier releases.
+
 ## Findings resolved
 
 - Refresh now requires a same-origin protected POST; an unrelated web page cannot trigger the collector.

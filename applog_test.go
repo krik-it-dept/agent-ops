@@ -210,7 +210,7 @@ func TestDiagnosticsSummarizeWithoutPlanContentOrProjectPaths(t *testing.T) {
 		t.Fatal("dismiss without the write header", w.Code)
 	}
 	dismiss = httptest.NewRequest("POST", "http://"+addr+"/api/diagnostics/dismiss-crash", nil)
-	dismiss.Header.Set("X-Workboard", "1")
+	dismiss.Header.Set("X-Agent-Ops", "1")
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, dismiss)
 	if w.Code != 200 {
@@ -225,7 +225,7 @@ func TestOpenLogsFolderOpensOnlyTheLogDirectory(t *testing.T) {
 	openFolder = func(path string) error { opened = append(opened, path); return nil }
 	t.Cleanup(func() { openFolder = prev })
 	req := httptest.NewRequest("POST", "http://"+addr+"/api/settings/open-folder", strings.NewReader(`{"target":"logs"}`))
-	req.Header.Set("X-Workboard", "1")
+	req.Header.Set("X-Agent-Ops", "1")
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	handleOpenFolder(w, req)
