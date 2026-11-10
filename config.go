@@ -45,6 +45,10 @@ type AppConfig struct {
 	StateFile     string    `json:"stateFile,omitempty"`
 	SlotsFile     string    `json:"slotsFile,omitempty"`
 	Notifications bool      `json:"notifications"`
+	// Theme is "system", "light" or "dark"; empty means system.
+	Theme string `json:"theme,omitempty"`
+	// Shortcuts turns the single-key shortcuts (/, comma, R, ?) on or off.
+	Shortcuts bool `json:"shortcuts"`
 }
 
 type RepoInfo struct {
@@ -55,7 +59,11 @@ type RepoInfo struct {
 }
 
 func defaultAppConfig() AppConfig {
-	return AppConfig{Version: configVersion, Projects: []Project{}, Notifications: true}
+	return AppConfig{Version: configVersion, Projects: []Project{}, Notifications: true, Shortcuts: true}
+}
+
+func validTheme(theme string) bool {
+	return theme == "" || theme == "system" || theme == "light" || theme == "dark"
 }
 
 func configFilePath(dir string) string { return filepath.Join(dir, "config.json") }
@@ -142,6 +150,9 @@ func validateAppConfig(c *AppConfig) error {
 			}
 		}
 	}
+	if !validTheme(c.Theme) {
+		return fmt.Errorf("theme must be system, light or dark")
+	}
 	for _, file := range []string{c.StateFile, c.SlotsFile} {
 		if file != "" && !filepath.IsAbs(file) {
 			return fmt.Errorf("settings file paths must be absolute")
@@ -159,12 +170,14 @@ func readAppConfig(file string) (AppConfig, error) {
 	var raw struct {
 		AppConfig
 		Notifications *bool `json:"notifications"`
+		Shortcuts     *bool `json:"shortcuts"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return AppConfig{}, &configContentError{fmt.Errorf("invalid JSON: %w", err)}
 	}
 	c := raw.AppConfig
 	c.Notifications = raw.Notifications == nil || *raw.Notifications
+	c.Shortcuts = raw.Shortcuts == nil || *raw.Shortcuts
 	if err := validateAppConfig(&c); err != nil {
 		if errors.Is(err, errNewerConfig) {
 			return AppConfig{}, err

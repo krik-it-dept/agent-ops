@@ -266,9 +266,6 @@ func TestSettingsAPIAddToggleRemoveAndSetup(t *testing.T) {
 	repo := filepath.Join(dir, "alpha")
 	writePlan(t, filepath.Join(repo, ".tasks", "plan.md"), "Codex")
 	os.MkdirAll(filepath.Join(repo, ".git"), 0o700)
-	if w, out := call(t, handleSettings, "PUT", "/api/settings", map[string]any{"setupComplete": true}); w.Code != 400 || !strings.Contains(out["error"].(string), "at least one project") {
-		t.Fatal("setup finished without a project", w.Code, out)
-	}
 	w, out := call(t, handleProjects, "POST", "/api/projects", map[string]any{"path": repo})
 	if w.Code != 200 || out["kind"] != "repo" || out["name"] != "alpha" {
 		t.Fatal(w.Code, out)
@@ -646,5 +643,44 @@ func TestFolderPickerDecodesNonASCIIPaths(t *testing.T) {
 	}
 	if got, err := runFolderPicker(context.Background(), ``); err != nil || got != "" {
 		t.Fatalf("a cancelled dialog must return nothing: %q, %v", got, err)
+	}
+}
+
+func TestSetupCanBeSkippedWithoutProjectsAndKeepsThemeAndShortcuts(t *testing.T) {
+	settingsFixture(t)
+	if !setupRequired() {
+		t.Fatal("a new settings file needs setup")
+	}
+	w, out := call(t, handleSettings, "PUT", "/api/settings", map[string]any{"setupComplete": true})
+	if w.Code != 200 || out["setupComplete"] != true || out["setupRequired"] != false || len(out["projects"].([]any)) != 0 {
+		t.Fatal("setup must be skippable with zero projects", w.Code, out)
+	}
+	if out["theme"] != "system" || out["shortcuts"] != true {
+		t.Fatal("defaults", out)
+	}
+	if w, _ := call(t, handleSettings, "PUT", "/api/settings", map[string]any{"theme": "dark", "shortcuts": false}); w.Code != 200 {
+		t.Fatal(w.Code, w.Body)
+	}
+	saved, err := readAppConfig(configFilePath(dataDir))
+	if err != nil || saved.Theme != "dark" || saved.Shortcuts || !saved.SetupComplete {
+		t.Fatal("theme and shortcuts not saved", saved, err)
+	}
+	for _, bad := range []any{"neon", ""} {
+		if w, _ := call(t, handleSettings, "PUT", "/api/settings", map[string]any{"theme": bad}); w.Code != 400 {
+			t.Fatal("invalid theme accepted", bad, w.Code)
+		}
+	}
+}
+
+func TestConfigWithoutShortcutsKeyDefaultsToOn(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "config.json")
+	os.WriteFile(file, []byte(`{"version":1,"setupComplete":true,"projects":[]}`), 0o600)
+	c, err := readAppConfig(file)
+	if err != nil || !c.Shortcuts || c.Theme != "" {
+		t.Fatal(c, err)
+	}
+	os.WriteFile(file, []byte(`{"version":1,"projects":[],"theme":"purple"}`), 0o600)
+	if _, err := readAppConfig(file); err == nil {
+		t.Fatal("an unknown theme must be rejected")
 	}
 }

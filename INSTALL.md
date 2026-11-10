@@ -19,7 +19,7 @@ From v0.1.2 onward, use **Updates** in the app for later releases. It checks on 
 
 ## First run and settings
 
-On first launch Agent Ops opens a short setup: add one or more project folders, then choose startup and notification preferences. A project is either a Git repository or a folder whose direct subfolders are repositories. Agent Ops reads `.tasks/*.md` in each repository's main checkout. Change projects later in **Settings** (gear in the header, or **Settings…** in the tray menu).
+On first launch Agent Ops opens a short setup: add one or more project folders, then choose startup, notification and appearance preferences. **Set up later** skips it, even before a project is added; the board then shows **Add a project to start**. A project is either a Git repository or a folder whose direct subfolders are repositories. Agent Ops reads `.tasks/*.md` in each repository's main checkout. Change projects later in **Settings** (gear in the header, or **Settings…** in the tray menu).
 
 Settings are stored in `<data-dir>/config.json` and shared with the reporting helpers (`task-sync.mjs`, `task-report.mjs`), which find it through `AGENT_OPS_CONFIG` or the default data folder, so agents need no path flags. An installation upgraded from a version without settings keeps its existing repositories folder, state file and slots file: they are written into `config.json` on the first start. A corrupt `config.json` is renamed to `config.json.corrupt-<time>` and reported, never silently replaced.
 

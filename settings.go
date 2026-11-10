@@ -319,6 +319,8 @@ type settingsPayload struct {
 	SetupRequired      bool              `json:"setupRequired"`
 	SetupComplete      bool              `json:"setupComplete"`
 	Notifications      bool              `json:"notifications"`
+	Theme              string            `json:"theme"`
+	Shortcuts          bool              `json:"shortcuts"`
 	StartWithWindows   bool              `json:"startWithWindows"`
 	StartupManaged     bool              `json:"startupManaged"`
 	DataDir            string            `json:"dataDir"`
@@ -354,6 +356,7 @@ func currentSettings() settingsPayload {
 	cfgMu.Unlock()
 	out := settingsPayload{
 		SetupRequired: setupRequired(), SetupComplete: cfg.SetupComplete, Notifications: cfg.Notifications,
+		Theme: themeOrSystem(cfg.Theme), Shortcuts: cfg.Shortcuts,
 		StartWithWindows: startupReader(), StartupManaged: startupManaged(),
 		DataDir: dataDir, ConfigFile: configFilePath(dataDir), StateFile: stateFile,
 		Warning: warning, ReadOnly: readOnly, Version: appVersion, Projects: []settingsProject{},
@@ -453,6 +456,13 @@ func mutateConfig(w http.ResponseWriter, change func(*AppConfig) (int, string)) 
 	return true
 }
 
+func themeOrSystem(theme string) string {
+	if theme == "" {
+		return "system"
+	}
+	return theme
+}
+
 func handleSettings(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		writeJSON(w, http.StatusOK, currentSettings())
@@ -464,9 +474,15 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Notifications    *bool `json:"notifications"`
 		SetupComplete    *bool `json:"setupComplete"`
-		StartWithWindows *bool `json:"startWithWindows"`
+		StartWithWindows *bool   `json:"startWithWindows"`
+		Theme            *string `json:"theme"`
+		Shortcuts        *bool   `json:"shortcuts"`
 	}
 	if !decodeOne(w, r, &body) {
+		return
+	}
+	if body.Theme != nil && (*body.Theme == "" || !validTheme(*body.Theme)) {
+		settingsFail(w, http.StatusBadRequest, "Theme must be system, light or dark.")
 		return
 	}
 	if body.StartWithWindows != nil {
@@ -477,7 +493,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		startupWriter(*body.StartWithWindows)
 		syncStartupMenu()
 	}
-	if body.Notifications != nil || body.SetupComplete != nil {
+	if body.Notifications != nil || body.SetupComplete != nil || body.Theme != nil || body.Shortcuts != nil {
 		if updateRestarting.Load() {
 			settingsFail(w, http.StatusServiceUnavailable, "Agent Ops is restarting for an update. Try again after it reconnects.")
 			return
@@ -496,12 +512,14 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		if body.Notifications != nil {
 			next.Notifications = *body.Notifications
 		}
+		if body.Theme != nil {
+			next.Theme = *body.Theme
+		}
+		if body.Shortcuts != nil {
+			next.Shortcuts = *body.Shortcuts
+		}
+		// Setup may be skipped with no project; the board then offers "Add a project to start".
 		if body.SetupComplete != nil {
-			if *body.SetupComplete && len(next.Projects) == 0 && reposDir == "" {
-				cfgMu.Unlock()
-				settingsFail(w, http.StatusBadRequest, "Add at least one project before finishing setup.")
-				return
-			}
 			next.SetupComplete = *body.SetupComplete
 		}
 		if err := writeAppConfig(configFilePath(dataDir), next); err != nil {
