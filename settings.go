@@ -358,10 +358,12 @@ func decodeOne(w http.ResponseWriter, r *http.Request, v any) bool {
 	return true
 }
 
+const overrideReadOnly = "Projects are set by --repos-dir or KRIK_REPOS_DIR for this run. Restart Agent Ops without it to manage projects here."
+
 // mutateConfig applies change to a copy, saves it atomically, then refreshes.
 func mutateConfig(w http.ResponseWriter, change func(*AppConfig) (int, string)) bool {
 	if reposDir != "" {
-		settingsFail(w, http.StatusConflict, "Projects are set by --repos-dir or KRIK_REPOS_DIR for this run. Restart Agent Ops without it to manage projects here.")
+		settingsFail(w, http.StatusConflict, overrideReadOnly)
 		return false
 	}
 	if updateRestarting.Load() {
@@ -466,15 +468,29 @@ func handleProjects(w http.ResponseWriter, r *http.Request) {
 	if !decodeOne(w, r, &body) {
 		return
 	}
-	var added Project
-	var repos []RepoInfo
+	if reposDir != "" {
+		settingsFail(w, http.StatusConflict, overrideReadOnly)
+		return
+	}
+	// Folder checks can wait on a slow or offline share, so they run without
+	// cfgMu; /api/state and the watcher keep working meanwhile.
+	cfgMu.Lock()
+	existing := append([]Project{}, appCfg.Projects...)
+	cfgMu.Unlock()
+	added, repos, err := inspectNewProject(body.Path, existing, time.Now())
+	if err != nil {
+		settingsFail(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	ok := mutateConfig(w, func(c *AppConfig) (int, string) {
-		project, found, err := inspectNewProject(body.Path, c.Projects, time.Now())
-		if err != nil {
-			return http.StatusBadRequest, err.Error()
+		// Re-check against projects added meanwhile, by path only (no I/O).
+		for _, p := range c.Projects {
+			a, b := projectPathKey(added.Path), projectPathKey(p.Path)
+			if p.ID == added.ID || a == b || pathWithin(a, b) || pathWithin(b, a) {
+				return http.StatusBadRequest, "This folder overlaps the project “" + p.Name + "”, which was just added."
+			}
 		}
-		added, repos = project, found
-		c.Projects = append(c.Projects, project)
+		c.Projects = append(c.Projects, added)
 		return 0, ""
 	})
 	if !ok {
