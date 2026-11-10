@@ -6,9 +6,7 @@
 <title>Agent Ops</title>
 <link rel="icon" type="image/png" href="/icons/app-light.png?v=ledger" media="(prefers-color-scheme: light)">
 <link rel="icon" type="image/png" href="/icons/app-dark.png?v=ledger" media="(prefers-color-scheme: dark)">
-<link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-@font-face { font-family: Geist; src: url(/fonts/Geist-Variable.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
 /* Neutral surfaces adapted from Orca; state colors carry meaning, not navigation.
    The theme follows data-theme on <html>: system (default), light or dark. */
 :root {
@@ -37,7 +35,7 @@
   --review-bg:color-mix(in srgb,var(--review) 10%,transparent);
   --hover:color-mix(in srgb,var(--fg) 4%,transparent);
   --selected:color-mix(in srgb,var(--fg) 8%,transparent);
-  --font-ui:Geist,"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --font-ui:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
   --font-mono:"Cascadia Mono","Cascadia Code",Consolas,ui-monospace,monospace;
   --text-3xs:10px; --text-2xs:11px; --text-xs:12px; --text-sm:13px; --text-base:14px;
   --text-lg:16px; --text-xl:20px; --text-2xl:24px; --text-hero:30px;
@@ -312,14 +310,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .task-group-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--ds-text-subtle)}.task-group-toolbar label{display:flex;align-items:center;gap:8px}.task-group-toolbar select{height:30px;padding:4px 8px;border:1px solid var(--ds-border);border-radius:3px;background:var(--ds-surface);color:var(--ds-text);font:inherit}.task-group-toolbar .btn{height:30px;font-size:12px}.task-group-toolbar .work-meta{margin:0 0 0 8px}.task-list-table tbody.task-group-heading tr td{border-bottom:1px solid var(--ds-border);border-top:1px solid var(--ds-border);background:var(--ds-surface-sunken);padding:8px 12px}.task-group-name{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.task-group-heading .task-group-progress .list-progress{gap:10px;min-width:0}.task-group-progress .work-meta{font-size:11px;margin-bottom:5px}.task-group-progress .mono{white-space:nowrap;font-size:11px}.task-group-progress .list-progress.is-complete .bar i{background:var(--ds-text-success)}.task-group-heading .task-group-actions{text-align:right}.task-group-status .pill{font-size:11px}.task-group-name .work-meta{font-size:11px}.task-group-heading .work-meta{margin:0}.task-group-toggle,.task-group-open{padding:4px 0;border:0;background:none;font:inherit;text-align:left}.task-group-toggle{display:flex;align-items:center;gap:8px;min-width:0;overflow-wrap:anywhere;font-weight:600;color:var(--ds-text)}.task-group-toggle>span{width:12px;flex-shrink:0}.task-group-open{font-size:12px;white-space:nowrap;color:var(--ds-link)}.task-group-toggle:hover,.task-group-open:hover{color:var(--ds-link);text-decoration:underline}.task-list-table tbody[hidden]{display:none}
 .msg.context-actor{grid-template-columns:minmax(0,1fr)}
 .workspace{display:flex;flex:1;min-height:0;min-width:0}.plan-sidebar{width:232px;flex:0 0 232px;display:flex;flex-direction:column;border-right:1px solid var(--ds-border);background:var(--panel);padding:20px 12px;min-height:0}.sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:0 8px 12px;font-size:14px;font-weight:600}.sidebar-collections{display:flex;gap:4px;margin-bottom:12px}.sidebar-collections button{flex:1;border:0;background:none;color:var(--ds-text-subtle);font-size:12px;padding:6px 3px;border-radius:3px}.sidebar-collections button[aria-pressed=true]{background:var(--ds-background-brand-subtlest);color:var(--ds-link)}.sidebar-items{overflow:auto;flex:1;min-height:0}.sidebar-plan{display:flex;align-items:center;gap:6px;padding:4px;border-radius:4px}.sidebar-plan:hover{background:var(--ds-background-neutral)}.sidebar-plan.current{background:var(--ds-background-brand-subtlest)}.sidebar-plan-link{flex:1;min-width:0;padding:5px 2px;border:0;background:none;text-align:left}.sidebar-plan-link>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.sidebar-plan-link small{display:block;color:var(--ds-text-subtlest);font-size:11px;line-height:16px}.sidebar-empty{padding:16px 8px;color:var(--ds-text-subtlest);font-size:12px}.icon-btn{display:inline-grid;place-items:center;width:30px;height:30px;padding:5px;border:0;border-radius:3px;background:none;color:var(--ds-text-subtle);flex-shrink:0}.icon-btn:hover{background:var(--ds-background-neutral-hovered)}.icon-btn svg{width:18px;height:18px}.star-toggle[aria-pressed=true]{color:var(--ds-text-warning)}.star-toggle[aria-pressed=true] svg{fill:currentColor}.task-heading .task-edited{margin-left:auto}.task-heading .icon-btn{width:26px;height:26px}.sidebar-toggle{width:30px}.chead .star-toggle{margin-left:-6px}.plan-link-tools{display:flex;align-items:center;gap:4px}.plan-link-tools .work-link{flex:1;min-width:0}
-.quick-plan{padding:0;border:1px solid var(--ds-border);border-radius:10px;background:var(--ds-surface);color:var(--ds-text);width:min(1100px,calc(100vw - 48px));max-width:none;height:min(780px,calc(100dvh - 64px));max-height:none;box-shadow:0 16px 48px #091e4244}.quick-plan::backdrop{background:#091e4270}.quick-shell{height:100%;display:flex;flex-direction:column;min-height:0}.quick-header{padding:18px 24px;border-bottom:1px solid var(--ds-border);display:flex;align-items:center;gap:12px}.quick-title{min-width:0;flex:1}.quick-title small{color:var(--ds-text-subtlest);font-size:12px}.quick-title h2{font-size:22px;line-height:28px;margin:2px 0;overflow-wrap:anywhere}.quick-tabs{display:flex;gap:20px;padding:0 24px;border-bottom:1px solid var(--ds-border)}.quick-tabs button{padding:12px 0;border:0;border-bottom:3px solid transparent;background:none;color:var(--ds-text-subtle);font-size:14px}.quick-tabs button[aria-selected=true]{color:var(--ds-link);border-bottom-color:var(--ds-link)}.quick-scroll{padding:24px;overflow:auto;flex:1;min-height:0}.quick-scroll h3{font-size:14px;line-height:20px;margin:0 0 8px}.quick-overview{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:32px}.quick-overview p{margin:0 0 20px}.quick-facts{border:1px solid var(--ds-border);border-radius:6px;padding:16px;align-self:start}.quick-facts dl{margin:0;display:grid;grid-template-columns:100px minmax(0,1fr);gap:16px 8px}.quick-facts dt{font-size:12px;color:var(--ds-text-subtle)}.quick-facts dd{margin:0;font-size:12px;min-width:0}.quick-progress{display:flex;align-items:center;gap:12px;margin-top:20px;font-size:12px;color:var(--ds-text-subtle)}.quick-progress .bar{flex:1}.quick-footer{display:flex;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--ds-border)}.quick-footer .quick-open-full{margin-left:auto}.quick-footer small{color:var(--ds-text-subtlest);font-size:11px}.quick-table{width:100%;border-collapse:collapse}.quick-table th{font-size:12px;text-align:left;color:var(--ds-text-subtle)}.quick-table th,.quick-table td{padding:10px 8px;border-bottom:1px solid var(--ds-border);vertical-align:top}.quick-table th:first-child,.quick-table td:first-child{padding-left:0}.quick-table td:last-child{width:90px;white-space:nowrap}.quick-table .work-link{font-size:13px}.quick-table .work-meta{font-size:11px}.quick-error{margin:12px 24px 0;padding:8px 12px;border-radius:4px;background:var(--ds-background-danger);color:var(--ds-text-danger);font-size:12px}
-@media(max-width:1000px){.plan-sidebar{width:210px;flex-basis:210px}.quick-overview{grid-template-columns:minmax(0,1fr) 250px}}@media(max-width:760px){.plan-sidebar{position:absolute;left:0;top:48px;bottom:0;z-index:9;width:240px;box-shadow:4px 0 16px #091e4226}.quick-plan{width:calc(100vw - 16px);height:calc(100dvh - 16px)}.quick-header,.quick-scroll{padding:16px}.quick-overview{grid-template-columns:1fr;gap:16px}.quick-tabs{padding:0 16px;gap:16px}.quick-footer{padding:12px 16px;flex-wrap:wrap}.quick-footer small{display:none}.quick-title h2{font-size:18px}.quick-header .pill{display:none}}
+@media(max-width:1000px){.plan-sidebar{width:210px;flex-basis:210px}}@media(max-width:760px){.plan-sidebar{position:absolute;left:0;top:48px;bottom:0;z-index:9;width:240px;box-shadow:4px 0 16px #091e4226}}
 .plan-header{width:100%;margin:0;display:grid;gap:12px}.plan-heading{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.plan-heading h1{flex:1;min-width:160px}.plan-toolbar{display:flex;align-items:center;gap:12px;justify-content:flex-end}.plan-toolbar .search{max-width:290px;height:30px;font-size:12px}.plan-toolbar .btn{min-height:30px;font-size:12px}.plan-header .star-toggle{margin-left:-6px}.plan-header .plan-toolbar .source-link{margin-right:auto;background:none;color:var(--ds-text-subtlest);padding-left:0}
 .plan-summary{max-width:none}.plan-purpose{font-size:16px;line-height:25px;margin:0 0 24px;color:var(--ds-text)}.plan-purpose-label{display:block;font-size:11px;line-height:16px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;color:var(--ds-text-subtlest);margin-bottom:7px}.plan-insight{padding:16px 20px;margin:0 0 24px;border:1px solid color-mix(in srgb,var(--ds-text-warning) 25%,transparent);border-left:3px solid var(--ds-text-warning);border-radius:6px;background:var(--ds-background-warning)}.plan-insight .insight-label{display:flex;align-items:center;gap:7px;color:var(--ds-text-warning);font-size:12px;font-weight:600;margin-bottom:8px}.plan-insight .insight-label svg{width:16px;height:16px;flex-shrink:0}.plan-insight p{margin:0;line-height:22px;color:var(--ds-text)}.plan-insight .insight-next{margin-top:10px}.plan-insight .insight-next small{display:block;font-size:11px;font-weight:600;color:var(--ds-text-subtle);margin-bottom:3px}.plan-insight .insight-link{margin-top:12px;padding:0;border:0;background:none;color:var(--ds-link);font-size:12px;text-decoration:underline}.plan-insight.is-blocked{border-left-color:var(--ds-text-danger)}.plan-insight.is-blocked .insight-label{color:var(--ds-text-danger)}.plan-insight.is-recorded{background:var(--ds-surface-sunken);border-color:var(--ds-border)}.plan-insight.is-recorded .insight-label{color:var(--ds-text-subtle)}
-.plan-work-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;font-weight:600}.plan-work-title small{font-size:12px;font-weight:400;color:var(--ds-text-subtlest)}.plan-open-work .ms{margin-bottom:24px;padding-bottom:16px}.plan-open-work .ms-h{margin-bottom:8px}.plan-open-work .ms-h .c{font-size:11px}.plan-open-work .checklist-columns{margin-bottom:12px;padding-top:0}.plan-completed{border-top:1px solid var(--ds-border);margin-top:24px;padding-top:16px}.plan-completed>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:var(--ds-text-subtlest);font-size:13px;font-weight:500;padding:6px 0}.plan-completed>summary::-webkit-details-marker{display:none}.plan-completed>summary:before{content:'›';width:12px;font-size:18px}.plan-completed[open]>summary:before{content:'⌄'}.plan-completed .completed-count{font-family:var(--ds-font-family-code);font-size:11px;border-radius:4px;padding:1px 6px;background:var(--ds-background-neutral)}.plan-completed-body{padding-top:16px}.plan-completed .ms-h{margin-bottom:8px}.plan-completed .st{font-size:13px}.plan-completed .st.s-done .tx{color:var(--ds-text-subtle)}.plan-completed .quick-table td{color:var(--ds-text-subtle)}
-.report-body{margin:8px 0 4px;padding:10px 12px;background:var(--ds-surface-sunken);border-radius:4px;color:var(--ds-text-subtle);font-size:12px;line-height:19px;white-space:normal;overflow-wrap:anywhere}.plan-notes{margin:16px 0;color:var(--ds-text-subtlest);font-size:12px}.plan-notes>summary{cursor:pointer}.plan-notes[open]>summary{margin-bottom:8px}.plan-notes .report-body{margin-top:8px}.plan-context-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ds-text-subtlest);margin-top:24px}.focus-work-list{list-style:none;padding:0;margin:0 0 24px}.focus-work-list>li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--ds-border)}.focus-work-list .work-link{flex:1;font-size:13px;line-height:21px}.focus-work-list .tag{margin-top:2px}.plan-summary .section-link{font-size:12px;margin-top:8px;padding:0;border:0;background:none;color:var(--ds-link)}.plan-no-open{padding:12px 0;color:var(--ds-text-subtlest);font-size:13px}.st.s-doing>.tag{color:var(--ds-text-information);background:var(--ds-background-information)}.st.s-blocked>.tag{color:var(--ds-text-danger);background:var(--ds-background-danger)}.st.s-partial>.tag{color:var(--ds-text-warning);background:var(--ds-background-warning)}.st.s-done>.tag{color:var(--ds-text-success);background:var(--ds-background-success)}.quick-scroll .plan-summary{max-width:none}.quick-scroll .plan-purpose{font-size:15px;line-height:24px}.quick-scroll .plan-insight{margin-bottom:20px}.quick-header .quick-state{flex-shrink:0}.quick-tabs button{white-space:nowrap}
-@media(max-width:900px){.plan-heading h1{font-size:21px}.plan-heading{gap:8px}.plan-toolbar{gap:8px}.plan-toolbar .search{flex:1;max-width:100%;min-width:120px}.plan-insight{padding:14px 16px}.plan-purpose{font-size:15px}.quick-header .quick-state{display:none}}
-.status-todo{--status-fg:var(--ds-text-subtle);--status-bg:var(--ds-background-neutral)}.status-doing{--status-fg:var(--ds-text-information);--status-bg:var(--ds-background-information)}.status-review{--status-fg:var(--ds-text-discovery);--status-bg:var(--ds-background-discovery)}.status-waiting{--status-fg:var(--ds-text-warning);--status-bg:var(--ds-background-warning)}.status-blocked{--status-fg:var(--ds-text-danger);--status-bg:var(--ds-background-danger)}.status-done{--status-fg:var(--ds-text-success);--status-bg:var(--ds-background-success)}.pill[class*=status-]{color:var(--status-fg,var(--ds-text));background-color:var(--status-bg,var(--ds-background-neutral));border:1px solid color-mix(in srgb,var(--status-fg,var(--ds-border)) 24%,transparent);font-weight:600}.plan-state-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--status-fg,var(--ds-text-subtlest));vertical-align:middle}.sidebar-plan.is-done:not(.current) .sidebar-plan-link>span{color:var(--ds-text-subtlest)}.quick-group-row td{font-size:12px;font-weight:600;color:var(--ds-text-subtle);background:var(--ds-surface-sunken)}.focus-work-list .s-doing,.quick-table .tag.s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.focus-work-list .s-blocked,.quick-table .tag.s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.focus-work-list .s-partial,.quick-table .tag.s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}.quick-table .tag.s-done{color:var(--ds-text-success);background:var(--ds-background-success)}
+.plan-work-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;font-weight:600}.plan-work-title small{font-size:12px;font-weight:400;color:var(--ds-text-subtlest)}.plan-open-work .ms{margin-bottom:24px;padding-bottom:16px}.plan-open-work .ms-h{margin-bottom:8px}.plan-open-work .ms-h .c{font-size:11px}.plan-open-work .checklist-columns{margin-bottom:12px;padding-top:0}.plan-completed{border-top:1px solid var(--ds-border);margin-top:24px;padding-top:16px}.plan-completed>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;color:var(--ds-text-subtlest);font-size:13px;font-weight:500;padding:6px 0}.plan-completed>summary::-webkit-details-marker{display:none}.plan-completed>summary:before{content:'›';width:12px;font-size:18px}.plan-completed[open]>summary:before{content:'⌄'}.plan-completed .completed-count{font-family:var(--ds-font-family-code);font-size:11px;border-radius:4px;padding:1px 6px;background:var(--ds-background-neutral)}.plan-completed-body{padding-top:16px}.plan-completed .ms-h{margin-bottom:8px}.plan-completed .st{font-size:13px}.plan-completed .st.s-done .tx{color:var(--ds-text-subtle)}
+.report-body{margin:8px 0 4px;padding:10px 12px;background:var(--ds-surface-sunken);border-radius:4px;color:var(--ds-text-subtle);font-size:12px;line-height:19px;white-space:normal;overflow-wrap:anywhere}.plan-notes{margin:16px 0;color:var(--ds-text-subtlest);font-size:12px}.plan-notes>summary{cursor:pointer}.plan-notes[open]>summary{margin-bottom:8px}.plan-notes .report-body{margin-top:8px}.plan-context-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ds-text-subtlest);margin-top:24px}.focus-work-list{list-style:none;padding:0;margin:0 0 24px}.focus-work-list>li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--ds-border)}.focus-work-list .work-link{flex:1;font-size:13px;line-height:21px}.focus-work-list .tag{margin-top:2px}.plan-summary .section-link{font-size:12px;margin-top:8px;padding:0;border:0;background:none;color:var(--ds-link)}.plan-no-open{padding:12px 0;color:var(--ds-text-subtlest);font-size:13px}.st.s-doing>.tag{color:var(--ds-text-information);background:var(--ds-background-information)}.st.s-blocked>.tag{color:var(--ds-text-danger);background:var(--ds-background-danger)}.st.s-partial>.tag{color:var(--ds-text-warning);background:var(--ds-background-warning)}.st.s-done>.tag{color:var(--ds-text-success);background:var(--ds-background-success)}
+@media(max-width:900px){.plan-heading h1{font-size:21px}.plan-heading{gap:8px}.plan-toolbar{gap:8px}.plan-toolbar .search{flex:1;max-width:100%;min-width:120px}.plan-insight{padding:14px 16px}.plan-purpose{font-size:15px}}
+.status-todo{--status-fg:var(--ds-text-subtle);--status-bg:var(--ds-background-neutral)}.status-doing{--status-fg:var(--ds-text-information);--status-bg:var(--ds-background-information)}.status-review{--status-fg:var(--ds-text-discovery);--status-bg:var(--ds-background-discovery)}.status-waiting{--status-fg:var(--ds-text-warning);--status-bg:var(--ds-background-warning)}.status-blocked{--status-fg:var(--ds-text-danger);--status-bg:var(--ds-background-danger)}.status-done{--status-fg:var(--ds-text-success);--status-bg:var(--ds-background-success)}.pill[class*=status-]{color:var(--status-fg,var(--ds-text));background-color:var(--status-bg,var(--ds-background-neutral));border:1px solid color-mix(in srgb,var(--status-fg,var(--ds-border)) 24%,transparent);font-weight:600}.plan-state-dot{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--status-fg,var(--ds-text-subtlest));vertical-align:middle}.sidebar-plan.is-done:not(.current) .sidebar-plan-link>span{color:var(--ds-text-subtlest)}.focus-work-list .s-doing{color:var(--ds-text-information);background:var(--ds-background-information)}.focus-work-list .s-blocked{color:var(--ds-text-danger);background:var(--ds-background-danger)}.focus-work-list .s-partial{color:var(--ds-text-warning);background:var(--ds-background-warning)}
 .task-card .task-progress .bar i{background:var(--status-fg,var(--ds-link))}.nav .item[data-go=waiting] .badge{background:var(--ds-background-warning);color:var(--ds-text-warning)}.plan-insight p+p{margin-top:8px}
 /* ---------- Shared components (orca-ui-spec.md section 3) ---------- */
 .appbar { background: var(--bg); }
@@ -620,7 +617,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .item { flex-shrink:0;align-items:center;height:38px;padding:0 14px;border-radius:0;border-right:1px solid var(--border);font-size:12px;font-weight:400;color:var(--muted-fg); }
 .item:hover { background:var(--hover); }.item.on { background:var(--bg);color:var(--fg); }
 .item.on::after { display:block;height:2px;background:var(--fg);border-radius:0; }
-.inspector-toggle { margin:0 6px;width:28px;height:28px; }.inspector-toggle[aria-pressed=true] { background:var(--selected);color:var(--fg); }
 .document-tab { display:flex;align-items:stretch;flex-shrink:0;max-width:220px;border-right:1px solid var(--border);border-bottom:2px solid transparent; }
 .document-tab.on { background:var(--bg);border-bottom-color:var(--fg); }
 .document-tab-name { display:flex;align-items:center;gap:8px;padding:0 6px 0 12px;border:0;background:none;min-width:0;color:var(--muted-fg);font:inherit;font-size:12px; }
@@ -706,23 +702,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .summary-feed { max-height:270px;margin-top:16px; }
 .summary-feed .msg { padding:12px 0; }
 .summary-feed .ch { color:var(--ds-text-subtle); }
-.summary-feed .mb { font-size:12px;line-height:20px; }
-.quick-plan { width:min(1160px,calc(100vw - 80px));height:min(800px,calc(100dvh - 80px));background:var(--bg);border-radius:12px;box-shadow:var(--shadow-dialog); }
-.quick-plan::backdrop,.command-dialog::backdrop { background:var(--overlay);backdrop-filter:blur(4px); }
-.quick-header { padding:24px 28px 14px;border-bottom:0; }
-.quick-title h2 { font-size:22px;line-height:30px;letter-spacing:-.02em;font-weight:600; }
-.quick-tabs { padding:0 28px;gap:24px; }
-.quick-tabs button { font-size:12px;border-bottom-width:2px; }
-.quick-tabs button[aria-selected=true] { color:var(--fg);border-bottom-color:var(--fg); }
-.quick-scroll { padding:28px; }
-.quick-footer { background:var(--card);padding:14px 28px; }
-.quick-scroll .plan-summary { max-width:100%; }
-.quick-plan.is-docked { position:relative;inset:auto;align-self:stretch;flex:0 0 var(--inspector-width,420px);width:var(--inspector-width,420px);min-width:340px;max-width:600px;height:100%;max-height:100%;margin:0;border:0;border-left:1px solid var(--border);border-radius:0;background:var(--bg);box-shadow:none; }
-.quick-plan.is-docked[open] { display:flex; }.is-docked .quick-shell { width:100%;min-width:0; }
-.is-docked .quick-header { padding:18px 18px 10px;gap:8px;align-items:flex-start; }.is-docked .quick-title small { font-size:10px; }.is-docked .quick-title h2 { font-size:17px;line-height:24px;margin-top:4px; }.is-docked .quick-state { display:none; }
-.quick-dock-state { display:none; }.is-docked .quick-dock-state { display:block;margin-top:8px; }
-.is-docked .quick-tabs { padding:0 18px;gap:20px; }.is-docked .quick-scroll { padding:20px 18px; }.is-docked .plan-summary { padding:0; }.is-docked .plan-purpose { font-size:13px;line-height:22px; }.is-docked .plan-insight { padding:14px;margin-top:16px; }.is-docked .plan-insight p { font-size:13px;line-height:22px; }.is-docked .plan-facts { display:block; }.is-docked .quick-footer { padding:10px 12px;gap:4px;flex-wrap:wrap; }.is-docked .quick-footer .btn { font-size:11px;min-height:28px;padding:0 8px; }.is-docked .quick-footer small { display:none; }.is-docked .quick-footer .icon-btn { width:26px;height:26px; }.is-docked .quick-table { table-layout:fixed; }.is-docked .quick-table td:nth-child(2) { width:78px; }.is-docked .quick-table td:last-child { width:72px; }.is-docked .quick-table td { padding:10px 4px; }.is-docked .quick-table .work-link { font-size:12px;line-height:20px; }.is-docked .quick-table .tag { font-size:10px;white-space:normal; }.is-docked .msg { grid-template-columns:minmax(0,1fr); }.is-docked .msg>.av { display:none; }.is-docked .mh { flex-wrap:wrap; }.is-docked .quick-error { margin:10px 18px 0; }
-.inspector-resize { position:relative;flex:0 0 1px;width:1px;z-index:3;cursor:col-resize;touch-action:none; }.inspector-resize::after { position:absolute;content:"";top:0;bottom:0;left:-3px;width:7px; }.inspector-resize:hover,.inspector-resize:focus-visible { background:var(--ring);box-shadow:0 0 0 1px var(--ring); }
+.summary-feed .mb { font-size:12px;line-height:20px; }.command-dialog::backdrop { background:var(--overlay);backdrop-filter:blur(4px); }
 @container (max-width:1000px) { .summary-grid { grid-template-columns:1fr; }.summary-focus { grid-row:auto; }.summary-stats { grid-template-columns:repeat(4,1fr); }.summary-stat { padding:14px; }.summary-stat>strong { font-size:22px; }.summary-plan { padding:14px 0; }.top .search { width:180px; }.summary-feed { max-height:300px; } }
 @container (max-width:740px) { .summary-stats { grid-template-columns:repeat(2,1fr); }.summary-stat:nth-child(2) { border-right:0; }.summary-stat:nth-child(-n+2) { border-bottom:1px solid var(--border); }.top .search { flex:1 1 130px;width:auto; }.top h1 { font-size:18px; }.top { padding:18px; }.view { padding-left:18px;padding-right:18px; }.summary-panel { padding:18px; }.summary-grid { gap:16px; } }
 
@@ -750,13 +730,29 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 .command-footer { display:flex;gap:18px;padding:10px 16px;border-top:1px solid var(--border);color:var(--muted-fg);font-size:11px; }
 .command-footer>span { display:flex;align-items:center;gap:6px; }
 @media (hover:none) { .sidebar-plan .star-toggle[aria-pressed=false] { opacity:1; } }
-@media (max-width:760px) { .appbar { padding:0 8px;gap:8px;height:38px;min-height:38px;flex-wrap:nowrap; }.command-open { width:min(360px,65vw); }.plan-sidebar { position:absolute;top:38px;bottom:24px;z-index:9;width:244px;box-shadow:var(--shadow-floating); }.workspace-strip { min-height:38px; }.nav { order:0;width:auto;min-height:0;gap:0; }.item { padding:0 12px;font-size:11px; }.top { padding:18px 16px 16px; }.view { padding:0 16px 24px; }.view.detail { padding-top:20px; }.top .search { width:auto;flex:1 1 140px; }.summary-panel { padding:18px; }.summary-plan-meta { flex-wrap:wrap;gap:8px; }.summary-plan-meta .bar { width:48px; }.quick-plan { width:calc(100vw - 24px);height:calc(100dvh - 32px); }.quick-header,.quick-scroll { padding:20px; }.quick-tabs { padding:0 20px; }.quick-footer { padding:12px 20px; }.tabs { padding:0 16px; }.top .btn .kbd { display:none; } }
+@media (max-width:760px) { .appbar { padding:0 8px;gap:8px;height:38px;min-height:38px;flex-wrap:nowrap; }.command-open { width:min(360px,65vw); }.plan-sidebar { position:absolute;top:38px;bottom:24px;z-index:9;width:244px;box-shadow:var(--shadow-floating); }.workspace-strip { min-height:38px; }.nav { order:0;width:auto;min-height:0;gap:0; }.item { padding:0 12px;font-size:11px; }.top { padding:18px 16px 16px; }.view { padding:0 16px 24px; }.view.detail { padding-top:20px; }.top .search { width:auto;flex:1 1 140px; }.summary-panel { padding:18px; }.summary-plan-meta { flex-wrap:wrap;gap:8px; }.summary-plan-meta .bar { width:48px; }.tabs { padding:0 16px; }.top .btn .kbd { display:none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .spin { border-right-color: currentColor; border-bottom-color: transparent; }
   .progress-bar i { left: 0; width: 100%; opacity: .35; }
 }
 @media (forced-colors: active) { .seg button[aria-checked="true"], .settings-nav-item.on { outline: 1px solid CanvasText; } }
+/* Ledger: keep source state and step completion separate. */
+.ledger-glyph { display:inline-grid;place-items:center;width:16px;height:16px;flex-shrink:0;font-size:13px;line-height:16px;font-weight:600; }
+.ledger-glyph.status-doing { color:var(--st-progress); }.ledger-glyph.status-review { color:var(--review); }.ledger-glyph.status-done { color:var(--success); }.ledger-glyph.status-blocked { color:var(--danger); }.ledger-glyph.status-waiting { color:var(--warning-text); }.ledger-glyph.status-todo { color:var(--muted-fg); }
+.sidebar-plan-link>span { display:flex;align-items:center;gap:5px; }.sidebar-plan-link small { display:block;color:var(--muted-fg);font-variant-numeric:tabular-nums; }
+.sidebar-folder .sidebar-folder { margin:4px 0 10px; }.folder-heading { min-height:28px; }.sidebar-plan .star-toggle { min-width:24px;min-height:24px; }
+.ledger-project { margin-bottom:28px; }.ledger-project h2 { margin:0 0 12px;font-size:16px;font-weight:600; }.ledger-project h3 { display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-size:13px;font-weight:600; }.ledger-project h3 svg { width:15px;height:15px;color:var(--muted-fg); }
+.ledger-table { border:1px solid var(--border);border-radius:8px;overflow:hidden; }.ledger-table-head,.ledger-table-row { display:grid;grid-template-columns:minmax(200px,2fr) minmax(130px,1fr) minmax(120px,1fr) 120px;gap:16px;padding:12px 16px;align-items:center; }.ledger-table-head { font-size:11px;color:var(--muted-fg); }.ledger-table-row { border-top:1px solid var(--border); }.ledger-table-row:hover { background:var(--hover); }.ledger-table-row>[role=cell] { min-width:0; }.ledger-table-row .work-link { display:inline-flex;align-items:center;gap:6px;max-width:100%;white-space:normal;text-align:left;min-height:24px; }.ledger-table-row p { margin:3px 0 0 22px;color:var(--muted-fg);font-size:11px;overflow-wrap:anywhere; }
+.ledger-progress { display:flex;align-items:center;gap:10px;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-fg); }.ledger-progress .bar { flex:1;min-width:40px;height:6px; }.ledger-progress>span { white-space:nowrap; }.ledger-progress .bar i { background:var(--fg); }
+.top:has(.ledger-plan-head) { max-height:60%;overflow:auto; }.ledger-plan-head { width:100%; }.ledger-plan-head .plan-toolbar { margin:12px 0; }.ledger-plan-head .plan-heading { flex-wrap:wrap; }.ledger-plan-head .plan-heading h1 { flex:1;min-width:160px;font-size:24px;line-height:30px; }.ledger-plan-head>.ledger-progress { margin-top:16px; }.ledger-goal { margin-top:20px;max-width:80ch; }.ledger-goal>strong { font-size:12px;color:var(--muted-fg); }.ledger-goal p { margin:4px 0;font-size:15px;line-height:24px; }.ledger-plan-head .callout p { margin:4px 0 0; }.ledger-plan-head .callout { margin-top:12px; }
+.ledger-milestone { margin-bottom:12px;border:1px solid var(--border);border-radius:8px; }.ledger-milestone>summary { display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 12px;cursor:pointer;list-style:none;border-radius:8px; }.ledger-milestone>summary::-webkit-details-marker { display:none; }.ledger-milestone>summary::before { content:'›';width:12px;flex-shrink:0;color:var(--muted-fg); }.ledger-milestone[open]>summary::before { content:'⌄'; }.ledger-milestone>summary>code { font-size:12px;color:var(--muted-fg); }.ledger-milestone>summary>strong { flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere; }.ledger-milestone>summary>.ledger-progress { width:110px; }.ledger-milestone-summary { margin:0 16px 12px 50px;color:var(--muted-fg);font-size:13px;overflow-wrap:anywhere; }.ledger-milestone .steps { padding:0 16px 8px; }.ledger-milestone .st { min-height:32px; }.ledger-loose h2 { font-size:14px; }.ledger-list-project { font-size:14px;color:var(--fg)!important; }.ledger-list-repo { font-size:12px; }
+.ledger-worktrees { margin:8px 0;padding:0;list-style:none;font-size:11px;color:var(--muted-fg); }.ledger-worktrees li { display:grid;gap:2px;padding:4px 8px;border-left:1px solid var(--border); }.ledger-worktrees code { font-size:10px;overflow-wrap:anywhere;font-weight:400; }.ledger-worktrees span { overflow-wrap:anywhere; }
+.plan-diagnostics { margin-top:8px;font-size:11px;color:var(--warning-text); }.plan-diagnostics summary { display:flex;gap:5px;align-items:center;cursor:pointer;min-height:24px; }.plan-diagnostics svg { width:13px;height:13px; }.plan-diagnostics ul { padding-left:20px;overflow-wrap:anywhere; }.diagnostic-badge { color:var(--warning-text);margin-left:4px; }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible { outline:2px solid var(--ring);outline-offset:2px; }
+@media(max-width:1000px) { .ledger-table { overflow-x:auto; }.ledger-table-head,.ledger-table-row { min-width:680px; } }
+@media(max-width:760px) { .ledger-milestone>summary { flex-wrap:wrap; }.ledger-milestone>summary>.ledger-progress { width:100%;margin-left:22px; }.ledger-plan-head .plan-toolbar { flex-wrap:wrap; }.ledger-plan-head .search { width:100%;margin-left:0; } }
+@media(forced-colors:active) { .sidebar-plan.current,.tab.on { outline:1px solid Highlight; }.ledger-progress .bar { border:1px solid CanvasText; }.ledger-progress .bar i { background:Highlight; } }
 </style>
 </head>
 <body>
@@ -770,7 +766,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   <div class="workspace">
   <aside class="plan-sidebar" id="plan-sidebar" aria-label="Plans navigation"></aside>
   <main class="main">
-    <div class="workspace-strip"><nav class="nav" id="nav" aria-label="Views"></nav><button class="icon-btn inspector-toggle" id="inspector-toggle" data-inspector-toggle aria-label="Toggle plan details" title="Plan details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M15 4v16M4 4h16v16H4Z"/></svg></button></div>
+    <div class="workspace-strip"><nav class="nav" id="nav" aria-label="Views"></nav></div>
     <div class="banner banner-danger" id="error" role="alert" aria-atomic="true" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 8v5M12 16h.01"/></svg><div class="banner-text"><strong id="error-text"></strong><span id="error-detail"></span><pre class="banner-raw" id="error-raw" hidden></pre></div><div class="banner-actions"><button class="btn btn-xs" id="error-details" data-error-details aria-expanded="false" aria-controls="error-raw" hidden>Details</button><button class="btn btn-xs" id="error-retry" data-retry>Retry</button></div></div>
     <div class="banner banner-warning" id="warnings" role="status" hidden></div>
     <div class="banner banner-warning" id="crash" role="status" hidden></div>
@@ -778,8 +774,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     <div id="tabs"></div>
     <div class="view" id="view"></div>
   </main>
-  <div class="inspector-resize" id="inspector-resize" role="separator" tabindex="0" aria-label="Resize plan details" aria-orientation="vertical" aria-valuemin="340" aria-valuemax="600" aria-valuenow="420" hidden></div>
-  <dialog class="quick-plan" id="quick-plan" aria-labelledby="quick-plan-title"><div class="quick-shell" id="quick-plan-content"></div></dialog>
   </div>
   <footer class="statusbar" id="statusbar" aria-label="Status">
     <span class="status-seg"><span class="live off" id="live" aria-hidden="true"></span><span id="connection" role="status">Connecting…</span></span>
@@ -799,14 +793,14 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   var D = { state: { plans: [] }, activity: [], now: '' };
   var ui = load('wb-ui', { view: 'home', layout: 'summary', tab: 'summary', q: '' });
   if (ui.view === 'activity') ui.view = 'home';
-  if (!['board','list','timeline','summary'].includes(ui.layout)) ui.layout = 'summary';
+  if (!['list','summary'].includes(ui.layout)) ui.layout = 'summary';
   // Clear saved search filters on opening; List starts with tasks in progress.
   // Filters from retired features (agent, result, updated date) are dropped from saved preferences.
   delete ui.agent;delete ui.taskResult;delete ui.taskDates;
   ui.q='';ui.activityDay='';
   ui.taskStatus='doing';ui.focusTask=null;
   ui.taskPlans=null;ui.taskWork='';
-  if(!['none','plan'].includes(ui.taskGroup))ui.taskGroup='none';
+  if(!['none','plan'].includes(ui.taskGroup))ui.taskGroup='plan';
   if(!ui.collapsedPlans || typeof ui.collapsedPlans!=='object' || Array.isArray(ui.collapsedPlans))ui.collapsedPlans={};
   if(!ui.planDetails || typeof ui.planDetails!=='object' || Array.isArray(ui.planDetails))ui.planDetails={};
   if(ui.view==='waiting') ui.view='home';
@@ -817,8 +811,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   navigation.collapsed=!!navigation.collapsed;
   navigation.folders=navigation.folders && typeof navigation.folders==='object' && !Array.isArray(navigation.folders)?navigation.folders:{};
   navigation.openPlans=Array.isArray(navigation.openPlans)?Array.from(new Set(navigation.openPlans.filter(function(k){return typeof k==='string';}))).slice(-8):[];
-  navigation.inspectorWidth=Number.isFinite(navigation.inspectorWidth)?Math.max(340,Math.min(600,navigation.inspectorWidth)):420;
-  var quick={key:null,tab:'overview',returnTo:null,sequence:[]};
   function load(k, d) { try { return Object.assign(d, JSON.parse(localStorage.getItem(k) || '{}')); } catch (e) { return d; } }
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* Preferences are optional when browser storage is unavailable. */ } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -829,16 +821,89 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   function statusTone(value){
     var current=stage(value).toLowerCase();
     if(current==='done')return 'done';if(current==='blocked')return 'blocked';
-    if(/^waiting/.test(current))return 'waiting';if(/^(reviewing|fixing review|testing)$/.test(current))return 'review';
-    if(/^(implementing|shipping|in progress|partly done|dry run)$/.test(current))return 'doing';return 'todo';
+    if(current==='waiting for ci')return 'review';if(/^waiting/.test(current))return 'waiting';if(/^(reviewing|testing)$/.test(current))return 'review';
+    if(/^(implementing|fixing review|shipping|in progress|partly done|dry run)$/.test(current))return 'doing';return 'todo';
   }
   function pill(p) { return '<span class="pill status-'+statusTone(p.status)+'">'+esc(stage(p.status) || 'Not started')+'</span>'; }
   function prs(text, gh) { var h = esc(text); return gh ? h.replace(/#(\d+)\b/g, function (m, n) { return '<a class="pr" target="_blank" href="' + esc(gh) + '/pull/' + n + '">#' + n + '</a>'; }) : h; }
   // Plan identity includes the project, so same-named repositories in two projects stay apart.
   function key(p) { return (p.project ? p.project + '/' : '') + p.repo + '/' + p.name; }
+  // Source revisions identify plan content; absent revisions use the payload itself.
+  var planCache=new Map(),regionHTML=new WeakMap();
+  function planVersion(p){return (p.revision || JSON.stringify(p))+'|'+JSON.stringify(p.diagnostics || []);}
+  function cachedPlan(scope,p,context,build){
+    var id=scope+'|'+key(p),version=planVersion(p)+'|'+context,old=planCache.get(id);
+    if(old && old.version===version)return old.html;
+    var html=build();planCache.set(id,{version:version,html:html});return html;
+  }
+  function normalizePlan(p){
+    p=Object.assign({},p);
+    ['project','projectName','repo','name','root','gh','goal','spec','next','status'].forEach(function(k){p[k]=String(p[k] || '');});
+    ['steps','milestones','decisions','questions','diagnostics'].forEach(function(k){p[k]=Array.isArray(p[k])?p[k].filter(function(v){return v && typeof v==='object' || k==='diagnostics' && typeof v==='string';}):[];});
+    function step(s){return Object.assign({},s,{text:String(s.text || ''),status:['todo','doing','done','partial','blocked'].includes(s.status)?s.status:'unknown'});}
+    p.steps=p.steps.map(step);
+    var used=new Set();
+    p.milestones=p.milestones.map(function(m){return Object.assign({},m,{steps:(Array.isArray(m.steps)?m.steps:[]).filter(function(s){return s && typeof s==='object';}).map(function(s){var match=p.steps.find(function(t){return !used.has(t) && (s.line>0?t.line===s.line:t.text===String(s.text || '') && t.status===s.status && (!t.milestone || t.milestone===m.id));});if(match){used.add(match);return match;}return step(s);})});});
+    // Older collectors expose flat steps; newer ones may only expose milestone steps.
+    if(!p.steps.length)p.steps=p.milestones.flatMap(function(m){return m.steps.map(function(s){return Object.assign({},s,{milestone:m.id});});});
+    return p;
+  }
+  function acceptState(j){
+    var old=new Map(D.state.plans.map(function(p){return [key(p),p];}));
+    j=Object.assign({},j,{activity:Array.isArray(j.activity)?j.activity:[],state:Object.assign({},j.state)});
+    j.state.plans=j.state.plans.filter(function(p){return p && typeof p==='object';}).map(function(p){var previous=old.get(key(p));return previous && planVersion(previous)===planVersion(p)?previous:normalizePlan(p);});
+    D=j;
+    var live=new Set(D.state.plans.map(key));planCache.forEach(function(v,k){if(!live.has(k.slice(k.indexOf('|')+1)))planCache.delete(k);});
+  }
+  function nodeKey(node){return node.nodeType===1?(node.getAttribute('data-render-key') || node.id || ''):'';}
+  function patchChildren(host,next){
+    var keyed=new Map();Array.from(host.childNodes).forEach(function(n){var k=nodeKey(n);if(k)keyed.set(k,n);});
+    var cursor=host.firstChild;
+    Array.from(next.childNodes).forEach(function(fresh){
+      var k=nodeKey(fresh),current=k?keyed.get(k):cursor;
+      if(current && (current.nodeType!==fresh.nodeType || current.nodeName!==fresh.nodeName || (!k && nodeKey(current))))current=null;
+      if(!current){current=fresh.cloneNode(true);host.insertBefore(current,cursor);}
+      else {
+        if(current!==cursor)host.insertBefore(current,cursor);
+        if(current.nodeType===1){
+          var nativeDisclosure=current.nodeName==='DETAILS' && !current.hasAttribute('data-plan-disclosure');
+          Array.from(current.attributes).forEach(function(a){if(nativeDisclosure && a.name==='open')return;if(!fresh.hasAttribute(a.name))current.removeAttribute(a.name);});
+          Array.from(fresh.attributes).forEach(function(a){if(nativeDisclosure && a.name==='open')return;if(current.getAttribute(a.name)!==a.value)current.setAttribute(a.name,a.value);});
+          patchChildren(current,fresh);
+        }else if(current.nodeValue!==fresh.nodeValue)current.nodeValue=fresh.nodeValue;
+      }
+      cursor=current.nextSibling;
+    });
+    while(cursor){var remove=cursor;cursor=cursor.nextSibling;host.removeChild(remove);}
+  }
+  // Keyed reconciliation retains unchanged rows, focused controls and native disclosures.
+  function patchRegion(host,markup){
+    if(regionHTML.get(host)===markup)return;
+    if(document.createElement && host.childNodes){var template=document.createElement('template');template.innerHTML=markup;patchChildren(host,template.content);}
+    else if(host.innerHTML!==markup)host.innerHTML=markup;
+    regionHTML.set(host,markup);
+  }
+  function progressHTML(done,total,label){
+    var percent=total?Math.round(done*100/total):0;
+    return '<div class="ledger-progress"><div class="bar" role="progressbar" aria-label="'+esc(label)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'" aria-valuetext="'+done+' of '+total+' steps"><i style="width:'+percent+'%"></i></div><span>'+done+'/'+total+' · '+percent+'%</span></div>';
+  }
+  function statusGlyph(status){var tone=statusTone(status),symbol={done:'✓',blocked:'!',waiting:'?',review:'✓',doing:'◐',todo:'○'}[tone];return '<span class="ledger-glyph status-'+tone+'" role="img" aria-label="'+esc(stage(status) || 'To do')+'">'+symbol+'</span>';}
+  function diagnosticHTML(p){
+    if(!p.diagnostics || !p.diagnostics.length)return '';
+    return '<details class="plan-diagnostics" data-render-key="diagnostics"><summary>'+icon('alert')+'Plan warning ('+p.diagnostics.length+')</summary><ul>'+p.diagnostics.map(function(d){return '<li>'+esc(typeof d==='string'?d:d.message || d.error || d.code || 'Could not read part of this plan')+'</li>';}).join('')+'</ul></details>';
+  }
+  function projectGroups(list){
+    var projects=new Map();list.forEach(function(p){var id=p.project || '',project=projects.get(id);if(!project){project={id:id,label:p.projectName || p.project || 'Projects',repos:new Map()};projects.set(id,project);}var repo=project.repos.get(p.repo);if(!repo){repo={id:id+'/'+p.repo,label:p.repo,plans:[]};project.repos.set(p.repo,repo);}repo.plans.push(p);});return Array.from(projects.values());
+  }
+  function repoWorktrees(p){
+    var repos=Array.isArray(D.state.repos)?D.state.repos:[],found=repos.find(function(r){return (r.name===p.repo || r.repo===p.repo) && (r.project || '')===(p.project || '');});
+    if(!found && Array.isArray(D.projects)){var project=D.projects.find(function(r){return r.id===p.project;});found=project && (project.repos || []).find(function(r){return r.name===p.repo;});}
+    return found && Array.isArray(found.worktrees)?found.worktrees:[];
+  }
+  function worktreesHTML(p){var trees=repoWorktrees(p);return trees.length?'<ul class="ledger-worktrees" aria-label="Worktrees">'+trees.map(function(w){return '<li><span>'+esc(w.branch || 'Detached HEAD')+'</span><code>'+esc(w.path)+'</code></li>';}).join('')+'</ul>':'';}
   function eventKey(e) { return (e.project ? e.project + '/' : '') + e.repo + '/' + e.plan; }
   function repoLabel(p) { return D.state.plans.some(function(o){return o.repo===p.repo && o.project!==p.project;}) && p.projectName ? p.repo+' · '+p.projectName : p.repo; }
-  function counts(p) { var c = { todo: 0, doing: 0, done: 0, partial: 0, blocked: 0 }; p.steps.forEach(function (s) { c[s.status]++; }); return c; }
+  function counts(p) { var c = { todo: 0, doing: 0, done: 0, partial: 0, blocked: 0 }; (p.steps || []).forEach(function (s) { if(Object.hasOwn(c,s.status))c[s.status]++; }); return c; }
   function pct(p) { var c = counts(p); return p.steps.length ? Math.round(c.done * 100 / p.steps.length) : 0; }
   function ago(t) { var m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; }
   function hhmm(t) {return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Ho_Chi_Minh',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t));}
@@ -906,94 +971,31 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     return list.slice().sort(function(a,b){return Number(stage(a.status)==='Done')-Number(stage(b.status)==='Done');});
   }
   function sidebarPlanRow(p,current){
-    return '<div class="sidebar-plan'+(key(p)===current?' current':'')+(stage(p.status)==='Done'?' is-done':'')+'"><button id="sidebar-plan-'+encodeURIComponent(key(p))+'" class="sidebar-plan-link" data-preview-plan="'+esc(key(p))+'" title="Plan details: '+esc(p.name)+'"'+(key(p)===current?' aria-current="page"':'')+'><span><i class="plan-state-dot status-'+statusTone(p.status)+'" aria-hidden="true"></i>'+esc(p.name)+'</span>'+(navigation.section==='recent'?'<small>'+esc(repoLabel(p))+'</small>':'')+'</button>'+starButton(p,'sidebar-star-'+encodeURIComponent(key(p)))+'</div>';
+    return cachedPlan('sidebar',p,[key(p)===current,navigation.starred.includes(key(p))].join('|'),function(){return '<div data-render-key="'+esc(key(p))+'" class="sidebar-plan'+(key(p)===current?' current':'')+(stage(p.status)==='Done'?' is-done':'')+'"><button id="sidebar-plan-'+encodeURIComponent(key(p))+'" class="sidebar-plan-link" data-preview-plan="'+esc(key(p))+'" title="Plan details: '+esc(p.name)+'"'+(key(p)===current?' aria-current="page"':'')+'><span>'+statusGlyph(p.status)+esc(p.name)+(p.diagnostics && p.diagnostics.length?'<span class="diagnostic-badge" role="img" aria-label="Plan warning">!</span>':'')+'</span><small>'+counts(p).done+'/'+p.steps.length+' steps · '+esc(stage(p.status))+'</small></button>'+starButton(p,'sidebar-star-'+encodeURIComponent(key(p)))+'</div>';});
   }
   function sidebarTree(list,current){
-    if(navigation.section==='recent')return list.map(function(p){return sidebarPlanRow(p,current);}).join('');
-    var groups=new Map();list.forEach(function(p){var id=(p.project || '')+'/'+p.repo;if(!groups.has(id))groups.set(id,{label:repoLabel(p),plans:[]});groups.get(id).plans.push(p);});
-    return Array.from(groups.entries()).map(function(entry){var id=entry[0],group=entry[1],closed=!!navigation.folders[id],body='sidebar-folder-'+encodeURIComponent(id);
-      return '<section class="sidebar-folder"><button class="folder-heading" id="sidebar-group-'+encodeURIComponent(id)+'" data-repo-toggle="'+esc(id)+'" aria-expanded="'+(!closed)+'" aria-controls="'+body+'"><span class="folder-chevron" aria-hidden="true">'+(closed?'&#8250;':'&#8964;')+'</span>'+icon('folder')+'<strong>'+esc(group.label)+'</strong><small>'+group.plans.length+'</small></button><div class="folder-plans" id="'+body+'"'+(closed?' hidden':'')+'>'+group.plans.map(function(p){return sidebarPlanRow(p,current);}).join('')+'</div></section>';
-    }).join('');
+    function folder(id,label,glyph,body,count){var closed=!!navigation.folders[id],bodyId='sidebar-folder-'+encodeURIComponent(id);return '<section class="sidebar-folder" data-render-key="group:'+esc(id)+'"><button class="folder-heading" id="sidebar-group-'+encodeURIComponent(id)+'" data-repo-toggle="'+esc(id)+'" aria-expanded="'+(!closed)+'" aria-controls="'+bodyId+'"><span class="folder-chevron" aria-hidden="true">'+(closed?'›':'⌄')+'</span>'+icon(glyph)+'<strong>'+esc(label)+'</strong><small>'+count+'</small></button><div class="folder-plans" id="'+bodyId+'"'+(closed?' hidden':'')+'>'+body+'</div></section>';}
+    return projectGroups(list).map(function(project){var repos=Array.from(project.repos.values()),body=repos.map(function(repo){return folder(repo.id,repo.label,'repo',worktreesHTML(repo.plans[0])+repo.plans.map(function(p){return sidebarPlanRow(p,current);}).join(''),repo.plans.length);}).join('');return project.id?folder('project:'+project.id,project.label,'folder',body,repos.reduce(function(n,r){return n+r.plans.length;},0)):body;}).join('');
   }
   function renderSidebar(){
     var side=$('plan-sidebar'),toggle=$('sidebar-toggle');if(!side)return;
     var active=document.activeElement,activeId=active && active.id && active.id.startsWith('sidebar-')?active.id:null;
     side.hidden=navigation.collapsed;
-    if(toggle){toggle.innerHTML=icon('sidebar');toggle.setAttribute('aria-expanded',String(!navigation.collapsed));toggle.title=navigation.collapsed?'Show projects (Ctrl+B)':'Hide projects (Ctrl+B)';}
-    var current=quick.key || (ui.view.startsWith('plan:')?ui.view.slice(5):''),list=sidebarPlans(),counts={all:workspacePlans().length,starred:workspacePlans().filter(function(p){return navigation.starred.includes(key(p));}).length,recent:navigation.recent.filter(function(r){var p=planByKey(r.key);return p && !archivedPlan(p);}).length,archive:plans().filter(archivedPlan).length};
+    if(toggle){patchRegion(toggle,icon('sidebar'));toggle.setAttribute('aria-expanded',String(!navigation.collapsed));toggle.title=navigation.collapsed?'Show projects (Ctrl+B)':'Hide projects (Ctrl+B)';}
+    var current=ui.view.startsWith('plan:')?ui.view.slice(5):'',list=sidebarPlans(),counts={all:workspacePlans().length,starred:workspacePlans().filter(function(p){return navigation.starred.includes(key(p));}).length,recent:navigation.recent.filter(function(r){var p=planByKey(r.key);return p && !archivedPlan(p);}).length,archive:plans().filter(archivedPlan).length};
     var html='<button class="sidebar-find" data-command-open>'+icon('search')+'<span>Find a plan...</span><kbd class="kbd">Ctrl K</kbd></button><div class="sidebar-head">Projects<small class="work-meta">'+counts.all+' plans</small></div><div class="sidebar-collections" role="group" aria-label="Plan collections">'+[['all','All'],['starred','Starred'],['recent','Recent']].map(function(a){return '<button id="sidebar-collection-'+a[0]+'" data-plan-collection="'+a[0]+'" aria-pressed="'+(navigation.section===a[0])+'">'+a[1]+' '+counts[a[0]]+'</button>';}).join('')+'</div><nav class="sidebar-items" aria-label="'+(navigation.section==='archive'?'Archived plans':navigation.section==='all'?'All plans':navigation.section==='starred'?'Starred plans':'Recently viewed plans')+'">'+sidebarTree(list,current)+(list.length?'':'<div class="sidebar-empty">'+(navigation.section==='archive'?'No archived plans.':navigation.section==='starred'?'Star plans to keep them here.':navigation.section==='recent'?'Plans appear here after you open them.':'No plans yet.')+'</div>')+'</nav><div class="sidebar-footer"><button class="archive-nav'+(ui.view==='archive'?' on':'')+'" id="sidebar-collection-archive" data-plan-collection="archive" aria-pressed="'+(ui.view==='archive')+'">'+icon('archive')+'<span>Archive</span><small>'+counts.archive+'</small></button><button class="icon-btn" data-settings-open="general" aria-label="Settings" title="Settings (Ctrl+,)">'+icon('sliders')+'</button></div>';
-    if(side.innerHTML!==html){var old=side.querySelector && side.querySelector('.sidebar-items'),scroll=old?old.scrollTop:0;side.innerHTML=html;var next=side.querySelector && side.querySelector('.sidebar-items');if(next)next.scrollTop=scroll;}
+    patchRegion(side,html);
     if(activeId){var nextFocus=$(activeId) || $('sidebar-collection-'+navigation.section);if(nextFocus)nextFocus.focus({preventScroll:true});}
-    syncInspectorToggle();
   }
-  function syncInspectorToggle(){var button=$('inspector-toggle');if(button){button.disabled=!plans().length;button.setAttribute('aria-pressed',String(!!quick.key));}}
-  function inspectorDocked(){return !!(window.matchMedia && window.matchMedia('(min-width:1100px)').matches);}
-  function inspectorMax(){return Math.max(340,Math.min(600,(typeof innerWidth==='number'?innerWidth:1600)-(navigation.collapsed?0:244)-480));}
-  function setInspectorWidth(value,persist){
-    var width=Math.max(340,Math.min(inspectorMax(),value)),root=document.documentElement;
-    if(root.style && root.style.setProperty)root.style.setProperty('--inspector-width',width+'px');
-    var splitter=$('inspector-resize');if(splitter){splitter.setAttribute('aria-valuenow',String(width));splitter.setAttribute('aria-valuemax',String(inspectorMax()));}
-    if(persist){navigation.inspectorWidth=width;save('wb-navigation',navigation);}return width;
-  }
-  function syncQuickSurface(){
-    var dialog=$('quick-plan'),splitter=$('inspector-resize');if(!dialog)return;
-    var docked=inspectorDocked(),changed=quick.docked!==docked;
-    if(dialog.open && changed)dialog.close();quick.docked=docked;
-    dialog.className='quick-plan'+(docked?' is-docked':'');if(splitter)splitter.hidden=!quick.key || !docked;
-    setInspectorWidth(navigation.inspectorWidth,false);
-    if(quick.key && !dialog.open){if(docked)dialog.show();else dialog.showModal();}
-    syncInspectorToggle();
-  }
-  function toggleInspector(){if(quick.key){closeQuickPlan();return;}var p=planByKey(quick.lastKey) || sidebarPlans()[0] || workspacePlans()[0];if(p)openQuickPlan(key(p));}
-  function openQuickPlan(k,keepSequence){
-    if(!planByKey(k))return;
-    var dialog=$('quick-plan');if(!dialog)return;
-    if(!quick.key)quick.returnTo=document.activeElement;
-    if(!keepSequence){var list=sidebarPlans();if(!list.some(function(p){return key(p)===k;}))list=plans();quick.sequence=list.map(key);}
-    if(columnMenu)dismissColumnMenu(false);
-    quick.key=k;if(!keepSequence)quick.tab='overview';recordPlanVisit(k);renderQuickPlan(true);renderSidebar();
-    syncQuickSurface();if($('quick-close'))$('quick-close').focus();
-  }
-  function closeQuickPlan(restore){
-    if(!quick.key)return;var back=quick.returnTo;quick.lastKey=quick.key;quick.key=null;quick.returnTo=null;quick.sequence=[];
-    var dialog=$('quick-plan');if(dialog && dialog.open)dialog.close();if($('inspector-resize'))$('inspector-resize').hidden=true;renderSidebar();
-    if(restore!==false){var target=back && back.isConnected!==false?back:(back && back.id && $(back.id)) || $('sidebar-toggle');if(target && target.focus)target.focus({preventScroll:true});}
-  }
-  function quickRowsTable(p,rows){
-    if(!rows.length)return '';
-    var groups=groupedPlanRows(p,rows);
-    return '<table class="quick-table"><thead><tr><th scope="col">Work</th><th scope="col">Status</th></tr></thead><tbody>'+groups.map(function(g){return (g.milestone?'<tr class="quick-group-row"><td colspan="2">'+esc(g.milestone.title)+'</td></tr>':'')+g.rows.map(function(r){var s=r.s;return '<tr><td><button class="work-link" data-open-task="'+esc(key(p))+'" data-task-index="'+r.index+'" data-task-revision="'+esc(p.revision || '')+'">'+esc(s.text)+'</button></td><td><span class="tag s-'+s.status+'">'+esc(TASK_STATUSES[s.status] || s.status)+'</span></td></tr>';}).join('');}).join('')+'</tbody></table>';
-  }
-  function quickChecklist(p){
-    var rows=scopedPlanRows(p,''),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
-    return (open.length?quickRowsTable(p,open):'<div class="plan-no-open">No open checklist tasks.</div>')+completedPlanWork(p,done,'quick',quickRowsTable(p,done),'');
-  }
-  function quickOverview(p){return planSummary(p,'quick');}
-  function renderQuickPlan(reset){
-    if(!quick.key)return;var host=$('quick-plan-content');if(!host)return;
-    var scroll=$('quick-plan-scroll'),top=!reset && scroll?scroll.scrollTop:0,active=document.activeElement;
-    var focus=active && active.id && (active.id.startsWith('quick-') || active.id.startsWith('plan-disclosure-'))?active.id:null,p=planByKey(quick.key);
-    if(!p){host.innerHTML='<div class="quick-header"><h2 id="quick-plan-title">Plan unavailable</h2><button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view">'+icon('close')+'</button></div><div class="quick-scroll"><p>This plan is no longer in the current data. Refresh to check again.</p></div>';if($('quick-close'))$('quick-close').focus();return;}
-    var body=quick.tab==='checklist'?quickChecklist(p):quick.tab==='activity'?feedHTML(feedFor(p),false,100,true):quickOverview(p);
-    var checked=D.state.generatedAt,reason=errorUI.reason,remaining=p.steps.filter(function(s){return s.status!=='done';}).length;
-    var header='<div class="quick-header"><div class="quick-title"><small>Plan details · '+esc(repoLabel(p))+'</small><h2 id="quick-plan-title">'+esc(p.name)+'</h2><span class="quick-dock-state">'+pill(p)+'</span></div><span class="quick-state">'+pill(p)+'</span>'+starButton(p,'quick-star')+'<button id="quick-close" class="icon-btn" data-quick-close aria-label="Close quick view" title="Close (Esc)">'+icon('close')+'</button></div>';
-    var tabs='<div class="quick-tabs" role="tablist" aria-label="Quick view tabs">'+[['overview','Summary'],['checklist','Work'],['activity','Activity']].map(function(a){return '<button role="tab" id="quick-tab-'+a[0]+'" data-quick-tab="'+a[0]+'" aria-selected="'+(quick.tab===a[0])+'" aria-controls="quick-plan-scroll" tabindex="'+(quick.tab===a[0]?'0':'-1')+'">'+a[1]+(a[0]==='checklist'?' '+remaining:'')+'</button>';}).join('')+'</div>';
-    var footer='<div class="quick-footer"><button class="icon-btn" id="quick-prev" data-quick-step="-1" aria-label="Previous plan" title="Previous plan (Alt+Up)">←</button><button class="icon-btn" id="quick-next" data-quick-step="1" aria-label="Next plan" title="Next plan (Alt+Down)">→</button><button class="btn" id="quick-refresh" data-quick-refresh>Refresh</button><small>'+esc(checked?'Checked '+hhmm(checked):'No successful progress check yet')+'</small><button class="btn quick-open-full" id="quick-full" data-quick-full>Open full plan ↗</button></div>';
-    host.innerHTML=header+tabs+'<div class="quick-error" id="quick-error" role="status"'+(!reason?' hidden':'')+'>'+esc(reason)+'</div><div class="quick-scroll" id="quick-plan-scroll" role="tabpanel" aria-labelledby="quick-tab-'+quick.tab+'" tabindex="0">'+body+'</div>'+footer;
-    if($('quick-plan-scroll'))$('quick-plan-scroll').scrollTop=top;
-    if($('quick-refresh')){$('quick-refresh').disabled=!!refreshing;$('quick-refresh').textContent=refreshing?'Checking…':'Refresh';}
-    ['quick-prev','quick-next'].forEach(function(id){if($(id))$(id).disabled=quick.sequence.filter(function(k){return !!planByKey(k);}).length<2;});
-    if(focus && $(focus))$(focus).focus({preventScroll:true});
+  function openPlan(k){
+    var p=planByKey(k);if(!p)return;
+    ui.view='plan:'+key(p);ui.tab='summary';ui.q='';ui.focusTask=null;
+    save('wb-ui',ui);render();$('view').scrollTop=0;
   }
   function togglePlanStar(k){
     if(!planByKey(k))return;var on=navigation.starred.includes(k);
     navigation.starred=on?navigation.starred.filter(function(v){return v!==k;}):navigation.starred.concat(k);save('wb-navigation',navigation);renderSidebar();
     document.querySelectorAll('[data-star-plan]').forEach(function(b){if(b.getAttribute('data-star-plan')!==k)return;var label=(on?'Star ':'Unstar ')+planByKey(k).name;b.setAttribute('aria-pressed',String(!on));b.setAttribute('aria-label',label);b.title=label;});
-  }
-  function stepQuickPlan(direction){
-    if(![-1,1].includes(direction))return;
-    var list=quick.sequence.map(planByKey).filter(Boolean),active=document.activeElement,focus=active && ['quick-prev','quick-next'].includes(active.id)?active.id:null;
-    var index=list.findIndex(function(p){return key(p)===quick.key;});if(list.length>1){openQuickPlan(key(list[(index+direction+list.length)%list.length]),true);if(focus && $(focus))$(focus).focus();}
   }
   function msState(m) { if (m.state) return m.state; var all = m.steps.length && m.steps.every(function (s) { return s.status === 'done'; }); if (all) return 'done'; if (m.steps.some(function (s) { return s.status === 'blocked'; })) return 'blocked'; if (m.steps.some(function (s) { return s.status === 'doing' || s.status === 'done'; })) return 'doing'; return 'todo'; }
   function stampTime(e) { var k = e.key || ''; if (!k) return null; var y = k.slice(0, 4), mo = k.slice(4, 6), d = k.slice(6, 8), hm = k.slice(8); return new Date(y + '-' + mo + '-' + d + 'T' + (hm === '9999' ? '00:00' : hm.slice(0, 2) + ':' + hm.slice(2)) + ':00+07:00'); }
@@ -1049,21 +1051,22 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 
   var commandState={open:false,query:'',index:0,items:[],returnTo:null};
   function switchLayout(layout){
-    columnMenu=null;if(quick.key)closeQuickPlan(false);ui.layout=layout;ui.view='home';ui.q='';ui.activityDay='';ui.focusTask=null;save('wb-ui',ui);render();$('view').scrollTop=0;$('view').scrollLeft=0;
+    if(!Object.hasOwn(LAYOUTS,layout))layout='summary';
+    columnMenu=null;ui.layout=layout;ui.view='home';ui.q='';ui.activityDay='';ui.focusTask=null;save('wb-ui',ui);render();$('view').scrollTop=0;$('view').scrollLeft=0;
   }
   function commandText(value){return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\u0111\u0110]/g,'d').replace(/[-_]/g,' ').toLowerCase();}
   function commandItems(){
     var words=commandText(commandState.query).trim().split(/\s+/).filter(Boolean);
     function matches(text){text=commandText(text);return words.every(function(word){return text.includes(word);});}
     var actions=Object.keys(LAYOUTS).map(function(name,i){return {label:LAYOUTS[name],detail:'View',keys:'Ctrl '+(i+1),run:function(){switchLayout(name);}};}).concat([
-      {label:'Needs attention',detail:'View',run:function(){if(quick.key)closeQuickPlan(false);ui.view='waiting';ui.layout='summary';ui.q='';save('wb-ui',ui);render();$('view').scrollTop=0;}},
+      {label:'Needs attention',detail:'View',run:function(){ui.view='waiting';ui.layout='summary';ui.q='';save('wb-ui',ui);render();$('view').scrollTop=0;}},
       {label:'Refresh progress',detail:'Action',keys:'F5',run:refresh},
       {label:'Toggle plans sidebar',detail:'Action',keys:'Ctrl B',run:function(){navigation.collapsed=!navigation.collapsed;save('wb-navigation',navigation);renderSidebar();}},
-      {label:'Plan details',detail:'Panel',run:toggleInspector},
+
       {label:'Archive',detail:'View',run:function(){openArchive();}},
       {label:'Settings',detail:'Preferences',keys:'Ctrl ,',run:function(){openSettings('general');}}
     ]);
-    var matching=plans().filter(function(p){return matches(p.name+' '+p.repo+' '+(p.goal || ''));}).sort(function(a,b){return Number(navigation.starred.includes(key(b)))-Number(navigation.starred.includes(key(a))) || String(b.mtime).localeCompare(String(a.mtime));}).slice(0,words.length?30:5).map(function(p){return {label:p.name,detail:repoLabel(p)+' \u00b7 '+stage(p.status),plan:p,run:function(){openQuickPlan(key(p));}};});
+    var matching=plans().filter(function(p){return matches(p.name+' '+p.repo+' '+(p.goal || ''));}).sort(function(a,b){return Number(navigation.starred.includes(key(b)))-Number(navigation.starred.includes(key(a))) || String(b.mtime).localeCompare(String(a.mtime));}).slice(0,words.length?30:5).map(function(p){return {label:p.name,detail:repoLabel(p)+' \u00b7 '+stage(p.status),plan:p,run:function(){openPlan(key(p));}};});
     return matching.concat(actions.filter(function(a){return matches(a.label+' '+a.detail);}));
   }
   function renderCommands(){
@@ -1080,7 +1083,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function closeCommands(){
     commandState.open=false;var dialog=$('command-dialog');if(dialog && dialog.open)dialog.close();
-    var target=commandState.returnTo;if(!target || !target.isConnected)target=quick.key?$('quick-close'):$('q');if(target && target.focus)target.focus({preventScroll:true});
+    var target=commandState.returnTo;if(!target || !target.isConnected)target=$('q');if(target && target.focus)target.focus({preventScroll:true});
   }
   function runCommand(index){var item=commandState.items[index];if(!item)return;closeCommands();item.run();}
   function commandKey(e){
@@ -1097,14 +1100,14 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   if($('command-dialog'))$('command-dialog').addEventListener('cancel',function(e){e.preventDefault();closeCommands();});
 
-  var LAYOUTS = { summary:'Summary', list:'List', board:'Board', timeline:'Timeline' };
+  var LAYOUTS = { summary:'Overview', list:'List' };
   function renderNav() {
     if((ui.view==='home' || ui.view==='waiting') && navigation.section==='archive'){navigation.section='all';save('wb-navigation',navigation);}
     var current=ui.view.startsWith('plan:')?ui.view.slice(5):'',p=planByKey(current),w=workspacePlans().filter(needsAttention).length;
     if(p && !navigation.openPlans.includes(key(p))){navigation.openPlans=navigation.openPlans.concat(key(p)).slice(-8);save('wb-navigation',navigation);}
     var html=Object.keys(LAYOUTS).map(function(name,i){var on=ui.view==='home' && ui.layout===name;return '<button class="item '+(on?'on':'')+'" data-layout="'+name+'" title="'+LAYOUTS[name]+' (Ctrl+'+(i+1)+')" aria-pressed="'+on+'">'+LAYOUTS[name]+'</button>';}).join('')+'<button class="item '+(ui.view==='waiting'?'on':'')+'" data-go="waiting">Needs attention'+(w?'<span class="badge">'+w+'</span>':'')+'</button>';
     html+=navigation.openPlans.map(function(k){var plan=planByKey(k);return plan?'<span class="document-tab'+(current===k?' on':'')+'"><button class="document-tab-name" data-go="plan:'+esc(k)+'" title="'+esc(plan.name)+'"'+(current===k?' aria-current="page"':'')+'>'+icon('file')+'<span>'+esc(plan.name)+'</span></button><button class="document-tab-close" data-close-plan-tab="'+esc(k)+'" aria-label="Close '+esc(plan.name)+'">'+icon('close')+'</button></span>':'';}).join('');
-    $('nav').innerHTML=html;
+    patchRegion($('nav'),html);
   }
   function closePlanTab(k){
     var index=navigation.openPlans.indexOf(k);navigation.openPlans=navigation.openPlans.filter(function(value){return value!==k;});save('wb-navigation',navigation);
@@ -1113,94 +1116,12 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   // ---------- views ----------
   function topBar(title, sub, taskRows) {
     if (viewOnly) return;
-    $('top').innerHTML = '<h1>' + title + '</h1>' + (sub ? '<span class="sub" id="plan-count">' + sub + '</span>' : '') +
-      '<input class="search" id="q" title="Filter this view (/)" aria-label="Search work" placeholder="'+(taskRows?'Search tasks':'Search work')+'" value="' + esc(ui.q) + '"><button class="btn" id="refresh" title="Refresh (F5)">'+icon('refresh')+'Refresh<kbd class="kbd">F5</kbd></button>';
-  }
-  var COLUMNS = ['To do', 'In progress', 'Review & test', 'Waiting', 'Done'];
-  function columnOf(p) {
-    var s = stage(p.status).toLowerCase();
-    if (s === 'done') return 4;
-    if (isWaiting(p) || s === 'blocked' || s === 'waiting for ci') return 3;
-    if (/^(reviewing|fixing review|testing)$/.test(s)) return 2;
-    if (/^(implementing|shipping|in progress|partly done|dry run)$/.test(s)) return 1;
-    if (s !== 'planning' && counts(p).blocked) return 3;
-    return 0;
+    patchRegion($('top'), '<h1>' + title + '</h1>' + (sub ? '<span class="sub" id="plan-count">' + sub + '</span>' : '') +
+      '<input class="search" id="q" title="Filter this view (/)" aria-label="Search work" placeholder="'+(taskRows?'Search tasks':'Search work')+'" value="' + esc(ui.q) + '"><button class="btn" id="refresh" title="Refresh (F5)">'+icon('refresh')+'Refresh<kbd class="kbd">F5</kbd></button>');
   }
   function owner(p) { return p.owner || p.repo; }
   function needsAttention(p) {return isWaiting(p) || counts(p).blocked || stage(p.status)==='Blocked' || isStale(p) || p.questions.some(function(q){return q.open;});}
-  function taskCard(p) {
-    var c=counts(p), who=owner(p), waiting=p.questions.filter(function(q){return q.open;}).length;
-    return '<article class="task-card status-'+statusTone(p.status)+'" data-go="plan:'+esc(key(p))+'">' +
-      '<div class="task-heading"><div class="task-repo" title="'+esc(repoLabel(p))+'">'+esc(repoLabel(p))+'</div><time class="task-edited" title="'+esc(p.mtime)+'">'+ago(p.mtime)+'</time>'+starButton(p)+'</div>' +
-      '<button class="task-title" data-preview-plan="'+esc(key(p))+'" title="Quick view: '+esc(p.name)+'">'+esc(p.name)+'</button>' +
-      '<div class="task-status">'+pill(p)+(isStale(p)?'<span class="pill t-bad">Stale</span>':'')+(waiting?'<span class="pill t-pending">'+waiting+' open question'+(waiting>1?'s':'')+'</span>':'')+'</div>' +
-      (detail(p.status)?'<div class="stage-detail">'+prs(detail(p.status),p.gh)+'</div>':'') +
-      (p.next?'<div class="task-next">'+prs(p.next,p.gh)+'</div>':'') +
-      '<div class="task-progress"><div class="bar" role="progressbar" aria-label="Steps done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct(p)+'"><i style="width:'+pct(p)+'%"></i></div><span class="mono">'+c.done+'/'+p.steps.length+'</span></div>' +
-      '<div class="task-footer"><span class="assignee" title="'+esc(who)+'"><span class="av" aria-hidden="true" style="background:'+color(who)+'">'+esc(initials(who))+'</span><span class="owner">'+esc(who)+'</span></span></div></article>';
-  }
-  function samePlanText(a,b){return !!a && !!b && String(a).normalize('NFC').trim().replace(/\s+/g,' ')===String(b).normalize('NFC').trim().replace(/\s+/g,' ');}
   function planDisclosureKey(p,scope,name){return scope+'|'+key(p)+'|'+name;}
-  function disclosure(token,label,body,cls,auto){
-    return '<details class="'+cls+'" data-plan-disclosure="'+esc(token)+'"'+(auto?' data-disclosure-auto="1"':'')+(auto || ui.planDetails[token]?' open':'')+'><summary id="plan-disclosure-'+encodeURIComponent(token)+'">'+label+'</summary>'+body+'</details>';
-  }
-  function scopedPlanRows(p,q){
-    q=(q || '').toLowerCase();return taskRows([p]).filter(function(r){return !q || r.s.text.toLowerCase().includes(q);}).sort(function(a,b){return SORDER[a.s.status]-SORDER[b.s.status] || a.index-b.index;});
-  }
-  function rowMilestone(p,s){
-    if(s.milestone)return (p.milestones || []).find(function(m){return m.id===s.milestone;});
-    return (p.milestones || []).find(function(m){return m.steps.some(function(t){return t===s || (Number.isInteger(s.line) && s.line>0 && t.line===s.line);});});
-  }
-  function groupedPlanRows(p,rows){
-    var groups=orderedMilestones(p).map(function(m){return {milestone:m,rows:rows.filter(function(r){return rowMilestone(p,r.s)===m;})};}).filter(function(g){return g.rows.length;});
-    var loose=rows.filter(function(r){return !rowMilestone(p,r.s);});if(loose.length)groups.push({milestone:null,rows:loose});return groups;
-  }
-  function planRowGroups(p,rows,scope,q){
-    return groupedPlanRows(p,rows).map(function(g){
-      var m=g.milestone,summary=m && m.summary;
-      var repeated=summary && [p.goal,p.next,detail(p.status)].some(function(t){return samePlanText(summary,t);});
-      var ownsNotes=!m || g.rows.some(function(r){return r.s.status!=='done';}) || !p.steps.some(function(s){return s.status!=='done' && rowMilestone(p,s)===m;});
-      var notes=summary && !repeated && ownsNotes?disclosure(planDisclosureKey(p,scope,'milestone:'+m.id),'Milestone notes','<div class="report-body">'+prs(summary,p.gh)+'</div>','plan-notes',false):'';
-      return '<section class="ms">'+(m?'<div class="ms-h"><span class="id">'+esc(m.id)+'</span><b>'+esc(m.title)+'</b></div>':'')+stepsHTML(g.rows.map(function(r){return r.s;}),p.gh,p,{scope:scope,q:q})+notes+'</section>';
-    }).join('');
-  }
-  function completedPlanWork(p,rows,scope,body,q){
-    if(!rows.length)return '';
-    return disclosure(planDisclosureKey(p,scope,'completed'),'Completed <span class="completed-count">'+rows.length+'</span>','<div class="plan-completed-body">'+body+'</div>','plan-completed',!!q);
-  }
-  function planWork(p,scope,q){
-    var rows=scopedPlanRows(p,q),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
-    var columns='<div class="checklist-columns"><span>Work'+(q?' <small>'+open.length+' matching</small>':'')+'</span><span>Status</span></div>';
-    var content=open.length?columns+planRowGroups(p,open,scope,q):'<div class="plan-no-open">'+(q?'No matching open tasks.':'No open checklist tasks.')+'</div>';
-    return '<div class="plan-open-work">'+content+'</div>'+completedPlanWork(p,done,scope,planRowGroups(p,done,scope,q),q);
-  }
-  function planInsight(p,scope,remaining){
-    if(!p.next && !detail(p.status))return '';
-    var blocked=stage(p.status)==='Blocked',done=stage(p.status)==='Done' && !remaining;
-    var reason=blocked?detail(p.status):'',text=reason || p.next || detail(p.status),label=blocked?'Blocker':done?'Recorded next step':'Next action';
-    var glyph='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 5v6m0 2v2"/></svg>';
-    var button=remaining===1 && p.next?'<button class="insight-link" data-plan-section="checklist" data-section-plan="'+esc(key(p))+'">View the open task →</button>':'';
-    return '<aside class="plan-insight'+(blocked?' is-blocked':done?' is-recorded':'')+'" aria-label="'+label+'"><div class="insight-label">'+glyph+label+'</div><p>'+prs(text,p.gh)+'</p>'+(reason && p.next && !samePlanText(reason,p.next)?'<div class="insight-next"><small>Next action</small><p>'+prs(p.next,p.gh)+'</p></div>':'')+button+'</aside>';
-  }
-  function planSummary(p,scope){
-    var rows=scopedPlanRows(p,''),open=rows.filter(function(r){return r.s.status!=='done';}),done=rows.filter(function(r){return r.s.status==='done';});
-    var purpose=p.goal && !samePlanText(p.goal,p.next)?'<p class="plan-purpose"><span class="plan-purpose-label">Goal</span>'+prs(p.goal,p.gh)+'</p>':'';
-    var current='';
-    if(open.length && !(open.length===1 && p.next))current='<h2 class="plan-work-title">Current work <small>'+open.length+' open</small></h2><ul class="focus-work-list">'+open.slice(0,3).map(function(r){return '<li><button class="work-link" data-open-task="'+esc(key(p))+'" data-task-index="'+r.index+'" data-task-revision="'+esc(p.revision || '')+'">'+esc(r.s.text)+'</button><span class="tag s-'+r.s.status+'">'+esc(TASK_STATUSES[r.s.status])+'</span></li>';}).join('')+'</ul><button class="section-link" data-plan-section="checklist" data-section-plan="'+esc(key(p))+'">View '+open.length+' open tasks →</button>';
-    if(!open.length)current='<div class="plan-no-open">No open checklist tasks.</div>';
-    var questions=p.questions.filter(function(q){return q.open && !samePlanText(q.ask,p.next) && !samePlanText(q.ask,p.goal);});
-    var asks=questions.length?'<aside class="plan-insight"><div class="insight-label">Needs your decision</div>'+questions.slice(0,2).map(function(q){return '<p>'+prs(q.ask,p.gh)+'</p>';}).join('')+'<button class="insight-link" data-plan-section="questions" data-section-plan="'+esc(key(p))+'">View questions →</button></aside>':'';
-    var extra=detail(p.status),notes=extra && stage(p.status)!=='Blocked' && ![p.next,p.goal].some(function(t){return samePlanText(extra,t);})?disclosure(planDisclosureKey(p,scope,'status-detail'),'Recorded status detail','<div class="report-body">'+prs(extra,p.gh)+'</div>','plan-notes',false):'';
-    var completed=scope==='quick'?quickRowsTable(p,done):planRowGroups(p,done,scope,'');
-    return '<div class="plan-summary">'+purpose+planInsight(p,scope,open.length)+asks+current+completedPlanWork(p,done,scope,completed,'')+notes+'<div class="plan-context-meta">'+(scope==='quick'?'':'<span>'+esc(p.repo)+'</span>')+'<time title="'+esc(p.mtime)+'">Plan edited '+ago(p.mtime)+'</time></div></div>';
-  }
-  function workCell(p) {
-    return '<button class="work-link" data-go="plan:'+esc(key(p))+'">'+esc(p.name)+'</button><div class="work-meta">'+esc(repoLabel(p))+'</div>';
-  }
-  function progressCell(p) {
-    var done=counts(p).done;
-    return '<div class="list-progress"><div class="bar" role="progressbar" aria-label="Steps done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct(p)+'"><i style="width:'+pct(p)+'%"></i></div><span class="mono">'+done+'/'+p.steps.length+'</span></div>';
-  }
   var TASK_STATUSES={all:'All statuses',doing:'In progress',todo:'To do',blocked:'Blocked',partial:'Partial',done:'Done'};
   var TASK_COLUMNS={work:'Work',plan:'Plan',status:'Status'};
   var taskCollator=new Intl.Collator('vi',{numeric:true,sensitivity:'base'}),columnMenu=null;
@@ -1286,14 +1207,22 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function groupedTaskRows(rows){
     var map=new Map();rows.forEach(function(r){var k=key(r.p);if(!map.has(k))map.set(k,{key:k,plan:r.p,rows:[]});map.get(k).rows.push(r);});
-    return Array.from(map.values()).sort(function(a,b){var order=taskCollator.compare(a.plan.name,b.plan.name) || taskCollator.compare(a.plan.repo,b.plan.repo);return ui.taskSort && ui.taskSort.column==='plan' && ui.taskSort.direction==='desc'?-order:order;});
+    var groups=Array.from(map.values());
+    if(ui.taskSort && ui.taskSort.column==='plan')groups.sort(function(a,b){var order=taskCollator.compare(a.plan.name,b.plan.name) || taskCollator.compare(a.plan.repo,b.plan.repo);return ui.taskSort.direction==='desc'?-order:order;});
+    return groups;
   }
   function taskTableBody(rows){
     if(ui.taskGroup!=='plan')return '<tbody>'+rows.map(taskListRow).join('')+'</tbody>';
-    return groupedTaskRows(rows).map(function(g){
+    var groups=groupedTaskRows(rows),ordered=projectGroups(groups.map(function(g){return g.plan;})),lastProject=null,lastRepo=null;
+    groups=ordered.flatMap(function(project){return Array.from(project.repos.values()).flatMap(function(repo){return repo.plans.map(function(p){return groups.find(function(g){return g.key===key(p);});});});});
+    return groups.map(function(g){
+      var project=g.plan.project || '',repo=project+'/'+g.plan.repo,prefix='';
+      if(project && project!==lastProject)prefix+='<tbody data-render-key="project:'+esc(project)+'"><tr><th colspan="3" class="ledger-list-project" scope="colgroup">'+esc(g.plan.projectName || project)+'</th></tr></tbody>';
+      if(repo!==lastRepo)prefix+='<tbody data-render-key="repo:'+esc(repo)+'"><tr><th colspan="3" class="ledger-list-repo" scope="colgroup">'+esc(g.plan.repo)+worktreesHTML(g.plan)+'</th></tr></tbody>';
+      lastProject=project;lastRepo=repo;
       var collapsed=ui.collapsedPlans[g.key]===true,id='task-group-'+encodeURIComponent(g.key);
       var p=g.plan,done=counts(p).done,total=p.steps.length,percent=pct(p),description=done+' of '+total+' tasks complete across the whole plan';
-      return '<tbody class="task-group-heading"><tr><td><div class="task-group-name"><button class="task-group-toggle" data-task-group-toggle="'+esc(g.key)+'" aria-expanded="'+!collapsed+'" aria-controls="'+id+'"><span aria-hidden="true">'+(collapsed?'›':'⌄')+'</span>'+esc(p.name)+'</button><span class="work-meta">'+esc(p.repo)+' · '+g.rows.length+' of '+total+' tasks matched</span><button class="task-group-open" data-go="plan:'+esc(g.key)+'">Open plan ↗</button></div></td><td class="task-group-progress"><span class="work-meta">Plan progress</span><div class="list-progress'+(done===total?' is-complete':'')+'" title="'+esc(description)+'"><div class="bar" role="progressbar" aria-label="'+esc('Plan progress for '+p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'" aria-valuetext="'+esc(description)+'"><i style="width:'+percent+'%"></i></div><span class="mono">'+done+'/'+total+' · '+percent+'%</span></div></td><td class="task-group-status">'+pill(p)+'</td></tr></tbody><tbody id="'+id+'"'+(collapsed?' hidden':'')+'>'+(!collapsed?g.rows.map(taskListRow).join(''):'')+'</tbody>';
+      return prefix+'<tbody class="task-group-heading" data-render-key="heading:'+esc(g.key)+'"><tr><td><div class="task-group-name"><button class="task-group-toggle" data-task-group-toggle="'+esc(g.key)+'" aria-expanded="'+!collapsed+'" aria-controls="'+id+'"><span aria-hidden="true">'+(collapsed?'›':'⌄')+'</span>'+statusGlyph(p.status)+esc(p.name)+'</button><span class="work-meta">'+esc(p.repo)+' · '+g.rows.length+' of '+total+' tasks matched</span><button class="task-group-open" data-go="plan:'+esc(g.key)+'">Open plan ↗</button></div>'+diagnosticHTML(p)+'</td><td class="task-group-progress"><span class="work-meta">Plan progress</span><div class="list-progress'+(done===total?' is-complete':'')+'" title="'+esc(description)+'"><div class="bar" role="progressbar" aria-label="'+esc('Plan progress for '+p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'" aria-valuetext="'+esc(description)+'"><i style="width:'+percent+'%"></i></div><span class="mono">'+done+'/'+total+' · '+percent+'%</span></div></td><td class="task-group-status">'+pill(p)+'</td></tr></tbody><tbody id="'+id+'"'+(collapsed?' hidden':'')+'>'+(!collapsed?g.rows.map(taskListRow).join(''):'')+'</tbody>';
     }).join('');
   }
   function taskGroupToolbar(){
@@ -1314,7 +1243,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var all=taskRows(ps),rows=filteredTaskRows(all),sub=rows.length+' of '+all.length+' tasks';
     topBar(ui.view==='waiting'?'Needs attention':'List',sub,all);
     if($('plan-count'))$('plan-count').textContent=sub;
-    if(!viewOnly)$('tabs').innerHTML='';
+    if(!viewOnly)patchRegion($('tabs'),'');
     var extra=ui.taskPlans!==null || !!ui.taskWork;
     var empty=ui.taskStatus==='doing' && !ui.q && !extra && ui.view!=='waiting'?'No tasks in progress':'No matching tasks';
     return filterNotice(all.length,rows.length,'tasks')+taskGroupToolbar()+'<div class="table-wrap task-list-wrap"><table class="work-table task-list-table"><caption class="sr-only">Individual checklist tasks with their parent plans</caption><thead><tr>'+taskColumnHeaders(all)+'</tr></thead>'+
@@ -1328,94 +1257,19 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     parts.forEach(function(p){out[p.type]=p.value;});
     return out.year+'-'+out.month+'-'+out.day;
   }
-  function calendarMonth() {
-    var value=ui.month;
-    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(value || '')) value=dateKey(D.now || new Date()).slice(0,7);
-    return value;
-  }
-  function monthDays(month) {
-    var a=month.split('-').map(Number), n=new Date(Date.UTC(a[0],a[1],0)).getUTCDate();
-    return Array.from({length:n},function(_,i){return month+'-'+String(i+1).padStart(2,'0');});
-  }
-  function timelineEntries(p) {
-    var items=feedFor(p).map(function(e){return {day:dateKey(e.ts),kind:e.kind,text:e.text,ts:e.ts};});
-    // The file mtime proves an edit, not a creation or completion.
-    if(dateKey(p.mtime)) items.push({day:dateKey(p.mtime),kind:'updated',text:'Latest plan edit',ts:p.mtime});
-    return items.filter(function(e){return e.day;});
-  }
-  function viewTimeline(ps) {
-    var month=calendarMonth(), days=monthDays(month), today=dateKey(D.now || new Date());
-    var label=new Date(month+'-15T12:00:00+07:00').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'Asia/Ho_Chi_Minh'});
-    var dayHeaders=days.map(function(day){
-      var d=new Date(day+'T12:00:00+07:00'), weekend=[0,6].includes(d.getUTCDay());
-      return '<th class="timeline-day '+(weekend?'weekend ':'')+(day===today?'today':'')+'" scope="col" title="'+day+'">'+day.slice(8)+'</th>';
-    }).join('');
-    return '<div class="timeline-toolbar"><div><strong>'+label+'</strong><span class="work-meta">Recorded activity by day · Vietnam time</span></div><div class="timeline-actions"><button class="btn" data-month="-1" aria-label="Previous month">←</button><button class="btn" data-month="today">Today</button><button class="btn" data-month="1" aria-label="Next month">→</button></div></div>'+
-      '<div class="timeline-legend"><span class="legend-dot"></span>Recorded event <span class="legend-edit"></span>Latest plan edit</div>'+
-      '<div class="timeline-scroll"><table class="timeline-table"><caption class="sr-only">Daily recorded plan activity for '+label+'</caption><thead><tr><th class="timeline-work" scope="col">Work</th><th class="timeline-status" scope="col">Status</th>'+dayHeaders+'</tr></thead><tbody>'+
-      ps.map(function(p){
-        var grouped={};timelineEntries(p).forEach(function(e){if(!grouped[e.day])grouped[e.day]=[];grouped[e.day].push(e);});
-        return '<tr><td class="timeline-work">'+workCell(p)+'</td><td class="timeline-status">'+pill(p)+'</td>'+
-          days.map(function(day){
-            var entries=grouped[day] || [], recorded=entries.filter(function(e){return e.kind!=='updated';}), edited=entries.some(function(e){return e.kind==='updated';});
-            var d=new Date(day+'T12:00:00+07:00'), classes='timeline-day '+([0,6].includes(d.getUTCDay())?'weekend ':'')+(day===today?'today':'');
-            var title=entries.map(function(e){return e.kind==='updated'?e.text:e.kind+': '+e.text;}).join('\n');
-            var mark=recorded.length?'<button class="timeline-dot" data-open-activity="'+esc(key(p))+'" data-day="'+day+'" title="'+esc(title)+'" aria-label="'+esc(p.name)+' · '+day+' · '+recorded.length+' recorded events">'+recorded.length+'</button>':(edited?'<span class="timeline-edit" title="'+esc(title)+'" aria-label="'+esc(p.name)+' · last edited '+day+'"></span>':'');
-            return '<td class="'+classes+'">'+mark+'</td>';
-          }).join('')+'</tr>';
-      }).join('')+'</tbody></table></div>';
-  }
-  function statusSummary(ps) {
-    var colors=['var(--ds-text-subtlest)','var(--ds-link)','var(--ds-text-discovery)','var(--ds-text-warning)','var(--ds-text-success)'];
-    var values=COLUMNS.map(function(_,i){return ps.filter(function(p){return columnOf(p)===i;}).length;}), total=ps.length, offset=0, length=2*Math.PI*42;
-    var circles=values.map(function(n,i){
-      var segment=total?n/total*length:0;
-      var svg='<circle cx="60" cy="60" r="42" fill="none" stroke="'+colors[i]+'" stroke-width="12" stroke-dasharray="'+segment+' '+(length-segment)+'" stroke-dashoffset="'+(-offset)+'" transform="rotate(-90 60 60)"/>';
-      offset+=segment;return svg;
-    }).join('');
-    return '<div class="status-overview"><svg class="status-chart" viewBox="0 0 120 120" role="img" aria-label="'+total+' plans by current status"><circle cx="60" cy="60" r="42" fill="none" stroke="var(--ds-background-neutral-pressed)" stroke-width="12"/>'+circles+'<text x="60" y="59" text-anchor="middle" class="chart-count">'+total+'</text><text x="60" y="76" text-anchor="middle" class="chart-label">plans</text></svg><ul class="status-legend">'+values.map(function(n,i){return '<li><span class="legend-swatch" style="background:'+colors[i]+'"></span><span>'+COLUMNS[i]+'</span><strong>'+n+'</strong></li>';}).join('')+'</ul></div>';
-  }
-  function summaryPlan(p){
-    var completed=counts(p).done,total=p.steps.length;
-    return '<article class="summary-plan"><div class="summary-plan-head"><button class="summary-plan-title" data-preview-plan="'+esc(key(p))+'" title="'+esc(p.name)+'">'+esc(p.name)+'</button>'+pill(p)+'</div><span class="work-meta">'+esc(repoLabel(p))+'</span>'+
-      '<p class="summary-next">'+esc(p.next || p.goal || 'No next action recorded')+'</p><div class="summary-plan-meta"><div class="bar" aria-hidden="true"><i style="width:'+pct(p)+'%"></i></div><span>'+completed+'/'+total+' steps</span></div></article>';
-  }
-  function viewSummary(ps) {
-    var now=new Date(D.now || Date.now()).getTime(), cutoff=now-7*86400000;
-    var done=ps.filter(function(p){return stage(p.status)==='Done';}).length, needs=ps.filter(needsAttention).length;
-    var updated=ps.filter(function(p){var t=new Date(p.mtime).getTime();return t>=cutoff && t<=now;}).length;
-    var stats=[['Active plans',ps.length-done,'Current'],['Done',done,'Current'],['Updated',updated,'Last 7 days'],['Needs attention',needs,'Current']];
-    var keys=new Set(ps.map(key)), history=feedFor(null).filter(function(e){var pl=planByKey(eventKey(e));return pl && keys.has(key(pl));}).slice(0,8);
-    var total=ps.reduce(function(n,p){return n+p.steps.length;},0), completed=ps.reduce(function(n,p){return n+counts(p).done;},0);
-    var active=ps.filter(function(p){return stage(p.status)!=='Done';}).sort(function(a,b){return Number(needsAttention(b))-Number(needsAttention(a)) || String(b.mtime).localeCompare(String(a.mtime));});
-    return '<div class="summary"><div class="summary-stats">'+stats.map(function(s){return '<div class="summary-stat"><span>'+s[0]+'</span><strong>'+s[1]+'</strong><small>'+s[2]+'</small></div>';}).join('')+'</div><div class="summary-grid">'+
-      '<section class="summary-panel summary-focus"><div class="panel-heading"><h2>Current work</h2><button class="btn btn-ghost" data-layout="list">View tasks &rarr;</button></div><p class="work-meta">'+(ui.view==='waiting'?'Plans needing your attention':'Active plans, with items needing attention first')+'</p>'+
-      (active.length?active.slice(0,6).map(summaryPlan).join(''):'<div class="empty">'+(ps.length?'All plans are complete':'No active plans')+'</div>')+
-      (active.length>6?'<button class="btn btn-ghost" data-layout="board">View all plans &rarr;</button>':'')+'</section>'+
-      '<section class="summary-panel"><h2>Status overview</h2><p class="work-meta">Current state of your plans</p>'+statusSummary(ps)+'<div class="summary-progress"><h2>Step progress</h2><strong>'+completed+' <span>/ '+total+'</span></strong><div class="bar"><i style="width:'+(total?completed/total*100:0)+'%"></i></div></div>'+
-      (needs?'<h3>Needs attention</h3>'+ps.filter(needsAttention).slice(0,3).map(function(p){return '<div class="attention-row">'+workCell(p)+'</div>';}).join(''):'')+'</section>'+
-      '<section class="summary-panel summary-activity"><h2>Recent activity</h2><p class="work-meta">Latest recorded changes</p><div class="summary-feed">'+feedHTML(history,true,8,true)+'</div></section></div></div>';
-  }
   function handleViewAction(e) {
     var folder=e.target.closest('[data-repo-toggle]');if(folder){var repo=folder.getAttribute('data-repo-toggle');navigation.folders[repo]=!navigation.folders[repo];save('wb-navigation',navigation);renderSidebar();return true;}
     var closed=e.target.closest('[data-close-plan-tab]');if(closed){closePlanTab(closed.getAttribute('data-close-plan-tab'));return true;}
-    if(e.target.closest('[data-inspector-toggle]')){toggleInspector();return true;}
     if(e.target.closest('[data-command-open]')){openCommands();return true;}
     if(e.target.closest('[data-command-close]')){closeCommands();return true;}
     var command=e.target.closest('[data-command-index]');if(command){runCommand(Number(command.getAttribute('data-command-index')));return true;}
     if(e.target.closest('a,select')) return false;
-    var star=e.target.closest('[data-star-plan]'),preview=e.target.closest('[data-preview-plan]'),collection=e.target.closest('[data-plan-collection]'),quickTab=e.target.closest('[data-quick-tab]'),quickStep=e.target.closest('[data-quick-step]');
+    var star=e.target.closest('[data-star-plan]'),preview=e.target.closest('[data-preview-plan]'),collection=e.target.closest('[data-plan-collection]');
     if(star){togglePlanStar(star.getAttribute('data-star-plan'));return true;}
-    if(preview){openQuickPlan(preview.getAttribute('data-preview-plan'));return true;}
-    if(collection){var section=collection.getAttribute('data-plan-collection');if(['all','starred','recent','archive'].includes(section)){if(section==='archive'){openArchive();}else{navigation.section=section;save('wb-navigation',navigation);if(ui.view==='archive'){ui.view='home';ui.q='';save('wb-ui',ui);render();}else renderSidebar();}}return true;}
+    if(e.target.closest('[data-copy-plan-link]')){writeClipboard(location.href);return true;}
+    if(preview){openPlan(preview.getAttribute('data-preview-plan'));return true;}
+    if(collection){var section=collection.getAttribute('data-plan-collection');if(['all','starred','recent','archive'].includes(section)){if(section==='archive'){openArchive();}else{navigation.section=section;save('wb-navigation',navigation);if(ui.view==='archive'){ui.view='home';ui.q='';save('wb-ui',ui);render();}else {syncRoute();renderSidebar();}}}return true;}
     if(e.target.closest('[data-sidebar-toggle]')){navigation.collapsed=!navigation.collapsed;save('wb-navigation',navigation);renderSidebar();return true;}
-    if(e.target.closest('[data-quick-close]') || (quick.key && e.target.id==='quick-plan')){closeQuickPlan();return true;}
-    if(quickTab){var tab=quickTab.getAttribute('data-quick-tab');if(['overview','checklist','activity'].includes(tab)){quick.tab=tab;renderQuickPlan(true);}return true;}
-    if(quickStep){stepQuickPlan(Number(quickStep.getAttribute('data-quick-step')));return true;}
-    if(e.target.closest('[data-quick-refresh]')){refresh();return true;}
-    if(e.target.closest('[data-quick-full]')){var k=quick.key,selectedTab=quick.tab==='overview'?'summary':quick.tab;if(planByKey(k)){closeQuickPlan(false);ui.view='plan:'+k;ui.tab=selectedTab;ui.q='';ui.activityDay='';ui.focusTask=null;save('wb-ui',ui);render();$('view').scrollTop=0;}return true;}
-    var section=e.target.closest('[data-plan-section]');
-    if(section){var targetTab=section.getAttribute('data-plan-section'),sectionKey=section.getAttribute('data-section-plan');if(!['checklist','questions'].includes(targetTab) || !planByKey(sectionKey))return true;if(quick.key===sectionKey && targetTab==='checklist'){quick.tab='checklist';renderQuickPlan(true);}else{if(quick.key)closeQuickPlan(false);ui.view='plan:'+sectionKey;ui.tab=targetTab;ui.q='';ui.focusTask=null;save('wb-ui',ui);render();$('view').scrollTop=0;}return true;}
     var column=e.target.closest('[data-column-menu]'),sort=e.target.closest('[data-column-sort]'),clear=e.target.closest('[data-column-clear]'),selection=e.target.closest('[data-column-plans]'),group=e.target.closest('[data-task-group-toggle]'),groups=e.target.closest('[data-task-groups]');
     if(column){openColumnMenu(column.getAttribute('data-column-menu'));return true;}
     if(sort){sortTaskColumn(sort.getAttribute('data-column-sort'),sort.getAttribute('data-direction'));return true;}
@@ -1426,31 +1280,20 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(group){var k=group.getAttribute('data-task-group-toggle');ui.collapsedPlans[k]=!ui.collapsedPlans[k];save('wb-ui',ui);render(true);return true;}
     if(groups){setTaskGroups(groups.getAttribute('data-task-groups')==='collapse');return true;}
     var task=e.target.closest('[data-open-task]');
-    if(task){columnMenu=null;if(quick.key)closeQuickPlan(false);openTask(task);return true;}
+    if(task){columnMenu=null;openTask(task);return true;}
     if(e.target.closest('[data-task-status-all]')){ui.taskStatus='all';save('wb-ui',ui);render();return true;}
     if(e.target.closest('[data-clear-filters]')) {
       if(ui.layout==='list'){Object.keys(TASK_COLUMNS).forEach(resetTaskColumn);columnMenu=null;}
       ui.q='';ui.view='home';ui.activityDay='';
       save('wb-ui',ui);render();return true;
     }
-    var layout=e.target.closest('[data-layout]'), month=e.target.closest('[data-month]'), activity=e.target.closest('[data-open-activity]');
+    var layout=e.target.closest('[data-layout]');
     if(layout) {
       var value=layout.getAttribute('data-layout');
       if(!Object.hasOwn(LAYOUTS,value))return true;
       columnMenu=null;ui.layout=value;if(ui.view.indexOf('plan:')===0)ui.q='';ui.view='home';
       ui.activityDay='';save('wb-ui',ui);render();$('view').scrollTop=0;$('view').scrollLeft=0;return true;
     }
-    if(month) {
-      var direction=month.getAttribute('data-month');
-      if(direction==='today') ui.month=dateKey(D.now || new Date()).slice(0,7);
-      else {
-        var bits=calendarMonth().split('-').map(Number), date=new Date(Date.UTC(bits[0],bits[1]-1+Number(direction),15));
-        ui.month=date.toISOString().slice(0,7);
-      }
-      save('wb-ui',ui);render(true);return true;
-    }
-    if(activity) {ui.view='plan:'+activity.getAttribute('data-open-activity');ui.tab='activity';ui.activityDay=activity.getAttribute('data-day');ui.q='';save('wb-ui',ui);render();return true;}
-    if(e.target.closest('[data-clear-day]')) {ui.activityDay='';save('wb-ui',ui);render(true);return true;}
     return false;
   }
   function filterNotice(total,matching,unit) {
@@ -1472,31 +1315,25 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       return (!ui.q || text.includes(ui.q.toLowerCase())) && (ui.view!=='waiting' || needsAttention(p));
     });
   }
-  function viewHome() {
-    if(noProjects()){topBar(LAYOUTS[ui.layout],'No projects');if(!viewOnly)$('tabs').innerHTML='';return emptyProjects();}
-    if(ui.layout==='list')return viewList(workspacePlans());
-    var all=workspacePlans(), ps=filteredPlans(all);
-    topBar(ui.view==='waiting'?'Needs attention':LAYOUTS[ui.layout], ps.length+' of '+all.length+' plans');
-    if($('plan-count')) $('plan-count').textContent=ps.length+' of '+all.length+' plans';
-    if(!viewOnly) $('tabs').innerHTML='';
-    var notice=filterNotice(all.length,ps.length);
-    if(all.length && !ps.length) return notice+'<div class="empty"><h2>No matching work</h2><p>'+all.length+' plans are available. Clear filters to show all plans.</p></div>';
-    if(ui.layout==='summary') return notice+viewSummary(ps);
-    if (!all.length) return '<div class="empty">No active plan</div>';
-    if (ui.layout==='timeline') return notice+viewTimeline(ps);
-    return notice+'<div class="board">'+COLUMNS.map(function(title,i){var list=ps.filter(function(p){return columnOf(p)===i;});return '<section class="column" aria-label="'+esc(title)+'"><h2>'+esc(title)+' <span>'+list.length+'</span></h2>'+list.map(taskCard).join('')+(list.length?'':'<div class="empty-column">No work</div>')+'</section>';}).join('')+'</div>';
+  function overviewRows(ps){
+    return projectGroups(ps).map(function(project){return '<section class="ledger-project" data-render-key="project:'+esc(project.id)+'">'+(project.id?'<h2>'+esc(project.label)+'</h2>':'')+Array.from(project.repos.values()).map(function(repo){return '<section data-render-key="repo:'+esc(repo.id)+'"><h3>'+icon('repo')+esc(repo.label)+'</h3>'+worktreesHTML(repo.plans[0])+'<div class="ledger-table" role="table" aria-label="'+esc(repo.label)+' plans"><div class="ledger-table-head" role="row"><span role="columnheader">Plan</span><span role="columnheader">Stage</span><span role="columnheader">Milestone</span><span role="columnheader">Progress</span></div>'+repo.plans.map(function(p){return cachedPlan('overview',p,ui.view==='waiting',function(){var current=p.milestones.find(function(m){return msState(m)!=='done';}),reason=ui.view==='waiting'?detail(p.status) || (p.questions.find(function(q){return q.open;}) || {}).ask:'';return '<div class="ledger-table-row" role="row" data-render-key="'+esc(key(p))+'"><div role="cell"><button class="work-link" data-preview-plan="'+esc(key(p))+'">'+statusGlyph(p.status)+esc(p.name)+'</button><p>'+esc(reason || p.next || 'No next action recorded')+'</p>'+diagnosticHTML(p)+'</div><div role="cell">'+pill(p)+'</div><div role="cell">'+esc(current?current.id+' · '+current.title:'No open milestone')+'</div><div role="cell">'+progressHTML(counts(p).done,p.steps.length,'Plan progress for '+p.name)+'</div></div>';});}).join('')+'</div></section>';}).join('')+'</section>';}).join('');
   }
-  function openArchive(){if(quick.key)closeQuickPlan(false);navigation.section='archive';ui.view='archive';ui.q='';save('wb-navigation',navigation);save('wb-ui',ui);render();$('view').scrollTop=0;}
+  function viewHome() {
+    if(noProjects()){topBar(LAYOUTS[ui.layout],'No projects');if(!viewOnly)patchRegion($('tabs'),'');return emptyProjects();}
+    // Attention always counts plans, including when entered from the task list.
+    if(ui.layout==='list' && ui.view!=='waiting')return viewList(workspacePlans());
+    var all=workspacePlans(),ps=filteredPlans(all);
+    topBar(ui.view==='waiting'?'Needs attention':'Overview',ps.length+' of '+all.length+' plans');
+    if(!viewOnly)patchRegion($('tabs'),'');
+    return filterNotice(all.length,ps.length)+(ps.length?overviewRows(ps):'<div class="empty">'+(all.length?'No matching work':'No active plan')+'</div>');
+  }
+  function openArchive(){navigation.section='archive';ui.view='archive';ui.q='';save('wb-navigation',navigation);save('wb-ui',ui);render();$('view').scrollTop=0;}
   function viewArchive(){
-    var all=plans().filter(archivedPlan),ps=filteredPlans(all);topBar('Archive',ps.length+' of '+all.length+' plans');if(!viewOnly)$('tabs').innerHTML='';
-    return '<div class="archive-view"><p class="archive-lead">Completed plans, kept for reference.</p>'+(all.length?filterNotice(all.length,ps.length)+(ps.length?ps.map(summaryPlan).join(''):'<div class="empty">No matching archived plans</div>'):'<div class="empty"><h2>No archived plans</h2><p>'+(autoArchiveOn()?'Plans appear here when their status is Done.':'Turn on automatic archiving in Settings to keep completed plans here.')+'</p><button class="btn" data-settings-open="general">Open Settings</button></div>')+'</div>';
+    var all=plans().filter(archivedPlan),ps=filteredPlans(all);topBar('Archive',ps.length+' of '+all.length+' plans');if(!viewOnly)patchRegion($('tabs'),'');
+    return '<div class="archive-view"><p class="archive-lead">Completed plans, kept for reference.</p>'+(all.length?filterNotice(all.length,ps.length)+(ps.length?overviewRows(ps):'<div class="empty">No matching archived plans</div>'):'<div class="empty"><h2>No archived plans</h2><p>'+(autoArchiveOn()?'Plans appear here when their status is Done.':'Turn on automatic archiving in Settings to keep completed plans here.')+'</p><button class="btn" data-settings-open="general">Open Settings</button></div>')+'</div>';
   }
   function viewWaiting() {return viewHome();}
 
-  function orderedMilestones(p) {
-    var rank = function (m) { var s = msState(m); return s === 'done' ? 1 : s === 'todo' ? 2 : 0; };
-    return p.milestones.map(function (m, i) { return [m, i]; }).sort(function (a, b) { return rank(a[0]) - rank(b[0]) || (rank(a[0]) !== 2 ? b[1] - a[1] : a[1] - b[1]); }).map(function (x) { return x[0]; });
-  }
   var SORDER = { doing: 0, blocked: 1, partial: 2, todo: 3, done: 4 }, TAG = { doing: 'Doing', blocked: 'Blocked', partial: 'Partial', todo: 'To do', done: 'Done' }, BOX = { done: '✓', doing: '↻', blocked: '×', partial: '!', todo: '' };
   var pendingTaskJump=false;
   function focusedTask(p){
@@ -1518,34 +1355,42 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     opts=opts || {};
     return list.map(function (s, i) { return [s, i]; }).sort(function (a, b) { return SORDER[a[0].status] - SORDER[b[0].status] || a[1] - b[1]; }).map(function (x) {
       var s = x[0],selected=p && focusedTask(p),focused=selected && (selected===s || (Number.isInteger(s.line) && s.line>0 && selected.line===s.line));
-      return '<div class="st '+(focused?'task-focused ':'')+'s-' + s.status + '"'+(Number.isInteger(s.line) && s.line>0?' id="task-line-'+s.line+'"':'')+(focused?' tabindex="-1" aria-current="step"':'')+'><span class="box">' + BOX[s.status] + '</span><div class="tx">' + prs(s.text, gh) + '</div><span class="tag">' + TAG[s.status] + '</span></div>';
+      return '<div class="st '+(focused?'task-focused ':'')+'s-' + esc(s.status) + '"'+(Number.isInteger(s.line) && s.line>0?' id="task-line-'+s.line+'"':'')+(focused?' tabindex="-1" aria-current="step"':'')+'><span class="box">' + (BOX[s.status] ?? '?') + '</span><div class="tx">' + prs(s.text, gh) + '</div><span class="tag">' + (TAG[s.status] || 'Unknown') + '</span></div>';
     }).join('');
   }
+  function milestoneProgress(m){
+    var progress=m.progress;
+    if(progress && Number.isInteger(progress.done) && Number.isInteger(progress.total) && progress.done>=0 && progress.total>=progress.done)return progress;
+    return {done:m.steps.filter(function(s){return s.status==='done';}).length,total:m.steps.length};
+  }
+  function milestoneWork(p){
+    var q=(ui.q || '').toLowerCase(),focus=focusedTask(p);
+    function milestone(m,i){
+      var rows=m.steps.filter(function(s){return !q || String(s.text).toLowerCase().includes(q);});
+      if(q && !rows.length && !String(m.title+' '+(m.summary || '')).toLowerCase().includes(q))return '';
+      var progress=milestoneProgress(m),token=planDisclosureKey(p,'full','milestone:'+m.id+':'+i),open=Object.hasOwn(ui.planDetails,token)?ui.planDetails[token]:msState(m)!=='done' || m.steps.some(function(s){return s.status!=='done';});
+      if(q || focus && rows.some(function(s){return s===focus || s.line && s.line===focus.line;}))open=true;
+      return '<details class="ledger-milestone" data-render-key="milestone:'+esc(m.id)+':'+i+'" data-plan-disclosure="'+esc(token)+'"'+(q?' data-disclosure-auto="1"':'')+(open?' open':'')+'><summary id="plan-disclosure-'+encodeURIComponent(token)+'">'+statusGlyph({done:'Done',doing:'Implementing',blocked:'Blocked',partial:'Waiting for owner',todo:'Planning'}[msState(m)])+'<code>'+esc(m.id)+'</code><strong>'+esc(m.title)+'</strong>'+progressHTML(progress.done,progress.total,'Milestone progress for '+m.id)+'</summary>'+(m.summary?'<p class="ledger-milestone-summary">'+prs(m.summary,p.gh)+'</p>':'')+'<div class="steps">'+stepsHTML(q?rows:m.steps,p.gh,p)+'</div></details>';
+    }
+    var content=p.milestones.map(milestone).join('');
+    var loose=p.steps.filter(function(s){return !p.milestones.some(function(m){return m.steps.some(function(t){return t===s || Number.isInteger(s.line) && s.line>0 && t.line===s.line;}) || s.milestone && m.id===s.milestone;});}).filter(function(s){return !q || String(s.text).toLowerCase().includes(q);});
+    if(loose.length)content+='<section class="ledger-loose" data-render-key="loose"><h2>'+(p.milestones.length?'Other steps':'Steps')+'</h2>'+stepsHTML(loose,p.gh,p)+'</section>';
+    return content || '<div class="empty">'+(q?'No matching steps':'No milestones or steps recorded')+'</div>';
+  }
   function viewPlan(k) {
-    var p = planByKey(k);
-    if (!p) { ui.view = 'home'; return viewHome(); }
-    var c = counts(p), spec = p.spec ? 'vscode://file/' + encodeURI((/^[a-z]:/i.test(p.spec) ? p.spec : p.root + '/' + p.spec).replace(/\\/g, '/')) : '';
-    if (!viewOnly) $('top').innerHTML = '<div class="plan-header"><div class="plan-heading"><button class="btn" data-go="home">← '+LAYOUTS[ui.layout]+'</button><h1>'+esc(p.name)+'</h1>'+starButton(p)+pill(p)+'</div><div class="plan-toolbar">'+(spec?'<a class="btn source-link" href="'+spec+'">Plan document ↗</a>':'')+'<input class="search" id="q" aria-label="Search this plan" placeholder="Search this plan…" value="'+esc(ui.q)+'"><button class="btn" id="refresh">Refresh</button></div></div>';
-    var openQ = p.questions.filter(function (q) { return q.open; }).length;
-    var tabs = [['summary','Summary',''],['checklist', 'Work', p.steps.length-c.done], ['decisions', 'Decisions', p.decisions.length || ''], ['questions', 'Questions', openQ?openQ+' open':p.questions.length || ''], ['activity', 'Activity', '']].filter(function(t){return t[0]!=='decisions' && t[0]!=='questions' || (t[0]==='decisions'?p.decisions.length:p.questions.length);});
+    var p=planByKey(k);if(!p)return '<div class="empty"><h2>Plan unavailable</h2><p>This plan is no longer in the ledger.</p><button class="btn" data-go="home">Overview</button></div>';
+    var c=counts(p),openQ=p.questions.filter(function(q){return q.open;}),spec=p.spec?'vscode://file/'+encodeURI((/^[a-z]:/i.test(p.spec)?p.spec:p.root+'/'+p.spec).replace(/\\/g,'/')):'';
+    if(!viewOnly)patchRegion($('top'),'<div class="ledger-plan-head"><p class="work-meta">'+esc([p.projectName || p.project,p.repo].filter(Boolean).join(' / '))+'</p><div class="plan-heading"><button class="btn" data-go="home">← Overview</button><h1>'+esc(p.name)+'</h1>'+starButton(p)+pill(p)+'</div><div class="plan-toolbar"><button class="btn" data-copy-plan-link>Copy link</button>'+(spec?'<a class="btn source-link" href="'+esc(spec)+'">Plan document ↗</a>':'')+'<input class="search" id="q" aria-label="Search this plan" placeholder="Search this plan…" value="'+esc(ui.q)+'"><button class="btn" id="refresh">Refresh</button></div><p class="work-meta">Updated '+esc(ago(p.mtime))+' · <code>'+esc(p.spec || p.name+'.md')+'</code></p>'+progressHTML(c.done,p.steps.length,'Plan progress')+(p.goal?'<div class="ledger-goal"><strong>Goal</strong><p>'+prs(p.goal,p.gh)+'</p></div>':'')+(stage(p.status)==='Blocked' || isWaiting(p)?'<div class="callout '+(isWaiting(p)?'callout-warning':'callout-danger')+'">'+icon('alert')+'<div><strong>'+esc(stage(p.status))+'</strong><p>'+prs(detail(p.status) || 'No reason recorded',p.gh)+'</p></div></div>':'')+(openQ.length?'<div class="callout callout-warning">'+icon('alertCircle')+'<div><strong>Open questions ('+openQ.length+')</strong><p>'+prs(openQ[0].ask,p.gh)+'</p><button class="link-btn" data-tab="questions">View all questions</button></div></div>':'')+(p.next?'<div class="callout"><div><strong>Next</strong><p>'+prs(p.next,p.gh)+'</p></div></div>':'')+diagnosticHTML(p)+worktreesHTML(p)+'</div>');
+    var tabs=[['summary','Milestones'],['decisions','Decisions '+p.decisions.length],['questions','Questions '+openQ.length],['activity','Activity']].filter(function(t){return t[0]!=='decisions' && t[0]!=='questions' || (t[0]==='decisions'?p.decisions.length:p.questions.length);});
+    if(ui.tab==='checklist')ui.tab='summary';
     if(!tabs.some(function(t){return t[0]===ui.tab;}))ui.tab='summary';
-    if (!viewOnly) $('tabs').innerHTML = '<div class="tabs">' + tabs.map(function (t) { return '<button class="tab ' + (ui.tab === t[0] ? 'on' : '') + '" data-tab="' + t[0] + '">' + t[1] + (t[2] !== '' ? ' <span>' + t[2] + '</span>' : '') + '</button>'; }).join('') + '</div>';
-    var q = (ui.q || '').toLowerCase(), hit = function (s) { return !q || String(s).toLowerCase().indexOf(q) >= 0; };
-    if(ui.tab==='summary')return q?planWork(p,'full',q):planSummary(p,'full');
-    if (ui.tab === 'checklist') {
-      return planWork(p,'full',q);
-    }
-    if (ui.tab === 'decisions') {
-      var ds = p.decisions.slice().sort(function (a, b) { return a.key < b.key ? 1 : a.key > b.key ? -1 : 0; }).filter(function (d) { return hit(d.text); });
-      return ds.length ? '<div class="list">' + ds.map(function (d) { return '<div class="li"><time class="mono">' + esc(d.when) + '</time><div>' + prs(d.text, p.gh) + '</div></div>'; }).join('') + '</div>' : '<div class="empty">No decisions recorded</div>';
-    }
-    if (ui.tab === 'questions') {
-      var qs = p.questions.slice().sort(function (a, b) { return a.key < b.key ? 1 : a.key > b.key ? -1 : 0; }).filter(function (x) { return hit(x.ask + ' ' + x.answer); });
-      return qs.length ? '<div class="list">' + qs.map(function (x) { return '<div class="li"><time class="mono">' + esc(x.when) + '</time><div>' + prs(x.ask, p.gh) + (x.open ? ' <span class="pill t-pending">open</span>' : '<div class="a">' + prs(x.answer, p.gh) + '</div>') + '</div></div>'; }).join('') + '</div>' : '<div class="empty">No questions</div>';
-    }
-    var history=feedFor(p);
-    if(ui.activityDay) history=history.filter(function(e){return dateKey(e.ts)===ui.activityDay;});
-    return (ui.activityDay?'<div class="history-filter">'+esc(ui.activityDay)+' <button class="btn" data-clear-day>Show all activity</button></div>':'')+feedHTML(history, false);
+    if(!viewOnly)patchRegion($('tabs'),'<div class="tabs" role="tablist" aria-label="Plan sections">'+tabs.map(function(t){return '<button id="plan-tab-'+t[0]+'" class="tab '+(ui.tab===t[0]?'on':'')+'" role="tab" aria-selected="'+(ui.tab===t[0])+'" aria-controls="plan-panel" tabindex="'+(ui.tab===t[0]?0:-1)+'" data-tab="'+t[0]+'">'+t[1]+'</button>';}).join('')+'</div>');
+    var q=(ui.q || '').toLowerCase(),hit=function(s){return !q || String(s).toLowerCase().includes(q);},body;
+    if(ui.tab==='summary')body=milestoneWork(p);
+    else if(ui.tab==='decisions')body='<div class="list">'+p.decisions.filter(function(d){return hit(d.text);}).map(function(d){return '<div class="li"><time class="mono">'+esc(d.when)+'</time><div>'+prs(d.text,p.gh)+'</div></div>';}).join('')+'</div>';
+    else if(ui.tab==='questions')body='<div class="list">'+p.questions.filter(function(x){return hit(x.ask+' '+x.answer);}).map(function(x){return '<div class="li"><time class="mono">'+esc(x.when)+'</time><div>'+prs(x.ask,p.gh)+(x.open?' <span class="pill t-pending">Open</span>':'<div class="a">'+prs(x.answer,p.gh)+'</div>')+'</div></div>';}).join('')+'</div>';
+    else body=feedHTML(feedFor(p),false);
+    return '<section id="plan-panel" role="tabpanel" aria-labelledby="plan-tab-'+ui.tab+'" data-render-key="plan:'+esc(key(p))+'">'+body+'</section>';
   }
 
   var viewOnly = false, searchTimer,lastVisitedRoute=null;
@@ -1553,14 +1398,16 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var scroll = $('view').scrollTop, horizontal = $('view').scrollLeft, navScroll = $('nav').scrollTop;
     var input = $('q'), focused = input && document.activeElement === input;
     var start = focused ? input.selectionStart : 0, end = focused ? input.selectionEnd : 0;
-    var active=document.activeElement,menuFocus=columnMenu && active && active.id && active.id.startsWith('column-')?{id:active.id,start:active.selectionStart,end:active.selectionEnd}:null;
+    var active=document.activeElement,activeStart=active && active.selectionStart,activeEnd=active && active.selectionEnd,menuFocus=columnMenu && active && active.id && active.id.startsWith('column-')?{id:active.id,start:active.selectionStart,end:active.selectionEnd}:null;
     var planFocus=active && active.id && active.id.startsWith('plan-disclosure-')?active.id:null;
     viewOnly = !!onlyView;
+    if(pendingTaskLine && ui.view.startsWith('plan:')){var targetPlan=planByKey(ui.view.slice(5)),step=targetPlan && targetPlan.steps.find(function(s){return s.line===pendingTaskLine;});if(step){ui.focusTask={key:key(targetPlan),index:targetPlan.steps.indexOf(step),text:step.text,milestone:step.milestone || '',revision:targetPlan.revision};ui.tab='summary';pendingTaskJump=true;pendingTaskLine=null;}}
     if(ui.view.startsWith('plan:') && planByKey(ui.view.slice(5))){if(lastVisitedRoute!==ui.view){recordPlanVisit(ui.view.slice(5));lastVisitedRoute=ui.view;}}else lastVisitedRoute=null;
     if (!viewOnly) renderNav();
     var v = ui.view, html = v === 'archive' ? viewArchive() : v === 'waiting' ? viewWaiting() : v.indexOf('plan:') === 0 ? viewPlan(v.slice(5)) : viewHome();
-    $('view').className = 'view' + (ui.view.indexOf('plan:')===0 ? ' detail' : '');
-    $('view').innerHTML = html;
+    syncRoute();
+    var viewClass='view'+(ui.view.indexOf('plan:')===0?' detail':'');if($('view').className!==viewClass)$('view').className=viewClass;
+    patchRegion($('view'),html);
     $('view').scrollTop = scroll; $('view').scrollLeft = horizontal; $('nav').scrollTop = navScroll;
     if (!viewOnly) {
       var checked=D.state.generatedAt;
@@ -1575,12 +1422,14 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
       if (focused && qEl) { qEl.focus(); qEl.setSelectionRange(start, end); }
     }
     viewOnly = false;
-    renderSidebar();renderQuickPlan(false);
+    renderSidebar();
+    if(active && active.isConnected && document.activeElement!==active && active.focus){active.focus({preventScroll:true});if(typeof activeStart==='number' && active.setSelectionRange)active.setSelectionRange(activeStart,activeEnd);}
     if(planFocus && $(planFocus))$(planFocus).focus({preventScroll:true});
     if(menuFocus && $(menuFocus.id)){
       var el=$(menuFocus.id);el.focus({preventScroll:true});
       if(typeof menuFocus.start==='number' && el.setSelectionRange)el.setSelectionRange(menuFocus.start,menuFocus.end);
     }
+    if(pendingRoutePosition){$('view').scrollTop=pendingRoutePosition.top;$('view').scrollLeft=pendingRoutePosition.left;pendingRoutePosition=null;}
     if(pendingTaskJump){
       pendingTaskJump=false;var selected=focusedTask(planByKey(ui.view.slice(5))),row=selected && Number.isInteger(selected.line)?$('task-line-'+selected.line):null;
       if(row){row.scrollIntoView({block:'center'});row.focus({preventScroll:true});}
@@ -1619,7 +1468,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   var refreshing=null;
   function refresh() {
     if(refreshing)return refreshing;
-    if($('quick-refresh')){$('quick-refresh').disabled=true;$('quick-refresh').textContent='Checking…';}
     $('save-state').textContent='Checking progress…';
     refreshing=(async function(){
       try{
@@ -1631,12 +1479,11 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
         if(latest.error)throw Error(latest.error);
         $('save-state').textContent='Progress updated';
       }catch(e){showError(e.message);$('save-state').textContent='Progress check failed';}
-      finally{refreshing=null;if(errorUI.reason)showError(errorUI.reason);if($('quick-refresh')){$('quick-refresh').disabled=false;$('quick-refresh').textContent='Refresh';}}
+      finally{refreshing=null;if(errorUI.reason)showError(errorUI.reason);}
     })();
     return refreshing;
   }
   document.addEventListener('pointerdown',function(e){
-    if(startInspectorDrag(e))return;
     if(!columnMenu || e.target.closest('.column-popover,[data-column-menu]'))return;
     var column=columnMenu.column;columnMenu=null;
     var popup=$('task-column-popover'),trigger=$('column-trigger-'+column);
@@ -1677,7 +1524,6 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     var raw=$('error-raw');if(raw){raw.textContent=reason;raw.hidden=!reason || !errorUI.details;}
     var details=$('error-details');if(details){details.hidden=!reason || headline===reason;details.setAttribute('aria-expanded',String(errorUI.details));details.textContent=errorUI.details?'Hide details':'Details';}
     var retry=$('error-retry');if(retry){retry.disabled=!!refreshing;retry.innerHTML=refreshing?spinner()+'Retrying…':'Retry';}
-    if($('quick-error')){$('quick-error').hidden=!reason;$('quick-error').textContent=reason || '';}
   }
 
   // ---------- Updates: a non-modal card plus a status-bar item; nothing opens a modal by itself ----------
@@ -2220,7 +2066,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   async function finishSetup(){
     setup.confirmSkip=false;
     var ok=await runSettingsAction('setup','finishing',async function(){settingsData=await settingsRequest('/api/settings','PUT',{setupComplete:true});});
-    if(ok){setup.open=false;setup.step=0;setup.visited=0;D.setupRequired=false;renderSetup();render();renderUpdate();get();}
+    if(ok){setup.open=false;setup.step=0;setup.visited=0;D.setupRequired=false;syncRoute();renderSetup();render();renderUpdate();get();}
     return ok;
   }
   function openSetup(){setup.open=true;setup.step=0;setup.visited=0;setup.error='';setup.notice='';setup.confirmSkip=false;setup.picked=null;loadSettings();renderSetup();renderUpdate();focusSetupPrimary();}
@@ -2295,6 +2141,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
 
   function renderSetup(){
+    if(setup.open)syncRoute();
     var host=$('onboarding');if(!host)return;
     host.hidden=!setup.open;
     if(!setup.open){if(host.innerHTML)host.innerHTML='';return;}
@@ -2397,6 +2244,7 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
   }
   function navItem(id,label,glyph,on,extra){return '<button class="settings-nav-item'+(on?' on':'')+'" data-settings-section="'+esc(id)+'"'+(on?' aria-current="page"':'')+(extra || '')+'>'+glyph+'<span>'+esc(label)+'</span></button>';}
   function renderSettings(){
+    if(settingsUI.open)syncRoute();
     var host=$('settings');if(!host)return;
     host.hidden=!settingsUI.open;
     if(!settingsUI.open){if(host.innerHTML)host.innerHTML='';return;}
@@ -2428,11 +2276,11 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     if(!settingsUI.open)settingsUI.returnTo=document.activeElement;
     settingsUI.open=true;settingsUI.section=section || settingsUI.section || 'general';settingsUI.query='';settingsUI.error='';settingsUI.notice='';settingsUI.confirmRemove='';
     settingsUI.adding=!!(options && options.add);
-    renderSettings();loadSettings();if(settingsUI.section==='integrations')loadIntegrations();
+    syncRoute();renderSettings();loadSettings();if(settingsUI.section==='integrations')loadIntegrations();
     var target=settingsUI.adding?$('settings-choose'):$('settings-search');if(target)target.focus();
   }
   function closeSettings(){
-    settingsUI.open=false;settingsUI.adding=false;settingsUI.pasting=false;settingsUI.confirmRemove='';renderSettings();renderUpdate();
+    settingsUI.open=false;settingsUI.adding=false;settingsUI.pasting=false;settingsUI.confirmRemove='';syncRoute();renderSettings();renderUpdate();
     if(settingsUI.returnTo && settingsUI.returnTo.isConnected)settingsUI.returnTo.focus({preventScroll:true});
   }
   function handleSettingsAction(ev){
@@ -2569,12 +2417,12 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
 
   function connection(online) { $('live').className = online ? 'live' : 'live off'; $('connection').textContent = online ? 'Live' : 'Reconnecting…'; }
   function get() { return fetch('/api/state', { cache: 'no-store' }).then(function (r) { if(!r.ok) throw Error('State request failed: '+r.status); return r.json(); }).then(function (j) {
-    if (!j.state || !Array.isArray(j.state.plans) || !Array.isArray(j.activity)) throw Error(j.error || 'Invalid state response');
-    if(D.appVersion && j.appVersion && D.appVersion!==j.appVersion){save('wb-update-view',{version:j.appVersion,ui:ui,scroll:$('view').scrollTop,horizontal:$('view').scrollLeft,quick:{key:quick.key,tab:quick.tab,sequence:quick.sequence,scroll:$('quick-plan-scroll') && $('quick-plan-scroll').scrollTop}});location.reload();return j;}
+    if (!j.state || !Array.isArray(j.state.plans)) throw Error(j.error || 'Invalid state response');
+    if(D.appVersion && j.appVersion && D.appVersion!==j.appVersion){save('wb-update-view',{version:j.appVersion,ui:ui,scroll:$('view').scrollTop,horizontal:$('view').scrollLeft});location.reload();return j;}
     var restored=restoreUpdateView(j);
-    D = j; if(!storedKeysMigrated && D.state.plans.length){storedKeysMigrated=true;migrateStoredPlanKeys();}
+    acceptState(j); if(!storedKeysMigrated && D.state.plans.length){storedKeysMigrated=true;migrateStoredPlanKeys();}
     showError(D.error); render(); showWarnings(D.warnings); showCrash(D.crash); syncSetup(); renderUpdate();
-    if(restored){$('view').scrollTop=restored.scroll || 0;$('view').scrollLeft=restored.horizontal || 0;if(restored.quick && restored.quick.key && planByKey(restored.quick.key)){openQuickPlan(restored.quick.key,restored.quick.sequence);quick.tab=restored.quick.tab;renderQuickPlan(true);if($('quick-plan-scroll'))$('quick-plan-scroll').scrollTop=restored.quick.scroll || 0;}}
+    if(restored){$('view').scrollTop=restored.scroll || 0;$('view').scrollLeft=restored.horizontal || 0;}
     return j;
   }).catch(function (e) { if(!updateInstalling())showError(e.message);return null; }); }
   function connect() {
@@ -2583,49 +2431,66 @@ button.status-seg:hover { background: var(--hover); color: var(--fg); }
     es.onmessage = function () { get(); };
     es.onerror = function () { connection(false); };
   }
-  function jumpHash() {
-    if (location.hash === '#settings') {
-      if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', location.pathname + location.search);
-      openSettings('general');
-      return;
-    }
-    if (location.hash.indexOf('#plan=') === 0) {
-      try { ui.view = 'plan:' + decodeURIComponent(location.hash.slice(6).replace(/\+/g, ' ')); ui.tab = 'summary'; ui.q = ''; save('wb-ui',ui); } catch(e) { /* An invalid external fragment leaves the current view intact. */ }
-    }
+  var routeReading=false,routeReady=false,routePositions=new Map(),pendingRoutePosition=null,pendingTaskLine=null;
+  function routeHash(){
+    var path=setup.open?'setup':settingsUI.open?'settings/'+encodeURIComponent(settingsUI.section):ui.view.startsWith('plan:')?'plan/'+encodeURIComponent(ui.view.slice(5))+'/'+(ui.tab==='checklist'?'summary':ui.tab):ui.view==='archive'?'archive':ui.view==='waiting'?'attention':ui.layout==='list'?'list':'';
+    var query=new URLSearchParams();
+    if(!setup.open && !settingsUI.open){if(ui.q)query.set('q',ui.q);if(ui.view==='home' && navigation.section!=='all')query.set('collection',navigation.section);if(ui.layout==='list' && ui.view==='home'){query.set('status',ui.taskStatus);query.set('group',ui.taskGroup);}var selected=ui.view.startsWith('plan:') && focusedTask(planByKey(ui.view.slice(5)));if(selected && selected.line)query.set('step','L'+selected.line);}
+    return '#/'+path+(query.size?'?'+query.toString():'');
   }
-  var inspectorDrag=null;
-  function startInspectorDrag(e){if(e.target.id!=='inspector-resize' || !quick.key || !quick.docked)return false;e.preventDefault();inspectorDrag={x:e.clientX,width:setInspectorWidth(navigation.inspectorWidth,false)};if(e.target.setPointerCapture)e.target.setPointerCapture(e.pointerId);return true;}
-  document.addEventListener('pointermove',function(e){if(inspectorDrag)setInspectorWidth(inspectorDrag.width+inspectorDrag.x-e.clientX,false);});
-  function finishInspectorDrag(e){if(!inspectorDrag)return;setInspectorWidth(inspectorDrag.width+inspectorDrag.x-e.clientX,true);inspectorDrag=null;}
-  document.addEventListener('pointerup',finishInspectorDrag);
-  document.addEventListener('pointercancel',function(){inspectorDrag=null;});
-  window.addEventListener('resize',function(){if(quick.key)syncQuickSurface();});
+  function syncRoute(replace){
+    if(routeReading || !routeReady)return;
+    var next=routeHash(),old=location.hash;
+    if(next===old)return;
+    routePositions.set(old,{top:$('view').scrollTop,left:$('view').scrollLeft});
+    if(typeof history!=='undefined' && history.pushState){var sameView=old.split('?')[0]===next.split('?')[0];history[replace || sameView?'replaceState':'pushState'](null,'',next);}
+  }
+  function jumpHash(){
+    routeReading=true;routeReady=true;pendingTaskLine=null;
+    try{
+      var raw=location.hash;
+      if(raw==='#settings')raw='#/settings/general';
+      if(raw.indexOf('#plan=')===0)raw='#/plan/'+encodeURIComponent(decodeURIComponent(raw.slice(6).replace(/\+/g,' ')))+'/summary';
+      if(!raw || !raw.startsWith('#/')){routeReading=false;syncRoute(true);return;}
+      var parts=raw.slice(2).split('?'),path=parts[0].split('/'),query=new URLSearchParams(parts[1] || '');
+      setup.open=false;settingsUI.open=false;ui.focusTask=null;ui.q=query.get('q') || '';ui.activityDay='';
+      if(path[0]==='settings'){openSettings(decodeURIComponent(path[1] || 'general'));}
+      else if(path[0]==='setup'){setup.open=true;renderSetup();}
+      else if(path[0]==='plan'){ui.view='plan:'+decodeURIComponent(path[1] || '');ui.tab=['summary','checklist','decisions','questions','activity'].includes(path[2])?path[2]:'summary';var line=/^L([1-9]\d*)$/.exec(query.get('step') || '');pendingTaskLine=line?Number(line[1]):null;}
+      else {ui.view=path[0]==='archive'?'archive':path[0]==='attention'?'waiting':'home';ui.layout=path[0]==='list'?'list':'summary';navigation.section=ui.view==='archive'?'archive':['starred','recent'].includes(query.get('collection'))?query.get('collection'):'all';if(ui.layout==='list'){var status=query.get('status');if(['all','todo','doing','done','partial','blocked'].includes(status))ui.taskStatus=status;var grouping=query.get('group');if(['none','plan'].includes(grouping))ui.taskGroup=grouping;}}
+      save('wb-ui',ui);save('wb-navigation',navigation);pendingRoutePosition=routePositions.get(location.hash) || {top:0,left:0};
+      renderSettings();renderSetup();
+    }catch(e){/* A malformed external fragment leaves the last readable ledger available. */}
+    finally{routeReading=false;}
+  }
   window.addEventListener('hashchange',function(){jumpHash();render();});
-  if($('quick-plan'))$('quick-plan').addEventListener('cancel',function(e){e.preventDefault();closeQuickPlan();});
+  window.addEventListener('popstate',function(){jumpHash();render();});
   document.addEventListener('keydown',function(e){
-    if(e.target.id==='inspector-resize' && ['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();setInspectorWidth(e.key==='Home'?340:e.key==='End'?inspectorMax():navigation.inspectorWidth+(e.key==='ArrowLeft'?20:-20),true);return;}
     if(commandKey(e))return;
     if(settingsKey(e))return;
-    if(e.key==='F5'){e.preventDefault();if(!e.repeat)refresh();return;}
-    if(quick.key){
-      if(e.key==='Escape'){e.preventDefault();closeQuickPlan();return;}
-      if(e.altKey && ['ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();stepQuickPlan(e.key==='ArrowDown'?1:-1);return;}
-      var tab=e.target.closest && e.target.closest('[data-quick-tab]');
-      if(tab && ['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
-        e.preventDefault();var tabs=['overview','checklist','activity'],i=tabs.indexOf(quick.tab);
-        quick.tab=tabs[e.key==='Home'?0:e.key==='End'?2:(i+(e.key==='ArrowRight'?1:-1)+3)%3];renderQuickPlan(true);if($('quick-tab-'+quick.tab))$('quick-tab-'+quick.tab).focus();return;
-      }
+    var planTab=e.target.closest && e.target.closest('[role="tab"][data-tab]');
+    if(planTab && ['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+      e.preventDefault();var tabs=Array.from($('tabs').querySelectorAll('[role="tab"]')),index=tabs.indexOf(planTab),next=tabs[e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length];
+      ui.tab=next.getAttribute('data-tab');render();if($(next.id))$(next.id).focus();return;
     }
+    var inSidebar=$('plan-sidebar').contains && $('plan-sidebar').contains(e.target);
+    if(inSidebar && ['ArrowDown','ArrowUp','Home','End','ArrowLeft','ArrowRight'].includes(e.key)){
+      var folder=e.target.closest('[data-repo-toggle]');
+      if(folder && ['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();var group=folder.getAttribute('data-repo-toggle');navigation.folders[group]=e.key==='ArrowLeft';save('wb-navigation',navigation);renderSidebar();return;}
+      if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();var rows=Array.from($('plan-sidebar').querySelectorAll('.folder-heading,.sidebar-plan-link')).filter(function(el){return !el.closest('[hidden]');}),current=rows.indexOf(e.target),target=rows[e.key==='Home'?0:e.key==='End'?rows.length-1:Math.max(0,Math.min(rows.length-1,current+(e.key==='ArrowDown'?1:-1)))];if(target)target.focus();return;}
+    }
+    if(e.key==='F5'){e.preventDefault();if(!e.repeat)refresh();return;}
     if(e.key==='Escape' && columnMenu){e.preventDefault();dismissColumnMenu(true);return;}
     if(e.key==='Enter' && columnMenu && e.target.tagName==='INPUT' && e.target.type!=='checkbox'){e.preventDefault();applyColumnMenu();return;}
     var typing = typingIn(e.target);
     if (e.ctrlKey && !e.altKey && e.key.toLowerCase()==='b') {e.preventDefault();navigation.collapsed=!navigation.collapsed;save('wb-navigation',navigation);renderSidebar();return;}
-    if(e.ctrlKey && !e.altKey && /^[1-4]$/.test(e.key)){e.preventDefault();switchLayout(Object.keys(LAYOUTS)[Number(e.key)-1]);return;}
+    if(e.ctrlKey && !e.altKey && /^[1-2]$/.test(e.key)){e.preventDefault();switchLayout(Object.keys(LAYOUTS)[Number(e.key)-1]);return;}
     if (e.ctrlKey && !e.altKey && e.key===',') {e.preventDefault(); openSettings('general'); return;}
+    if(e.key==='Escape' && typing){if(e.target.id==='q' && ui.q){e.preventDefault();ui.q='';e.target.value='';render();}return;}
     if (e.key==='Escape' && ui.view.indexOf('plan:')===0) {ui.view='home';ui.q='';ui.activityDay='';save('wb-ui',ui);render();return;}
     if (typing) return;
-    if (e.altKey && (e.key==='ArrowUp' || e.key==='ArrowDown')) {
-      e.preventDefault(); var ps=plans(), i=ps.findIndex(function(p){return ui.view==='plan:'+key(p);});
+    if ((e.altKey || e.ctrlKey && e.shiftKey) && (e.key==='ArrowUp' || e.key==='ArrowDown')) {
+      e.preventDefault(); var ps=sidebarPlans(), i=ps.findIndex(function(p){return ui.view==='plan:'+key(p);});
       if(ps.length) {i=(i+(e.key==='ArrowDown'?1:-1)+ps.length)%ps.length;ui.view='plan:'+key(ps[i]);ui.q='';ui.tab='summary';save('wb-ui',ui);render();$('view').scrollTop=0;}
     } else if (!e.ctrlKey && !e.altKey && !e.metaKey && shortcutsOn()) {
       // Single-key shortcuts; Settings > General turns them off.
