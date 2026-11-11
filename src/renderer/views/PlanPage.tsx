@@ -22,6 +22,7 @@ import {
   timeLabel,
   whenLabel,
   workflow,
+  placeLabel,
 } from '../model';
 import { useLedger } from '../store';
 import {
@@ -204,9 +205,7 @@ export function PlanPage({
   return (
     <section className="plan-page" ref={panel} data-plan-key={planKey(plan)}>
       <header className="plan-header">
-        <p className="breadcrumb">
-          {plan.projectName} / {plan.repo}
-        </p>
+        <p className="breadcrumb">{placeLabel(plan)}</p>
         <div className="row">
           <Link to="/">← Overview</Link>
           <h1>{plan.name}</h1>
@@ -235,6 +234,8 @@ export function PlanPage({
             Copy link
           </button>
         </div>
+      </header>
+      <div className="plan-summary">
         <p className="muted">
           {whenLabel(plan.mtime, snapshot!.now) &&
             `Updated ${whenLabel(plan.mtime, snapshot!.now)} · `}
@@ -293,7 +294,7 @@ export function PlanPage({
             This task changed. Refresh the list and open it again.
           </p>
         )}
-      </header>
+      </div>
       <nav
         className="plan-tabs"
         role="tablist"

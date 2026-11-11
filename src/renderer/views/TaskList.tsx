@@ -10,6 +10,7 @@ import {
   taskRows,
   type ListFilters,
   type TaskRow,
+  placeLabel,
 } from '../model';
 import { useLedger } from '../store';
 import {
@@ -354,9 +355,7 @@ export function TaskList({
                         />
                         <span>
                           {p.name}
-                          <small>
-                            {p.projectName} / {p.repo}
-                          </small>
+                          <small>{placeLabel(p)}</small>
                         </span>
                       </label>
                     ))}
@@ -555,8 +554,7 @@ export function TaskList({
                               }))
                             }
                           >
-                            {closed ? '›' : '⌄'} {p.projectName} / {p.repo} ·{' '}
-                            {p.name}
+                            {closed ? '›' : '⌄'} {placeLabel(p)} · {p.name}
                           </button>
                           <PlanLink plan={p}>Open plan</PlanLink>
                           <Status value={p.status} />

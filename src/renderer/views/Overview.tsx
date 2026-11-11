@@ -94,12 +94,13 @@ export function Overview({
   );
   const groups = new Map<
     string,
-    { name: string; workspaces: Map<string, DisplayPlan[]> }
+    { name: string; flat: boolean; workspaces: Map<string, DisplayPlan[]> }
   >();
   for (const plan of plans) {
     const id = plan.project;
     const group = groups.get(id) ?? {
       name: plan.projectName || plan.project || 'Workspace',
+      flat: plan.source === 'tasks',
       workspaces: new Map(),
     };
     groups.set(id, group);
@@ -153,7 +154,7 @@ export function Overview({
       {plans.length ? (
         [...groups].map(([id, group]) => (
           <section className="project-group" key={id}>
-            <h2>{group.name}</h2>
+            {!group.flat && <h2>{group.name}</h2>}
             {[...group.workspaces].map(([workspace, rows]) => (
               <section key={workspace} className="workspace-group">
                 <h3>{workspace}</h3>

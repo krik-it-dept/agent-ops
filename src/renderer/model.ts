@@ -483,3 +483,12 @@ export function protocolPlanLink(raw: string): string | null {
     return null;
   }
 }
+
+/** placeLabel names where a plan lives: its workspace, or for older plans inside a workspace folder, folder / workspace. */
+export function placeLabel(p: {
+  source?: string | undefined;
+  projectName: string;
+  repo: string;
+}): string {
+  return p.source === 'tasks' ? p.repo : `${p.projectName} / ${p.repo}`;
+}
