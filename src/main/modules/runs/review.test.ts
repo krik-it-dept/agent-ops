@@ -6,6 +6,7 @@ import {
   statSync,
   symlinkSync,
   truncateSync,
+  realpathSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -326,7 +327,7 @@ describe('review: report boundaries', () => {
       expect(out.stderr).toBe('');
       const run = await readRun(path.join(s.data, 'runs'), out.stdout.trim());
       expect(run.records[0]!.file.toLowerCase()).toBe(
-        s.plan.replace(/\\/g, '/').toLowerCase(),
+        realpathSync.native(s.plan).replace(/\\/g, '/').toLowerCase(),
       );
     },
     15_000,

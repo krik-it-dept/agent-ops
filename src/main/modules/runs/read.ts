@@ -1,7 +1,9 @@
 // Joins reported runs to the plans the collector read. Runs match a plan by
 // its file path, case-insensitively; each plan gets its latest 50 runs.
 
+import path from 'node:path';
 import type { AgentRun } from '../../../shared/contracts';
+import { pathKey, realKey } from '../../lib/safe-io/paths';
 import type { Diagnostic, Plan } from '../plans/overview';
 import {
   MAX_RUN_FILE_BYTES,
@@ -69,8 +71,30 @@ export async function attachRuns(
   now: Date,
   signal?: AbortSignal,
 ): Promise<void> {
+  // Plans and reports may name the same file differently (8.3 short names,
+  // junctions, case), so both sides are also keyed by their real folder.
+  const realDirs = new Map<string, Promise<string>>();
+  const realFileKey = async (file: string): Promise<string> => {
+    const dir = path.dirname(file);
+    let real = realDirs.get(dir.toLowerCase());
+    if (!real) {
+      real = realKey(dir);
+      realDirs.set(dir.toLowerCase(), real);
+    }
+    return pathKey(path.join(await real, path.basename(file)));
+  };
   const byFile = new Map<string, Plan>();
   for (const plan of out.plans) byFile.set(plan.file.toLowerCase(), plan);
+  // Real keys are only built when a report does not match by text.
+  let byRealFile: Map<string, Plan> | undefined;
+  const matchReal = async (file: string): Promise<Plan | undefined> => {
+    if (!byRealFile) {
+      byRealFile = new Map();
+      for (const plan of out.plans)
+        byRealFile.set(await realFileKey(plan.file), plan);
+    }
+    return byRealFile.get(await realFileKey(file));
+  };
   const runs = new Map<Plan, AgentRun[]>();
   const skipped = new Map<Plan, number>();
   let lost = 0;
@@ -108,7 +132,8 @@ export async function attachRuns(
       if (bad) lost++;
       continue;
     }
-    const plan = byFile.get(first.file.toLowerCase());
+    const plan =
+      byFile.get(first.file.toLowerCase()) ?? (await matchReal(first.file));
     if (!plan) {
       unmatched++;
       continue;

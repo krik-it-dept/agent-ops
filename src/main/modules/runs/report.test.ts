@@ -1,4 +1,10 @@
-import { readFileSync, readdirSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { put, tempDir } from '../../lib/safe-io/test-helpers';
@@ -143,7 +149,8 @@ describe('report command', () => {
       index: 0,
     });
     expect(recs[2]!.step).toEqual(recs[0]!.step);
-    expect(recs[0]!.file).toBe(slash(s.plan));
+    // Records keep the long real path, also when the temp folder is an 8.3 name.
+    expect(recs[0]!.file).toBe(slash(realpathSync.native(s.plan)));
     expect(recs[0]!.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(readFileSync(s.plan)).toEqual(before);
     expect(readdirSync(path.dirname(s.plan))).toEqual(['plan.md']);
@@ -238,7 +245,7 @@ describe('report command', () => {
     );
     expect(upper.stderr).toBe('');
     const [r] = await records(s, upper.stdout.trim());
-    expect(r!.file).toBe(slash(s.plan));
+    expect(r!.file).toBe(slash(realpathSync.native(s.plan)));
   });
   it.each<[string, (s: Setup) => string[], RegExp]>([
     [

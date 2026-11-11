@@ -1,7 +1,9 @@
+import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   readFileSync,
   readdirSync,
+  renameSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
@@ -99,6 +101,43 @@ describe('reading runs with plans', () => {
   const write = (dir: string, ...records: RunRecord[]) =>
     put(runFile(dir, records[0]!.runId), lines(...records));
 
+  it.skipIf(process.platform !== 'win32')(
+    'matches a report that names the plan through an 8.3 short folder name',
+    async () => {
+      const s = setup();
+      const longTasks = path.join(
+        path.dirname(s.tasks),
+        'tasks folder with a long name',
+      );
+      renameSync(s.tasks, longTasks);
+      const short = execFileSync(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `(New-Object -ComObject Scripting.FileSystemObject).GetFolder('${longTasks.replace(/'/g, "''")}').ShortPath`,
+        ],
+        { encoding: 'utf8', windowsHide: true },
+      ).trim();
+      // 8.3 names can be turned off for a drive; nothing to prove then.
+      if (!short || short.toLowerCase() === longTasks.toLowerCase()) return;
+      write(
+        s.runs,
+        record({
+          file: slash(path.join(short, 'ws', 'plan.md')),
+          at: new Date(NOW.getTime() - 60_000).toISOString(),
+        }),
+      );
+      const out = await collectOverview(
+        { tasksDir: longTasks, runsDir: s.runs },
+        { now: () => NOW, git: async () => '' },
+      );
+      const plan = out.plans.find((p) => p.name === 'plan');
+      expect(plan?.runs?.map((r) => r.runId)).toEqual([id(1)]);
+    },
+    15_000,
+  );
   it('attaches the latest state of each run, newest first, matched by file case-insensitively', async () => {
     const s = setup();
     const at = (minutes: number) =>
