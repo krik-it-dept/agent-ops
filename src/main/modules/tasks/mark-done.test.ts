@@ -3,6 +3,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   renameSync,
   symlinkSync,
   writeFileSync,
@@ -319,7 +320,17 @@ describe('mark a plan Done', () => {
       io: {
         ops: {
           rename: async (source, target) => {
-            if (target === f.file && ++attempts === 1) {
+            // The app writes through the real long path; the temp folder may be
+            // an 8.3 short name (as on CI), so compare real paths.
+            const real = (file: string) => {
+              try {
+                return realpathSync.native(file).toLowerCase();
+              } catch {
+                return file.toLowerCase();
+              }
+            };
+            const same = real(target) === real(f.file);
+            if (same && ++attempts === 1) {
               writeFileSync(
                 f.file,
                 'Status: Blocked\nGoal: Agent saved this\n',
