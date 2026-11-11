@@ -80,7 +80,7 @@ describe('composition adapters with real libraries and isolated files', () => {
     await runtime.handlers['skills:install']!({ id: target });
     expect(
       await readFile(join(input, 'task-plan', 'SKILL.md'), 'utf8'),
-    ).toContain('agent-ops-skill: 3');
+    ).toContain('agent-ops-skill: 4');
     // Regression: a preferences save after Skills installed must keep its recorded hashes.
     await runtime.handlers['settings:set']!({ theme: 'light' });
     const saved = JSON.parse(
@@ -89,7 +89,7 @@ describe('composition adapters with real libraries and isolated files', () => {
     expect(saved.theme).toBe('light');
     expect(saved.integrations[0]).toMatchObject({
       id: target,
-      version: 3,
+      version: 4,
       sha256: expect.any(String),
     });
   });
