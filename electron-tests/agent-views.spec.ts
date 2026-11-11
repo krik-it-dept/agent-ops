@@ -226,3 +226,45 @@ for (const theme of ['light', 'dark'] as const) {
     }
   });
 }
+
+test('Ctrl+1..4 and the command palette open the work views and keep the search and agent filter', async () => {
+  const fixture = await launchFixture('demo', 'light');
+  const { page } = fixture;
+  try {
+    await page.getByRole('button', { name: 'Dismiss update' }).click();
+    const filter = page.getByRole('combobox', { name: 'Filter by agent' });
+    await filter.selectOption('Codex');
+    await expect(filter).toHaveValue('Codex');
+    for (const [key, path, heading] of [
+      ['2', '/list', 'List'],
+      ['3', '/board', 'Board'],
+      ['4', '/timeline', 'Timeline'],
+      ['1', '/', 'Summary'],
+    ] as const) {
+      await page.keyboard.press(`Control+${key}`);
+      await expect(
+        page.getByRole('heading', { name: heading, exact: true }),
+      ).toBeVisible();
+      await expect(filter).toHaveValue('Codex');
+      const hash = await page.evaluate(() => location.hash);
+      expect(hash.split('?')[0]).toBe(`#${path}`);
+      expect(hash).toContain('agent=Codex');
+    }
+    await page.keyboard.press('Control+k');
+    await page
+      .getByRole('combobox', { name: 'Search plans or commands' })
+      .fill('Board');
+    await page.getByRole('option', { name: /^Board/ }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Board', exact: true }),
+    ).toBeVisible();
+    await expect(filter).toHaveValue('Codex');
+    await page.keyboard.press('?');
+    await expect(
+      page.getByRole('dialog', { name: 'Keyboard shortcuts' }),
+    ).toContainText('Summary / List / Board / Timeline');
+    expect(fixture.errors).toEqual([]);
+  } finally {
+    await fixture.close();
+  }
+});

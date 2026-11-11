@@ -30,7 +30,7 @@ import {
   visitPlan,
   type Navigation,
 } from './preferences';
-import { routePlan } from './routes';
+import { routePlan, viewRoute, VIEW_SHORTCUTS } from './routes';
 import { Empty, planRoute } from './components/ui';
 import { UpdatePanel, updating, useUpdateDock } from './components/Updates';
 import { CommandSearch, ShortcutSheet } from './components/Commands';
@@ -291,9 +291,11 @@ function Shell() {
         setNavigation((nav) => ({ ...nav, collapsed: !nav.collapsed }));
         return;
       }
-      if (event.ctrlKey && !event.altKey && /^[12]$/.test(event.key)) {
+      if (event.ctrlKey && !event.altKey && /^[1-4]$/.test(event.key)) {
         event.preventDefault();
-        navigate(event.key === '1' ? '/' : '/list');
+        navigate(
+          viewRoute(VIEW_SHORTCUTS[Number(event.key) - 1]!, searchRef.current),
+        );
         return;
       }
       if (event.ctrlKey && !event.altKey && event.key === ',') {
@@ -865,6 +867,7 @@ function Shell() {
               b.mtime.localeCompare(a.mtime),
           )}
           close={() => setCommands(false)}
+          viewRoute={(path) => viewRoute(path, searchRef.current)}
           toggleSidebar={() =>
             setNavigation((nav) => ({ ...nav, collapsed: !nav.collapsed }))
           }

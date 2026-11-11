@@ -26,7 +26,7 @@ import {
   normalizeNavigation,
   visitPlan,
 } from './preferences';
-import { openingHash } from './routes';
+import { openingHash, viewRoute, VIEW_SHORTCUTS } from './routes';
 import type { Step } from '../shared/contracts';
 
 describe('source-backed ledger state', () => {
@@ -251,6 +251,16 @@ describe('task filters and natural sorting', () => {
   });
 });
 describe('private navigation and history', () => {
+  it('maps Ctrl+1..4 to the work views and keeps the current search and agent filter', () => {
+    expect(VIEW_SHORTCUTS).toEqual(['/', '/list', '/board', '/timeline']);
+    expect(
+      viewRoute('/board', new URLSearchParams('q=login&agent=Codex')),
+    ).toBe('/board?q=login&agent=Codex');
+    expect(viewRoute('/timeline', '?agent=Codex')).toBe(
+      '/timeline?agent=Codex',
+    );
+    expect(viewRoute('/', new URLSearchParams())).toBe('/');
+  });
   it('restores the previous view on reopen, clears saved filters and respects explicit deep links', () => {
     expect(openingHash('', { route: '/list?status=done&q=old' })).toBe(
       '#/list',
