@@ -3,8 +3,7 @@
 // Mark as Done). Every other byte stays as it was: the BOM, line endings,
 // spacing around the value, invalid UTF-8 elsewhere and the rest of the file.
 //
-// The top Status line is the one the plan reader uses as the plan's stage
-// (src/main/modules/plans/parse.ts): the first `Status:` header line, matched
+// The top Status line is the first `Status:` header line, matched
 // case-insensitively after trimming, before the first level-2 to level-4
 // heading, outside fenced code. Unlike the reader, editing requires the
 // English `Status:` label; a legacy `Trạng thái:` line is never changed.
@@ -57,6 +56,9 @@ export function findStatus(bytes: Uint8Array): StatusSpan | null {
     const raw = Buffer.from(bytes.subarray(line.start, line.end));
     const text = raw.toString('utf8');
     const l = text.trim();
+    // The reader tolerates indented metadata, but writing must never change
+    // an example inside an indented Markdown code block (a tab is four columns).
+    if (/^(?: {4}| {0,3}\t)/.test(text)) continue;
     const f = /^(`{3,}|~{3,})/.exec(l)?.[1];
     if (f) {
       if (!fence) fence = f;

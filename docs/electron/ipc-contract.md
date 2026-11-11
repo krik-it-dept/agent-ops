@@ -389,8 +389,8 @@ copy is removed; the backup stays. No overwrite, source-path injection, links ou
 or arbitrary `from` folder is allowed. Choosing a new folder without move stops reading the old
 folder. Clear previousTasksDir only when it has no remaining plans.
 
-Mark as Done is the one plan edit (owner decision 2026-11-11). Main finds the top Status line as the
-reader does (the first `Status:` header line before the first level-2 to level-4 heading, outside fenced
+Mark as Done is the one plan edit (owner decision 2026-11-11). Main finds the top Status line
+(the first `Status:` header line before the first level-2 to level-4 heading, outside fenced or indented
 code; a legacy `Trạng thái:` label alone does not permit editing) and replaces its value with `Done` on the raw bytes, so the BOM,
 line endings, spacing and every other byte stay. Before writing it copies the original to
 `<dataDir>\backups\plan-edits\<UTC time>-<id>\<workspace>\<plan>.md` and keeps the newest 50 such

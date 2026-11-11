@@ -93,6 +93,14 @@ describe('Status line replacement', () => {
     expect(markText('')).toBeNull();
   });
 
+  it('never changes Status examples in indented Markdown code blocks', () => {
+    expect(markText('Goal: x\n\n    Status: Testing\n')).toBeNull();
+    expect(markText('Goal: x\n\n\tStatus: Testing\n')).toBeNull();
+    expect(
+      markText('    Status: Testing\n\nStatus: Reviewing\n')!.toString(),
+    ).toBe('    Status: Testing\n\nStatus: Done\n');
+  });
+
   it('keeps invalid UTF-8 bytes elsewhere in the file', () => {
     const bytes = Buffer.concat([
       Buffer.from('Status: Testing\nNote: '),
