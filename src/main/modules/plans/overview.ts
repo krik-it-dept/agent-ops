@@ -4,6 +4,7 @@ import {
   type ParsedStep,
   type StepStatus,
 } from './parse';
+import type { AgentRun } from '../../../shared/contracts';
 
 export interface Step {
   status: StepStatus;
@@ -11,6 +12,8 @@ export interface Step {
   line: number;
   milestone: string;
   index: number;
+  /** Agents named in the step's `<!-- Executors: ... -->` comment; absent when none. */
+  executors?: string[];
 }
 export interface Milestone {
   id: string;
@@ -57,6 +60,10 @@ export interface Plan {
   questions: Question[];
   milestones: Milestone[];
   steps: Step[];
+  /** The coordinating agent from the `Agent:` header; absent when the plan names none. */
+  agent?: string;
+  /** Reported runs, newest first; attached when the collector reads a runs folder. */
+  runs?: AgentRun[];
 }
 export interface ProjectResult {
   id: string;
@@ -229,6 +236,7 @@ export function buildPlan(p: ParsedPlan, meta: PlanMeta = {}): Plan {
       steps: m.steps.map(step),
     })),
     steps: p.steps.map(step),
+    ...(p.agent ? { agent: p.agent } : {}),
   };
 }
 
