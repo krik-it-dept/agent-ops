@@ -490,7 +490,11 @@ async function entry(): Promise<void> {
           await currentWindow.loadURL(rendererURL);
           await currentRuntime.start();
           ledgerReady = true;
-          if (rendererReady) instance.ready();
+          // A second launch or a link may show the window as soon as the ledger
+          // is ready. Its route still waits in pendingActivations until the
+          // renderer subscribes, so it never depends on the renderer having
+          // signalled before a reload.
+          instance.ready();
         })
         .catch((error: unknown) => {
           platform.logger.error('Startup failed', {
