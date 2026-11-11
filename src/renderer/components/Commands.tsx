@@ -11,6 +11,8 @@ export const shortcuts = [
   ['Ctrl K', 'Plans and commands'],
   ['Ctrl 1 / 2 / 3 / 4', 'Summary / List / Board / Timeline'],
   ['Ctrl B', 'Toggle sidebar'],
+  ['Ctrl + wheel, Ctrl = / -', 'Larger / smaller text'],
+  ['Ctrl 0', 'Default text size'],
   ['Alt ↑ / ↓', 'Previous / next plan'],
   ['Ctrl F', 'Search Settings'],
   ['Ctrl ,', 'Settings'],

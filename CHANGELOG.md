@@ -3,6 +3,17 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v1.2.1 - Update all Skills and zoom with Ctrl
+
+- **Update all.** When newer Skills are available, Settings → Skills shows
+  "Update all" with the number of Skills to update, and updates them in one
+  step. Skills you changed yourself are left alone, as before; review them
+  one by one.
+- **Zoom with Ctrl.** Ctrl + mouse wheel, Ctrl + `=` and Ctrl + `-` make the
+  whole interface larger or smaller, and Ctrl + `0` goes back to the default.
+  The size is the Text size setting, so it is kept the next time you open the
+  app.
+
 ## v1.2.0 - Mark a plan Done from the Board
 
 - **Mark a plan Done from the Board.** Drag a card into the Done column and
