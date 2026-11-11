@@ -56,8 +56,52 @@ function Shell() {
     refresh,
     report,
     announce,
+    setSettings,
   } = useLedger();
   const { actionError, notice, refreshing } = useLedgerStatus();
+  // Ctrl + mouse wheel and Ctrl + = / - / 0 step through the Text size setting,
+  // so the size is kept like the one chosen in Settings.
+  const textSize = settings?.textSize;
+  const readOnly = !!settings?.readOnly;
+  useEffect(() => {
+    if (!textSize || readOnly) return;
+    const sizes = ['small', 'default', 'large', 'larger'] as const;
+    let last = 0;
+    const step = (to: (typeof sizes)[number]) => {
+      if (to === textSize) return;
+      document.documentElement.dataset.textSize = to;
+      void client.settings
+        .set({ textSize: to })
+        .then(setSettings)
+        .catch(report);
+    };
+    const by = (delta: number) => {
+      const i = sizes.indexOf(textSize);
+      step(sizes[Math.max(0, Math.min(sizes.length - 1, i + delta))]!);
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      const now = Date.now();
+      if (now - last < 200 || event.deltaY === 0) return;
+      last = now;
+      by(event.deltaY < 0 ? 1 : -1);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.key === '=' || event.key === '+') by(1);
+      else if (event.key === '-') by(-1);
+      else if (event.key === '0') step('default');
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [client, textSize, readOnly, setSettings, report]);
   const location = useLocation(),
     navigate = useNavigate(),
     navigationType = useNavigationType();

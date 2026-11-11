@@ -176,6 +176,34 @@ export function Skills({
       </section>
     );
   const migration = data.migration;
+  // Update all touches only Skills with a newer version available; files the
+  // owner changed ('modified') are never part of it.
+  const outdated = data.targets.filter(
+    (t) => t.enabled && t.state === 'update-available',
+  );
+  async function updateAll() {
+    await action.run(async () => {
+      const failed: string[] = [];
+      let updated = 0;
+      for (const t of outdated) {
+        try {
+          setData(await client.skills.update({ id: t.id }));
+          updated++;
+        } catch (failure) {
+          failed.push(
+            `${t.label}: ${failure instanceof Error ? failure.message : 'could not be updated'}`,
+          );
+        }
+      }
+      if (failed.length)
+        throw new Error(
+          `${updated} updated, ${failed.length} not updated. ${failed.join(' ')}`,
+        );
+      action.setNotice(
+        `${updated} ${updated === 1 ? 'Skill' : 'Skills'} updated to v${data!.skillVersion}`,
+      );
+    });
+  }
   if (setup) {
     const options = [
       ...data.suggestions.map((s, i) => ({
@@ -272,6 +300,17 @@ export function Skills({
         <button disabled={locked} onClick={() => setPasting(!pasting)}>
           Paste a path instead
         </button>
+        {outdated.length > 0 && (
+          <button
+            className="primary"
+            disabled={locked}
+            onClick={() => {
+              void updateAll();
+            }}
+          >
+            Update all ({outdated.length})
+          </button>
+        )}
       </div>
       {pasting && (
         <form

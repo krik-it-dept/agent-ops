@@ -1,6 +1,6 @@
 {
   "name": "agent-ops",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "license": "MIT",
   "packageManager": "npm@11.17.0",
