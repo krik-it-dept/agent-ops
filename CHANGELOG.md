@@ -3,7 +3,7 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
-## Unreleased
+## v1.2.0 - Mark a plan Done from the Board
 
 - **Mark a plan Done from the Board.** Drag a card into the Done column and
   Agent Ops writes `Status: Done` into the plan file. Only the Status line
