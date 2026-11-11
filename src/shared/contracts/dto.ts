@@ -174,7 +174,13 @@ export type ActivityKind =
   | 'answer'
   | 'milestone'
   | 'waiting'
-  | 'stale';
+  | 'stale'
+  /** An agent reported a run start (text: the step, extra: the result so far, actor: the agent). */
+  | 'run-started'
+  /** An agent reported a run done or stopped (extra: its result). */
+  | 'run-finished'
+  /** An agent reported a run blocked (extra: what blocks it). */
+  | 'run-blocked';
 export interface Activity {
   ts: ISOTime;
   project?: string;
