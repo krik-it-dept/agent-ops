@@ -278,7 +278,7 @@ describe('agent runs in the runtime', () => {
         coordinator: '',
         role: 'coordinator',
         file: 'C:/gone.md',
-        revision: '',
+        revision: 'a'.repeat(64),
         step: null,
         result: event === 'done' ? 'x' : '',
       }) + '\n';

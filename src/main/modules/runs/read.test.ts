@@ -186,6 +186,11 @@ describe('reading runs with plans', () => {
         'unreadable',
         '1 agent report line for this plan could not be read and was skipped.',
       ],
+      [
+        '',
+        'unreadable',
+        '1 agent report file names a plan that Agent Ops cannot currently read.',
+      ],
     ]);
   });
   it('counts a run as working now for 12 hours after its last start or progress', async () => {
@@ -253,12 +258,13 @@ describe('pruning', () => {
     utimesSync(lock, past, past);
     const held = put(path.join(dir, `${id(3)}.lock`), '1');
     utimesSync(held, NOW, NOW);
-    expect(await pruneRuns(dir, NOW)).toBe(3);
+    expect(await pruneRuns(dir, NOW)).toBe(2);
     expect(readdirSync(dir).sort()).toEqual(
       [
         `${id(2)}.jsonl`,
         `${id(3)}.jsonl`,
         `${id(3)}.lock`,
+        `${id(4)}.jsonl`,
         `${id(5)}.jsonl`,
       ].sort(),
     );
@@ -331,5 +337,23 @@ describe('report command pointers', () => {
     expect(problems).toHaveLength(2);
     expect(problems[1]).toMatch(/^AGENT_OPS_REPORT: denied/);
     expect(await syncReportPointers('C:\\a.exe', { dataDir: dir })).toEqual([]);
+  });
+  it('refreshes both pointers when an authorized installed writer supplies the updated executable', async () => {
+    const dir = tempDir();
+    const fake = fakeEnv('C:\\old\\agent-ops.exe');
+    put(path.join(dir, 'report-command.txt'), 'C:\\old\\agent-ops.exe\n');
+    const executable = 'C:\\new\\agent-ops.exe';
+    expect(
+      await syncReportPointers(executable, { dataDir: dir, env: fake.env }),
+    ).toEqual([]);
+    expect(fake.value()).toBe(executable);
+    expect(readFileSync(path.join(dir, 'report-command.txt'), 'utf8')).toBe(
+      executable + '\n',
+    );
+    expect(fake.calls).toEqual([
+      'get AGENT_OPS_REPORT',
+      'set AGENT_OPS_REPORT',
+      'broadcast',
+    ]);
   });
 });

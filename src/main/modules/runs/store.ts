@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { RunEvent } from '../../../shared/contracts';
+import { canonicalAgent } from '../plans/agents';
 
 export const RUNS_DIR_NAME = 'runs';
 export const RUN_EVENTS: readonly RunEvent[] = [
@@ -60,7 +61,17 @@ export function validRunId(id: string): boolean {
 export const isTerminal = (event: RunEvent): boolean =>
   TERMINAL_EVENTS.includes(event);
 export function runFile(runsDir: string, runId: string): string {
+  if (!validRunId(runId)) throw new Error('Invalid run ID.');
   return path.join(runsDir, `${runId}.jsonl`);
+}
+
+/** Never follow a redirected runs folder when reading, writing or pruning. */
+async function requireRunsDirectory(runsDir: string): Promise<void> {
+  const info = await fs.lstat(runsDir);
+  if (!info.isDirectory() || info.isSymbolicLink())
+    throw new Error(
+      'The agent reports folder must be a regular folder, not a link.',
+    );
 }
 
 const isString = (v: unknown): v is string => typeof v === 'string';
@@ -89,16 +100,19 @@ export function isRunRecord(v: unknown): v is RunRecord {
     RUN_EVENTS.includes(r.event as RunEvent) &&
     isString(r.agent) &&
     r.agent !== '' &&
-    r.agent.length <= 40 &&
+    canonicalAgent(r.agent) === r.agent &&
     isString(r.coordinator) &&
-    r.coordinator.length <= 40 &&
+    canonicalAgent(r.coordinator) === r.coordinator &&
     (r.role === 'coordinator' || r.role === 'executor') &&
     isString(r.file) &&
     r.file !== '' &&
     isString(r.revision) &&
+    /^[a-f0-9]{64}$/.test(r.revision) &&
     (r.step === null || isStep(r.step)) &&
     isString(r.result) &&
-    r.result.length <= MAX_RESULT_CHARS * 2
+    Array.from(r.result).length <= MAX_RESULT_CHARS &&
+    !/\p{Cc}/u.test(r.result.replace(/[\t\r\n]/g, '')) &&
+    (!isTerminal(r.event as RunEvent) || r.result.trim() !== '')
   );
 }
 
@@ -128,6 +142,12 @@ export function parseRun(runId: string, text: string): ReadRun {
       value.runId !== runId ||
       (first &&
         (value.agent !== first.agent ||
+          value.coordinator !== first.coordinator ||
+          value.role !== first.role ||
+          (value.step &&
+            (!first.step ||
+              value.step.text !== first.step.text ||
+              value.step.milestone !== first.step.milestone)) ||
           value.file.toLowerCase() !== first.file.toLowerCase() ||
           isTerminal(records[records.length - 1]!.event) ||
           value.event === 'start'))
@@ -151,7 +171,33 @@ export async function readRun(
 ): Promise<ReadRun & { bytes: number }> {
   let text: string;
   try {
-    const bytes = await fs.readFile(runFile(runsDir, runId));
+    await requireRunsDirectory(runsDir);
+    const info = await fs.lstat(runFile(runsDir, runId));
+    if (!info.isFile() || info.isSymbolicLink())
+      throw new Error('The agent report must be a regular file, not a link.');
+    const handle = await fs.open(runFile(runsDir, runId), 'r');
+    let bytes: Buffer;
+    try {
+      const limit = MAX_RUN_FILE_BYTES * 2;
+      const info = await handle.stat();
+      if (info.size > limit)
+        return { records: [], skipped: 1, bytes: info.size };
+      bytes = Buffer.alloc(limit + 1);
+      let offset = 0;
+      while (offset < bytes.length) {
+        const { bytesRead } = await handle.read(
+          bytes,
+          offset,
+          bytes.length - offset,
+          null,
+        );
+        if (!bytesRead) break;
+        offset += bytesRead;
+      }
+      bytes = bytes.subarray(0, offset);
+    } finally {
+      await handle.close();
+    }
     if (bytes.length > MAX_RUN_FILE_BYTES * 2)
       return { records: [], skipped: 1, bytes: bytes.length };
     text = bytes.toString('utf8');
@@ -164,7 +210,7 @@ export async function readRun(
 }
 
 /**
- * appendRecord adds one line in a single write and flushes it. A file whose
+ * appendRecord writes one complete line under the caller's lock and flushes it. A file whose
  * last line was cut by a crash gets a newline first, so the cut line stays
  * one skipped line. The caller holds the run lock.
  */
@@ -173,7 +219,20 @@ export async function appendRecord(
   record: RunRecord,
 ): Promise<void> {
   await fs.mkdir(runsDir, { recursive: true });
+  await requireRunsDirectory(runsDir);
   const file = runFile(runsDir, record.runId);
+  const line = JSON.stringify(record) + '\n';
+  if (Buffer.byteLength(line) - 1 > MAX_LINE_BYTES)
+    throw new Error(
+      'The report is too large. Shorten the step text or report the whole plan.',
+    );
+  try {
+    const info = await fs.lstat(file);
+    if (!info.isFile() || info.isSymbolicLink() || info.nlink > 1)
+      throw new Error('The agent report must be a regular file without links.');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
   const handle = await fs.open(file, 'a+');
   try {
     const { size } = await handle.stat();
@@ -183,7 +242,9 @@ export async function appendRecord(
       await handle.read(last, 0, 1, size - 1);
       if (last[0] !== 0x0a) prefix = '\n';
     }
-    await handle.write(prefix + JSON.stringify(record) + '\n');
+    if (size + Buffer.byteLength(prefix + line) > MAX_RUN_FILE_BYTES)
+      throw new Error('This run has too many reports. Start a new run.');
+    await handle.writeFile(prefix + line);
     await handle.sync();
   } finally {
     await handle.close();
@@ -191,10 +252,60 @@ export async function appendRecord(
 }
 
 export const LOCK_STALE_MS = 30_000;
+async function abandonedLock(
+  lock: string,
+  age: number,
+  now: number,
+): Promise<boolean> {
+  const handle = await fs.open(lock, 'r');
+  try {
+    const info = await handle.stat();
+    if (now - info.mtimeMs <= age) return false;
+    const bytes = Buffer.alloc(32);
+    const { bytesRead } = await handle.read(bytes, 0, bytes.length, 0);
+    const pid = Number(bytes.subarray(0, bytesRead).toString('utf8').trim());
+    if (!Number.isSafeInteger(pid) || pid <= 0) return true;
+    try {
+      process.kill(pid, 0);
+      return false;
+    } catch (err) {
+      return (err as NodeJS.ErrnoException).code === 'ESRCH';
+    }
+  } finally {
+    await handle.close();
+  }
+}
+
+/** Serialize stale-lock removal so two reclaimers cannot unlink a new owner's lock. */
+async function removeAbandonedLock(
+  lock: string,
+  age: number,
+  now: number,
+): Promise<boolean> {
+  if (!(await abandonedLock(lock, age, now))) return false;
+  const recovery = lock + '.recovery';
+  let guard;
+  try {
+    guard = await fs.open(recovery, 'wx');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false;
+    throw error;
+  }
+  try {
+    if (!(await abandonedLock(lock, age, now))) return false;
+    await fs.rm(lock, { force: true });
+    return true;
+  } finally {
+    await guard.close();
+    await fs.rm(recovery, { force: true });
+  }
+  // A crash during recovery leaves this run unavailable until the marker is removed.
+  // Keep it rather than risk unlinking a living reporter's lock; new runs still work.
+}
 /**
  * withRunLock runs work while holding <runId>.lock, created exclusively. A
  * lock left by a crashed reporter is taken over once it is older than 30
- * seconds; otherwise the wait ends after waitMs with an error.
+ * seconds and its process is gone; otherwise the wait ends after waitMs with an error.
  */
 export async function withRunLock<T>(
   runsDir: string,
@@ -203,6 +314,8 @@ export async function withRunLock<T>(
   waitMs = 3000,
 ): Promise<T> {
   await fs.mkdir(runsDir, { recursive: true });
+  await requireRunsDirectory(runsDir);
+  if (!validRunId(runId)) throw new Error('Invalid run ID.');
   const lock = path.join(runsDir, `${runId}.lock`);
   const deadline = Date.now() + waitMs;
   for (;;) {
@@ -214,13 +327,12 @@ export async function withRunLock<T>(
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
       try {
-        const info = await fs.stat(lock);
-        if (Date.now() - info.mtimeMs > LOCK_STALE_MS) {
-          await fs.rm(lock, { force: true });
+        if (await removeAbandonedLock(lock, LOCK_STALE_MS, Date.now())) {
           continue;
         }
-      } catch {
-        continue;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+        throw error;
       }
       if (Date.now() >= deadline) throw new RunBusyError();
       await delay(40);
@@ -248,6 +360,7 @@ export interface RunFile {
 export async function listRuns(runsDir: string): Promise<RunFile[]> {
   let names: string[];
   try {
+    await requireRunsDirectory(runsDir);
     names = await fs.readdir(runsDir);
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
@@ -260,7 +373,7 @@ export async function listRuns(runsDir: string): Promise<RunFile[]> {
     if (!m || !validRunId(m[1]!)) continue;
     const file = path.join(runsDir, name);
     try {
-      const info = await fs.stat(file);
+      const info = await fs.lstat(file);
       if (info.isFile())
         out.push({
           runId: m[1]!,
@@ -279,8 +392,7 @@ export async function listRuns(runsDir: string): Promise<RunFile[]> {
 
 export const PRUNE_AFTER_MS = 90 * 24 * 60 * 60 * 1000;
 /**
- * pruneRuns removes runs that ended over 90 days ago, unreadable run files
- * untouched for as long, and locks left behind by crashed reporters. It
+ * pruneRuns removes runs that ended over 90 days ago and locks left behind by crashed reporters. It
  * returns the number of files removed. Runs still in progress are kept.
  */
 export async function pruneRuns(runsDir: string, now: Date): Promise<number> {
@@ -291,9 +403,7 @@ export async function pruneRuns(runsDir: string, now: Date): Promise<number> {
     try {
       const { records } = await readRun(runsDir, run.runId);
       const last = records[records.length - 1];
-      remove = last
-        ? isTerminal(last.event) && Date.parse(last.at) < cutoff
-        : run.mtimeMs < cutoff;
+      remove = !!last && isTerminal(last.event) && Date.parse(last.at) < cutoff;
     } catch {
       remove = false;
     }
@@ -304,11 +414,10 @@ export async function pruneRuns(runsDir: string, now: Date): Promise<number> {
   }
   try {
     for (const name of await fs.readdir(runsDir)) {
-      if (!name.endsWith('.lock')) continue;
+      if (!name.endsWith('.lock') || !validRunId(name.slice(0, -5))) continue;
       const lock = path.join(runsDir, name);
       try {
-        if (now.getTime() - (await fs.stat(lock)).mtimeMs > 60 * 60 * 1000) {
-          await fs.rm(lock, { force: true });
+        if (await removeAbandonedLock(lock, 60 * 60 * 1000, now.getTime())) {
           removed++;
         }
       } catch {

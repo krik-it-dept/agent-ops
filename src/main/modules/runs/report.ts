@@ -108,7 +108,8 @@ export async function runReport(
       err instanceof ReportError
         ? err.message
         : `The report could not be saved (${(err as NodeJS.ErrnoException)?.code ?? (err as Error)?.message ?? 'unknown error'}).`;
-    return { code: 1, stdout: '', stderr: `Agent Ops report: ${message}\n` };
+    const plain = message.replace(/\p{Cc}/gu, ' ').slice(0, 1000);
+    return { code: 1, stdout: '', stderr: `Agent Ops report: ${plain}\n` };
   }
 }
 
@@ -144,6 +145,7 @@ async function planFolders(dataDir: string): Promise<string[]> {
 
 /** locatePlan returns the plan file as the collector names it, or fails when Agent Ops does not read it. */
 async function locatePlan(dataDir: string, file: string): Promise<string> {
+  file = await longPath(file);
   const name = path.basename(file);
   if (!/\.md$/i.test(name) || name.toLowerCase() === 'tong-hop.md')
     fail('--plan-file must be a plan, a .md file.');
@@ -206,6 +208,8 @@ async function report(
   if (role !== undefined && role !== 'coordinator' && role !== 'executor')
     fail('--role must be coordinator or executor.');
   const result = (o.result ?? '').trim();
+  if (/\p{Cc}/u.test((o.result ?? '').replace(/[\t\r\n]/g, '')))
+    fail('--result must be plain text without control characters.');
   if (Array.from(result).length > MAX_RESULT_CHARS)
     fail(
       `--result is longer than ${MAX_RESULT_CHARS} characters. Keep the essential evidence.`,
@@ -233,7 +237,7 @@ async function report(
   if (
     !isAbsolutePath(raw!) ||
     isNetworkOrDevicePath(raw!) ||
-    raw!.includes('\0')
+    /\p{Cc}/u.test(raw!)
   )
     fail('--plan-file must be the full path of a plan on this computer.');
   let runId = o['run-id']?.toLowerCase();

@@ -1,14 +1,13 @@
 // Joins reported runs to the plans the collector read. Runs match a plan by
 // its file path, case-insensitively; each plan gets its latest 50 runs.
 
-import { promises as fs } from 'node:fs';
 import type { AgentRun } from '../../../shared/contracts';
 import type { Diagnostic, Plan } from '../plans/overview';
 import {
   MAX_RUN_FILE_BYTES,
   MAX_RUN_FILES,
   listRuns,
-  parseRun,
+  readRun,
   type RunRecord,
 } from './store';
 
@@ -33,10 +32,7 @@ export function summarize(
     const found =
       same.length === 1
         ? same[0]
-        : (same.find((s) => s.index === reported.index) ??
-          (plan && last.revision === plan.revision
-            ? plan.steps.find((s) => s.line === reported.line)
-            : undefined));
+        : same.find((s) => s.index === reported.index);
     step = found
       ? { line: found.line, text: found.text, milestone: found.milestone }
       : {
@@ -78,6 +74,7 @@ export async function attachRuns(
   const runs = new Map<Plan, AgentRun[]>();
   const skipped = new Map<Plan, number>();
   let lost = 0;
+  let unmatched = 0;
   let files;
   try {
     files = await listRuns(runsDir);
@@ -98,21 +95,24 @@ export async function attachRuns(
       lost++;
       continue;
     }
-    let text: string;
+    let parsed;
     try {
-      text = await fs.readFile(run.file, 'utf8');
+      parsed = await readRun(runsDir, run.runId);
     } catch {
       lost++;
       continue;
     }
-    const { records, skipped: bad } = parseRun(run.runId, text);
+    const { records, skipped: bad } = parsed;
     const first = records[0];
     if (!first) {
       if (bad) lost++;
       continue;
     }
     const plan = byFile.get(first.file.toLowerCase());
-    if (!plan) continue;
+    if (!plan) {
+      unmatched++;
+      continue;
+    }
     if (bad) skipped.set(plan, (skipped.get(plan) ?? 0) + bad);
     const list = runs.get(plan) ?? [];
     list.push(summarize(records, plan, now));
@@ -143,5 +143,14 @@ export async function attachRuns(
       file: runsDir.replace(/\\/g, '/'),
       kind: 'unreadable',
       message: `${lost} agent report ${lost === 1 ? 'file' : 'files'} could not be read and ${lost === 1 ? 'was' : 'were'} skipped.`,
+    });
+  if (unmatched)
+    out.diagnostics.push({
+      project: '',
+      repo: '',
+      plan: '',
+      file: runsDir.replace(/\\/g, '/'),
+      kind: 'unreadable',
+      message: `${unmatched} agent report ${unmatched === 1 ? 'file names a plan' : 'files name plans'} that Agent Ops cannot currently read.`,
     });
 }
