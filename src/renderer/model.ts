@@ -456,19 +456,31 @@ export function activityFor(state: Snapshot, plan?: Plan): DisplayActivity[] {
   const known = new Set(
     events.map((e) => [e.project, e.repo, e.plan, e.kind, e.text].join('|')),
   );
+  // A run the collector already announced (run-started, run-finished,
+  // run-blocked, stamped when it noticed the report) or an event recorded at
+  // the report's own time must not be listed twice. Older collectors without
+  // run events still get one entry per reported run.
+  const exact = new Set<string>();
+  const announced = new Map<string, number>();
+  for (const e of events) {
+    const key = [e.project || '', e.repo, e.plan, e.actor || ''].join('|');
+    exact.add(key + '|' + e.ts);
+    if (String(e.kind).startsWith('run-')) {
+      const at = Date.parse(e.ts);
+      if (at > (announced.get(key) ?? -Infinity)) announced.set(key, at);
+    }
+  }
   const historical: DisplayActivity[] = [];
   for (const p of plan ? [plan] : state.state.plans) {
-    // Retained collectors can provide runs without the newer activity kinds.
-    // Prefer an existing recorded event at the same time, without double counting it.
     for (const run of p.runs || []) {
+      const keys = [p.project, ''].map((project) =>
+        [project, p.repo, p.name, run.agent].join('|'),
+      );
       if (
-        events.some(
-          (e) =>
-            e.ts === run.updatedAt &&
-            e.actor === run.agent &&
-            e.repo === p.repo &&
-            e.plan === p.name &&
-            (!e.project || e.project === p.project),
+        keys.some(
+          (key) =>
+            exact.has(key + '|' + run.updatedAt) ||
+            (announced.get(key) ?? -Infinity) >= Date.parse(run.startedAt),
         )
       )
         continue;

@@ -260,4 +260,40 @@ describe('reported agent participation', () => {
       ),
     ).toBe(false);
   });
+  it('lists a run once when the collector announced it at the time it noticed the report', () => {
+    const data = fixtureData();
+    const p = samplePlan();
+    p.runs = [reported({ event: 'done', active: false, result: 'PR #3' })];
+    data.snapshot.state.plans = [p];
+    // The collector stamps run events with the time it saw them, not the report time.
+    data.snapshot.activity = [
+      {
+        ts: '2026-11-10T09:00:07.512Z',
+        project: p.project,
+        repo: p.repo,
+        plan: p.name,
+        actor: 'Codex',
+        kind: 'run-finished' as never,
+        text: p.runs[0]!.step!.text,
+        extra: 'PR #3',
+      },
+    ];
+    const snapshot = acceptSnapshot(null, data.snapshot);
+    for (const scope of [snapshot.state.plans[0], undefined])
+      expect(
+        activityFor(snapshot, scope).filter((e) => e.actor === 'Codex'),
+      ).toHaveLength(1);
+    // Another agent's announcement does not hide this run.
+    snapshot.activity[0]!.actor = 'Claude';
+    expect(
+      activityFor(snapshot, snapshot.state.plans[0]).filter(
+        (e) => e.actor === 'Codex',
+      ),
+    ).toHaveLength(1);
+    expect(
+      activityFor(snapshot, snapshot.state.plans[0]).filter(
+        (e) => e.actor === 'Codex' || e.actor === 'Claude',
+      ),
+    ).toHaveLength(2);
+  });
 });
