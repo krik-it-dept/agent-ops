@@ -22,7 +22,15 @@ import type {
 } from '../../shared/contracts';
 
 export type FixtureMode =
-  'demo' | 'setup' | 'empty' | 'hidden' | 'error' | 'loading' | 'update';
+  | 'demo'
+  | 'setup'
+  | 'empty'
+  | 'hidden'
+  | 'error'
+  | 'loading'
+  | 'update'
+  /** The demo with more than one List page of tasks. */
+  | 'large';
 const now = '2026-11-10T09:30:00.000Z';
 export function samplePlan(
   name = 'Cải thiện tìm kiếm',
@@ -161,7 +169,18 @@ export function fixtureData(mode: FixtureMode = 'demo'): {
       status: i % 3 ? 'Testing' : 'Planning',
       tone: i % 3 ? 'review' : 'idle',
       questions: [],
-      steps: samplePlan().steps.slice(0, 4),
+      steps:
+        mode === 'large'
+          ? Array.from({ length: 20 }, (_, n) => {
+              const base = samplePlan().steps;
+              return {
+                ...base[n % base.length]!,
+                text: `${base[n % base.length]!.text} ${n + 1}`,
+                line: 100 + n,
+                index: n,
+              };
+            })
+          : samplePlan().steps.slice(0, 4),
     });
   const agents = [
     'Claude',
