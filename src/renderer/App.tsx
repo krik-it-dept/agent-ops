@@ -195,13 +195,10 @@ function Shell() {
   useEffect(
     () =>
       client.app.onActivate((event) => {
-        navigate(
-          event.route === 'settings'
-            ? '/settings/general'
-            : event.plan
-              ? planRoute(event.plan)
-              : '/',
-        );
+        // A plain activation (tray click, a second launch) only shows the
+        // window; it never moves the owner away from the page they are on.
+        if (event.route === 'settings') navigate('/settings/general');
+        else if (event.plan) navigate(planRoute(event.plan));
       }),
     [client, navigate],
   );

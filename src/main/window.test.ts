@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { BrowserWindow } from 'electron';
-import { createWindow } from './window';
+import { BrowserWindow, nativeTheme } from 'electron';
+import { applyWindowTheme, createWindow } from './window';
 
 vi.mock('electron', () => ({
   BrowserWindow: vi.fn(
@@ -8,8 +8,12 @@ vi.mock('electron', () => ({
       webContents = { setWindowOpenHandler: vi.fn(), on: vi.fn() };
       removeMenu = vi.fn();
       once = vi.fn();
+      isDestroyed = vi.fn(() => false);
+      setBackgroundColor = vi.fn();
+      setTitleBarOverlay = vi.fn();
     },
   ),
+  nativeTheme: { shouldUseDarkColors: false, themeSource: 'system' },
 }));
 
 describe('window security policy', () => {
@@ -59,4 +63,31 @@ describe('window security policy', () => {
       }),
     );
   });
+  it.skipIf(process.platform !== 'win32')(
+    'makes the app bar the title bar and paints the caption buttons in the theme colours',
+    () => {
+      const window = createWindow();
+      expect(BrowserWindow).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          titleBarStyle: 'hidden',
+          titleBarOverlay: {
+            color: '#fafafa',
+            symbolColor: '#262626',
+            height: 38,
+          },
+        }),
+      );
+      const theme = nativeTheme as { shouldUseDarkColors: boolean };
+      theme.shouldUseDarkColors = true;
+      applyWindowTheme(window, 'dark');
+      expect(nativeTheme.themeSource).toBe('dark');
+      expect(window.setTitleBarOverlay).toHaveBeenCalledWith({
+        color: '#191919',
+        symbolColor: '#dedede',
+        height: 38,
+      });
+      expect(window.setBackgroundColor).toHaveBeenCalledWith('#191919');
+      theme.shouldUseDarkColors = false;
+    },
+  );
 });

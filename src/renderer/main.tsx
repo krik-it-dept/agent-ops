@@ -34,6 +34,13 @@ try {
   /* Theme falls back to system when optional browser preferences are unavailable. */
 }
 
+// Windows draws its caption buttons over the app bar (titleBarOverlay).
+if (
+  (navigator as Navigator & { windowControlsOverlay?: { visible: boolean } })
+    .windowControlsOverlay?.visible
+)
+  document.documentElement.classList.add('window-controls');
+
 function mount() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
