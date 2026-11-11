@@ -483,6 +483,14 @@ test('automatic archive, explicit restore, stars/tabs and refresh preserve navig
         exact: true,
       }),
     ).toBeVisible();
+    // The plan's name and actions stay in view when its content is scrolled.
+    await page.setViewportSize({ width: 1000, height: 420 });
+    const scrolled = await page.locator('.view').evaluate((el) => {
+      el.scrollTo(0, el.scrollHeight);
+      return el.scrollTop;
+    });
+    expect(scrolled).toBeGreaterThan(0);
+    await expect(page.locator('.plan-header h1')).toBeInViewport();
     expect(fixture.errors).toEqual([]);
   } finally {
     await fixture.close();

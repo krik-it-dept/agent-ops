@@ -785,7 +785,15 @@ progress::-webkit-progress-value {
 .plan-page {
   max-width: 1200px;
 }
+/* The plan's name, status and actions stay in view while its content scrolls. */
 .plan-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
+  padding: 0 8px 4px;
+}
+.plan-summary {
   padding: 0 8px 18px;
 }
 .plan-header > .row h1 {
@@ -795,10 +803,10 @@ progress::-webkit-progress-value {
 .breadcrumb {
   font-size: 11px;
 }
-.plan-header > .ledger-progress {
+.plan-summary > .ledger-progress {
   margin: 18px 0;
 }
-.plan-header > .ledger-progress progress {
+.plan-summary > .ledger-progress progress {
   width: 160px;
 }
 .goal {

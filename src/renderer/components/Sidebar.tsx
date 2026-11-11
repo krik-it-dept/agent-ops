@@ -31,11 +31,13 @@ export function Sidebar({
   const visible = sidebarPlans(plans, navigation);
   const groups = new Map<
     string,
-    { name: string; workspaces: Map<string, DisplayPlan[]> }
+    { name: string; flat: boolean; workspaces: Map<string, DisplayPlan[]> }
   >();
   for (const p of visible) {
     const group = groups.get(p.project) ?? {
       name: p.projectName || p.project || 'Workspace',
+      // Plans in the Tasks folder are listed by workspace, with no extra level.
+      flat: p.source === 'tasks',
       workspaces: new Map(),
     };
     groups.set(p.project, group);
@@ -141,63 +143,66 @@ export function Sidebar({
           }
         }}
       >
-        {[...groups].map(([id, group]) =>
-          folder(
-            'project:' + id,
-            group.name,
-            [...group.workspaces].map(([workspace, rows]) =>
-              folder(
-                id + '/' + workspace,
-                workspace,
-                rows.map((p) => (
-                  <div
-                    className={`sidebar-plan${planKey(p) === current ? ' current' : ''}`}
-                    key={planKey(p)}
+        {[...groups].map(([id, group]) => {
+          const workspaces = [...group.workspaces].map(([workspace, rows]) =>
+            folder(
+              id + '/' + workspace,
+              workspace,
+              rows.map((p) => (
+                <div
+                  className={`sidebar-plan${planKey(p) === current ? ' current' : ''}`}
+                  key={planKey(p)}
+                >
+                  <Link
+                    data-tree-control
+                    className="sidebar-plan-link"
+                    to={planRoute(planKey(p))}
+                    aria-current={planKey(p) === current ? 'page' : undefined}
                   >
-                    <Link
-                      data-tree-control
-                      className="sidebar-plan-link"
-                      to={planRoute(planKey(p))}
-                      aria-current={planKey(p) === current ? 'page' : undefined}
-                    >
-                      <span>
-                        <Glyph value={p.status} />
-                        {p.name}
-                        {p.diagnostics.length > 0 && (
-                          <span role="img" aria-label="Plan warning">
-                            !
-                          </span>
-                        )}
-                      </span>
-                      <small>
-                        {progress(p.steps).done}/{p.steps.length} steps ·{' '}
-                        {stage(p.status)}
-                      </small>
-                      <SourceLabel plan={p} />
-                    </Link>
-                    <button
-                      className="star-toggle"
-                      aria-pressed={navigation.starred.includes(planKey(p))}
-                      aria-label={`${navigation.starred.includes(planKey(p)) ? 'Unstar' : 'Star'} ${p.name}`}
-                      onClick={() =>
-                        setNavigation((nav) => ({
-                          ...nav,
-                          starred: nav.starred.includes(planKey(p))
-                            ? nav.starred.filter((k) => k !== planKey(p))
-                            : [...nav.starred, planKey(p)],
-                        }))
-                      }
-                    >
-                      {navigation.starred.includes(planKey(p)) ? '★' : '☆'}
-                    </button>
-                  </div>
-                )),
-                rows.length,
-              ),
+                    <span>
+                      <Glyph value={p.status} />
+                      {p.name}
+                      {p.diagnostics.length > 0 && (
+                        <span role="img" aria-label="Plan warning">
+                          !
+                        </span>
+                      )}
+                    </span>
+                    <small>
+                      {progress(p.steps).done}/{p.steps.length} steps ·{' '}
+                      {stage(p.status)}
+                    </small>
+                    <SourceLabel plan={p} />
+                  </Link>
+                  <button
+                    className="star-toggle"
+                    aria-pressed={navigation.starred.includes(planKey(p))}
+                    aria-label={`${navigation.starred.includes(planKey(p)) ? 'Unstar' : 'Star'} ${p.name}`}
+                    onClick={() =>
+                      setNavigation((nav) => ({
+                        ...nav,
+                        starred: nav.starred.includes(planKey(p))
+                          ? nav.starred.filter((k) => k !== planKey(p))
+                          : [...nav.starred, planKey(p)],
+                      }))
+                    }
+                  >
+                    {navigation.starred.includes(planKey(p)) ? '★' : '☆'}
+                  </button>
+                </div>
+              )),
+              rows.length,
             ),
-            [...group.workspaces.values()].flat().length,
-          ),
-        )}
+          );
+          return group.flat
+            ? workspaces
+            : folder(
+                'project:' + id,
+                group.name,
+                workspaces,
+                [...group.workspaces.values()].flat().length,
+              );
+        })}
         {!visible.length && (
           <p className="sidebar-empty">
             {navigation.collection === 'starred'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fold, planKey, stage, type DisplayPlan } from '../model';
+import { fold, placeLabel, planKey, stage, type DisplayPlan } from '../model';
 import { Modal, planRoute } from './ui';
 
 export const shortcuts = [
@@ -61,7 +61,7 @@ export function CommandSearch({
       .slice(0, query ? 30 : 5)
       .map((p) => ({
         label: p.name,
-        detail: p.projectName + ' / ' + p.repo + ' · ' + stage(p.status),
+        detail: placeLabel(p) + ' · ' + stage(p.status),
         run: () => navigate(planRoute(planKey(p))),
       })),
     ...actions.filter((a) => matches(a.label + ' ' + a.detail)),
