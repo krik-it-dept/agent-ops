@@ -208,18 +208,15 @@ export function Overview({
   const active = plans.filter((p) => stage(p.status) !== 'Done');
   return (
     <div className="work-summary">
-      <div className="filter-notice" role="status">
-        {plans.length} of {all.length} plans
-        {(query || agent) && (
-          <>
-            {' '}
-            · Filtered{' '}
-            <button className="link-button" onClick={clear}>
-              Clear filters
-            </button>
-          </>
-        )}
-      </div>
+      {/* The plan count sits under the view title; this only offers the reset. */}
+      {(query || agent) && (
+        <div className="filter-notice" role="status">
+          Filtered{' '}
+          <button className="link-button" onClick={clear}>
+            Clear filters
+          </button>
+        </div>
+      )}
       {!plans.length ? (
         <Empty
           title={

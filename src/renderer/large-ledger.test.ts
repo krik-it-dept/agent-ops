@@ -69,9 +69,15 @@ describe('large ledgers', () => {
       const started = performance.now();
       const html = render(
         data,
-        createElement(WorkViews, { view, query: '', agent: '' }),
+        createElement(WorkViews, {
+          view,
+          query: '',
+          agent: '',
+          clear: () => undefined,
+        }),
       );
-      expect(html).toContain('400 plans');
+      // The plan count is shown once, under the view title in the shell.
+      expect(html).not.toMatch(/\d+ plans/);
       expect(html).toContain('Show more plans');
       expect(
         view === 'board'
@@ -111,8 +117,13 @@ describe('large ledgers', () => {
         clear: () => undefined,
       }),
     );
-    expect(all).toContain('400 of 400 plans');
-    expect(found).toContain('1 of 400 plans');
+    // Six current work cards, with the count left to the shell title.
+    expect(all.match(/class="work-card/g)).toHaveLength(6);
+    expect(all).not.toMatch(/of 400 plans/);
+    expect(all).toContain('>400<');
+    expect(found.match(/class="work-card/g)).toHaveLength(1);
+    expect(found).toContain('Plan 399');
+    expect(found).toContain('Clear filters');
     expect(performance.now() - started).toBeLessThan(2000);
   });
   it('keeps unchanged plans and filters thousands of tasks quickly', () => {

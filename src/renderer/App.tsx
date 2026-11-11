@@ -604,18 +604,21 @@ function Shell() {
               {title && (
                 <div className="view-title">
                   <h1>{title}</h1>
-                  <small className="muted">
-                    {
-                      filterPlans.filter(
-                        (p) =>
-                          agentMatches(p, agent) &&
-                          planSearchText(p).includes(fold(query)) &&
-                          (view !== 'attention' ||
-                            (snapshot && needsAttention(p, snapshot))),
-                      ).length
-                    }{' '}
-                    of {filterPlans.length} plans
-                  </small>
+                  {/* List counts tasks in its own notice; every other view counts plans here, once. */}
+                  {location.pathname !== '/list' && (
+                    <small className="muted">
+                      {
+                        filterPlans.filter(
+                          (p) =>
+                            agentMatches(p, agent) &&
+                            planSearchText(p).includes(fold(query)) &&
+                            (view !== 'attention' ||
+                              (snapshot && needsAttention(p, snapshot))),
+                        ).length
+                      }{' '}
+                      of {filterPlans.length} plans
+                    </small>
+                  )}
                 </div>
               )}
               {/* A plan page places its title row here, level with search and Refresh. */}
@@ -731,13 +734,23 @@ function Shell() {
                   <Route
                     path="/board"
                     element={
-                      <WorkViews view="board" query={query} agent={agent} />
+                      <WorkViews
+                        view="board"
+                        query={query}
+                        agent={agent}
+                        clear={clearFilters}
+                      />
                     }
                   />
                   <Route
                     path="/timeline"
                     element={
-                      <WorkViews view="timeline" query={query} agent={agent} />
+                      <WorkViews
+                        view="timeline"
+                        query={query}
+                        agent={agent}
+                        clear={clearFilters}
+                      />
                     }
                   />
                   <Route

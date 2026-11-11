@@ -109,6 +109,10 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(
           page.getByRole('heading', { name: title, exact: true }),
         ).toBeVisible();
+        // One plan count under the title; List counts tasks in its notice instead.
+        await expect(page.getByText(/ of \d+ plans$/)).toHaveCount(
+          route === '/list' ? 0 : 1,
+        );
         if (route === '/board') {
           await expect(page.locator('.board-column')).toHaveCount(5);
           await expect(

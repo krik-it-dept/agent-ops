@@ -10,10 +10,12 @@ export function WorkViews({
   view,
   query,
   agent,
+  clear,
 }: {
   view: 'board' | 'timeline';
   query: string;
   agent: string;
+  clear(): void;
 }) {
   const { snapshot, settings } = useLedger();
   const plans = useMemo(
@@ -40,7 +42,14 @@ export function WorkViews({
   if (!snapshot) return null;
   return (
     <div className={`work-${view}`}>
-      <p className="filter-notice">{plans.length} plans</p>
+      {(query || agent) && (
+        <div className="filter-notice" role="status">
+          Filtered{' '}
+          <button className="link-button" onClick={clear}>
+            Clear filters
+          </button>
+        </div>
+      )}
       {!plans.length ? (
         <Empty title="No matching work" />
       ) : view === 'board' ? (
