@@ -387,7 +387,6 @@ export function Overview({
                     </button>
                   );
                 })}
-                {!agents.length && <p className="muted">Not reported</p>}
               </div>
             </section>
             <section className="summary-panel">

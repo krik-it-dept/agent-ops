@@ -23,10 +23,9 @@ import {
   timeLabel,
   whenLabel,
   workflow,
-  placeLabel,
 } from '../model';
 import { useLedger } from '../store';
-import { AgentChain, StepMeta } from '../components/Agents';
+import { AgentChain, StepAgents, StepResult } from '../components/Agents';
 import { execution } from '../agents';
 import {
   Empty,
@@ -236,10 +235,17 @@ export function PlanPage({
             }
           </span>
           <div className="step-content">
-            <p>
-              <RichText text={s.text} plan={plan} />
-            </p>
-            <StepMeta plan={plan!} step={s} />
+            <div className="step-heading">
+              <p>
+                <RichText text={s.text} plan={plan} />
+              </p>
+              <StepAgents plan={plan!} step={s} />
+            </div>
+            {execution(plan!, s).latest?.result && (
+              <small className="step-result">
+                <StepResult plan={plan!} step={s} />
+              </small>
+            )}
           </div>
           <small>{stepLabels[s.status] || 'Unknown'}</small>
         </div>
@@ -277,16 +283,32 @@ export function PlanPage({
         </button>
         <Status value={plan.status} />
         <SourceLabel plan={plan} />
-        <PlanActions plan={plan} afterDelete={() => navigate('/')} />
-        <button
-          onClick={() => {
-            void copyLink();
-          }}
-        >
-          Copy link
-        </button>
+        <PlanActions plan={plan} afterDelete={() => navigate('/')}>
+          <button
+            onClick={() => {
+              void client.shell
+                .openFolder({ target: 'plan', key: planKey(plan) })
+                .catch(report);
+            }}
+          >
+            Open plan folder
+          </button>
+          <button
+            onClick={() => {
+              void copyLink();
+            }}
+          >
+            Copy link
+          </button>
+          <div className="plan-action-info">
+            {whenLabel(plan.mtime, snapshot!.now) && (
+              <small>Updated {whenLabel(plan.mtime, snapshot!.now)} · </small>
+            )}
+            <code>{plan.file || plan.spec || plan.name + '.md'}</code>
+          </div>
+        </PlanActions>
+        <AgentChain plan={plan} labels />
       </div>
-      <AgentChain plan={plan} labels />
     </header>
   );
   return (
@@ -297,20 +319,6 @@ export function PlanPage({
         ref={summary}
       >
         <div className="plan-summary-main">
-          <p className="muted">
-            {whenLabel(plan.mtime, snapshot!.now) &&
-              `Updated ${whenLabel(plan.mtime, snapshot!.now)} · `}
-            <code>{plan.spec || plan.name + '.md'}</code>
-            <button
-              onClick={() => {
-                void client.shell
-                  .openFolder({ target: 'plan', key: planKey(plan) })
-                  .catch(report);
-              }}
-            >
-              Open plan folder
-            </button>
-          </p>
           <Progress {...progress(plan.steps)} label="Plan progress" />
           {plan.goal && (
             <div className="goal">

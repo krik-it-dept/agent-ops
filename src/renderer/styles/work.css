@@ -74,9 +74,13 @@
   white-space: nowrap;
 }
 .agent-chain > span > small {
-  display: block;
+  display: inline;
   color: var(--muted-fg);
-  margin-bottom: 3px;
+}
+.agent-chain > span:not(.agent-arrow) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .role-none {
   font-size: var(--text-2xs);
@@ -111,44 +115,40 @@
   flex: 1;
   min-width: 0;
 }
-.step-content .step-agents {
-  margin-top: 8px;
+.step-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+.step-heading > p {
+  min-width: min(100%, 240px);
+}
+.step-heading > .step-agents {
+  flex-shrink: 0;
 }
 .step-result {
   display: block;
   margin-top: 6px;
   color: var(--muted-fg);
 }
-/* Agents, Working now and the latest result share one line under a step. */
-.step-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  margin-top: 6px;
-  color: var(--muted-fg);
+.plan-header .agent-chain {
+  margin-left: 8px;
 }
-.step-meta .latest-result {
-  flex: 1 1 240px;
-  min-width: 0;
+.plan-action-info {
+  order: 1;
+  display: grid;
+  gap: 4px;
+  width: 260px;
+  max-width: 65vw;
+  padding: 8px 6px 3px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  font-size: var(--text-2xs);
+  overflow-wrap: anywhere;
 }
-.step-meta .agent-badges + .latest-result::before,
-.step-meta .working-now + .latest-result::before {
-  content: '·';
-  margin-right: 8px;
-}
-/* On the plan page the chain is one row: "Coordinator Claude → Executed by Codex". */
-.plan-header .agent-chain > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.plan-header .agent-chain > span > small {
-  display: inline;
-  margin-bottom: 0;
-}
-.plan-header > .agent-chain {
-  margin-top: 8px;
+.plan-action-info code {
+  white-space: normal;
 }
 .summary-stats {
   display: grid;

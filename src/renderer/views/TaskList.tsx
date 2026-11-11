@@ -107,7 +107,7 @@ const TaskRowView = memo(function TaskRowView({
         <time dateTime={execution(plan, step).latest?.updatedAt}>
           {execution(plan, step).latest
             ? whenLabel(execution(plan, step).latest!.updatedAt, today)
-            : 'Not reported'}
+            : ''}
         </time>
       </td>
     </tr>
