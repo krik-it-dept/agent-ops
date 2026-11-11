@@ -1,10 +1,24 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { launchFixture, navigate } from './helpers';
 
 const card = (page: Page, key: string) =>
   page.locator(`.work-card[data-plan-key="${key}"]`);
 const column = (page: Page, name: string) =>
   page.getByRole('region', { name, exact: true });
+// Drag and drop is driven with DOM drag events and one DataTransfer: a real
+// mouse drag starts the Windows drag loop, which is unreliable on CI runners.
+async function dragOver(page: Page, from: Locator, to: Locator) {
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await from.dispatchEvent('dragstart', { dataTransfer });
+  await to.dispatchEvent('dragenter', { dataTransfer });
+  await to.dispatchEvent('dragover', { dataTransfer });
+  return dataTransfer;
+}
+async function drop(page: Page, from: Locator, to: Locator) {
+  const dataTransfer = await dragOver(page, from, to);
+  await to.dispatchEvent('drop', { dataTransfer });
+  if (await from.count()) await from.dispatchEvent('dragend', { dataTransfer });
+}
 
 test('Board: drag a plan to Done, Undo from the toast, refusals keep the card, keyboard menu path', async () => {
   const fixture = await launchFixture('demo');
@@ -29,16 +43,14 @@ test('Board: drag a plan to Done, Undo from the toast, refusals keep the card, k
     await finished.locator('summary').click();
 
     // While dragging, only the Done column shows as the target.
-    await search.locator('.card-place').hover();
-    await page.mouse.down();
-    const box = (await done.boundingBox())!;
-    await page.mouse.move(box.x + box.width / 2, box.y + 40, { steps: 8 });
+    const dataTransfer = await dragOver(page, search, done);
     await expect(done).toHaveClass(/drop-target/);
     await expect(
       done.getByText('Drop here to mark the plan Done'),
     ).toBeVisible();
     await expect(page.locator('.board-column.drop-target')).toHaveCount(1);
-    await page.mouse.up();
+    await done.dispatchEvent('drop', { dataTransfer });
+    await search.dispatchEvent('dragend', { dataTransfer });
     await expect(done.locator(search)).toHaveCount(1);
     await expect(page.locator('.board-column.drop-target')).toHaveCount(0);
     const toast = page.locator('.toast');
@@ -50,7 +62,7 @@ test('Board: drag a plan to Done, Undo from the toast, refusals keep the card, k
     );
 
     // Dropping on another column changes nothing.
-    await search.dragTo(column(page, 'Review & test'));
+    await drop(page, search, column(page, 'Review & test'));
     await expect(inProgress.locator(search)).toHaveCount(1);
     await expect(page.locator('.toast')).not.toContainText('Marked');
 
@@ -58,7 +70,7 @@ test('Board: drag a plan to Done, Undo from the toast, refusals keep the card, k
     const locked = card(page, 'studio/Services/Khắc phục đồng bộ');
     const waiting = column(page, 'Waiting');
     await expect(waiting.locator(locked)).toHaveCount(1);
-    await locked.dragTo(done);
+    await drop(page, locked, done);
     await expect(page.getByRole('alert')).toContainText(
       'This plan could not be changed. The file may be locked or unavailable.',
     );
