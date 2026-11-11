@@ -1,3 +1,4 @@
+import { execution } from './agents';
 import type {
   Activity,
   Milestone,
@@ -84,6 +85,12 @@ export function needsAttention(plan: Plan, state: StateResponse) {
     /^waiting for owner/i.test(plan.status) ||
     stage(plan.status) === 'Blocked' ||
     plan.steps.some((s) => s.status === 'blocked') ||
+    (!!plan.runs?.length &&
+      (plan.steps.some((s) => execution(plan, s).latest?.event === 'blocked') ||
+        [...plan.runs]
+          .filter((r) => !r.step)
+          .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0]
+          ?.event === 'blocked')) ||
     state.stale[planKey(plan)] === true ||
     plan.questions.some((q) => q.open)
   );
@@ -231,6 +238,8 @@ export function acceptSnapshot(
                 return content;
               })(before),
             )) &&
+        JSON.stringify(before.runs) === JSON.stringify(input.runs) &&
+        before.agent === input.agent &&
         before.source === input.source &&
         before.root === input.root &&
         before.projectName === input.projectName &&
@@ -303,6 +312,11 @@ export function planSearchText(p: Plan) {
         p.next,
         p.status,
         p.owner,
+        p.agent || '',
+        ...(p.runs || []).map((r) =>
+          [r.agent, r.coordinator, r.result].join(' '),
+        ),
+        ...p.steps.flatMap((s) => s.executors || []),
         ...p.steps.map((s) => s.text),
         ...p.decisions.map((d) => d.text),
         ...p.questions.map((q) => q.ask + ' ' + q.answer),
@@ -321,6 +335,8 @@ function taskSearchText({ plan: p, step: s }: TaskRow) {
       all: fold(
         [
           s.text,
+          ...execution(p, s).agents,
+          execution(p, s).latest?.result || '',
           stepLabels[s.status],
           p.name,
           p.repo,
@@ -413,7 +429,10 @@ export const timeLabel = (value: string) =>
         minute: '2-digit',
       })
     : '';
-export function activityFor(state: Snapshot, plan?: Plan): Activity[] {
+export type DisplayActivity = Omit<Activity, 'kind'> & {
+  kind: Activity['kind'] | 'reported-run';
+};
+export function activityFor(state: Snapshot, plan?: Plan): DisplayActivity[] {
   const events = state.activity.filter(
     (e) =>
       !plan ||
@@ -424,8 +443,33 @@ export function activityFor(state: Snapshot, plan?: Plan): Activity[] {
   const known = new Set(
     events.map((e) => [e.project, e.repo, e.plan, e.kind, e.text].join('|')),
   );
-  const historical: Activity[] = [];
+  const historical: DisplayActivity[] = [];
   for (const p of plan ? [plan] : state.state.plans) {
+    // Retained collectors can provide runs without the newer activity kinds.
+    // Prefer an existing recorded event at the same time, without double counting it.
+    for (const run of p.runs || []) {
+      if (
+        events.some(
+          (e) =>
+            e.ts === run.updatedAt &&
+            e.actor === run.agent &&
+            e.repo === p.repo &&
+            e.plan === p.name &&
+            (!e.project || e.project === p.project),
+        )
+      )
+        continue;
+      historical.push({
+        ts: run.updatedAt,
+        project: p.project,
+        repo: p.repo,
+        plan: p.name,
+        kind: 'reported-run',
+        text: run.result || (run.active ? 'Working now' : 'No result reported'),
+        extra: run.step?.text || '',
+        actor: run.agent,
+      });
+    }
     for (const entry of [
       ...p.decisions.map((d) => ({
         ...d,
