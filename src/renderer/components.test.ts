@@ -138,7 +138,7 @@ describe('React screen components', () => {
     );
     expect(html).toContain('Other steps');
     expect(html.match(/Giữ tiếng Việt trong kết quả/g)).toHaveLength(1);
-    expect(html).not.toMatch(/draggable|contenteditable|data-agent|executor/);
+    expect(html).not.toMatch(/draggable|contenteditable|data-agent/);
   });
   it('shows finished milestones without a recorded state as done and skips them as the current milestone', () => {
     const key = encodeURIComponent('studio/Ledger/Cải thiện tìm kiếm');

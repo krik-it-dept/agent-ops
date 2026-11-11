@@ -15,6 +15,8 @@ import {
   archived,
   findPlan,
   needsAttention,
+  fold,
+  planSearchText,
   planKey,
   timeLabel,
   type ListFilters,
@@ -34,6 +36,8 @@ import { UpdatePanel, updating, useUpdateDock } from './components/Updates';
 import { CommandSearch, ShortcutSheet } from './components/Commands';
 import { Sidebar, sidebarPlans } from './components/Sidebar';
 import { Overview } from './views/Overview';
+import { WorkViews } from './views/WorkViews';
+import { agentMatches, participation } from './agents';
 import { TaskList, restoreListPreferences } from './views/TaskList';
 import { PlanPage } from './views/PlanPage';
 import { SettingsPage } from './settings/Settings';
@@ -94,6 +98,21 @@ function Shell() {
     () => (settings ? plans.filter((p) => !archived(p, settings)) : []),
     [plans, settings],
   );
+  const agent = search.get('agent') || '';
+  const filterPlans =
+    location.pathname === '/archive'
+      ? plans.filter((p) => settings && archived(p, settings))
+      : activePlans;
+  const agentNames = [
+    ...new Set(filterPlans.flatMap((p) => participation(p).agents)),
+  ].sort();
+  function clearFilters() {
+    const next = new URLSearchParams(searchRef.current);
+    next.delete('q');
+    next.delete('agent');
+    searchRef.current = next;
+    setSearch(next, { replace: true });
+  }
   const current = activeKey ? findPlan(plans, activeKey) : undefined;
   const visiblePlans = sidebarPlans(activePlans, navigation);
   useLayoutEffect(() => {
@@ -214,7 +233,7 @@ function Shell() {
       search.get('status') || '',
     )
       ? search.get('status')
-      : 'doing'
+      : 'all'
   ) as ListFilters['status'];
   function setStatus(value: ListFilters['status']) {
     const next = new URLSearchParams(searchRef.current);
@@ -377,7 +396,11 @@ function Shell() {
         ? 'Archive'
         : location.pathname === '/list'
           ? 'List'
-          : 'Overview';
+          : location.pathname === '/board'
+            ? 'Board'
+            : location.pathname === '/timeline'
+              ? 'Timeline'
+              : 'Summary';
   return (
     <div className="app">
       {/* First-run setup is modal: the app bar and status bar stay visible
@@ -438,21 +461,32 @@ function Shell() {
           <main className="main">
             <nav className="workspace-strip" aria-label="Views">
               <Link
-                to="/"
+                to={`/?${search}`}
                 aria-current={location.pathname === '/' ? 'page' : undefined}
               >
-                Overview
+                Summary
               </Link>
               <Link
-                to="/list"
+                to={`/list?${search}`}
                 aria-current={
                   location.pathname === '/list' ? 'page' : undefined
                 }
               >
                 List
               </Link>
+              {(['board', 'timeline'] as const).map((name) => (
+                <Link
+                  key={name}
+                  to={`/${name}?${search}`}
+                  aria-current={
+                    location.pathname === `/${name}` ? 'page' : undefined
+                  }
+                >
+                  {name === 'board' ? 'Board' : 'Timeline'}
+                </Link>
+              ))}
               <Link
-                to="/attention"
+                to={`/attention?${search}`}
                 aria-current={view === 'attention' ? 'page' : undefined}
               >
                 Needs attention
@@ -464,6 +498,12 @@ function Shell() {
                     }
                   </small>
                 )}
+              </Link>
+              <Link
+                to={`/archive?${search}`}
+                aria-current={view === 'archive' ? 'page' : undefined}
+              >
+                Archive
               </Link>
               {navigation.openPlans.map((key) => {
                 const p = findPlan(plans, key);
@@ -561,7 +601,23 @@ function Shell() {
               </section>
             )}
             <header className="top">
-              {title && <h1>{title}</h1>}
+              {title && (
+                <div className="view-title">
+                  <h1>{title}</h1>
+                  <small className="muted">
+                    {
+                      filterPlans.filter(
+                        (p) =>
+                          agentMatches(p, agent) &&
+                          planSearchText(p).includes(fold(query)) &&
+                          (view !== 'attention' ||
+                            (snapshot && needsAttention(p, snapshot))),
+                      ).length
+                    }{' '}
+                    of {filterPlans.length} plans
+                  </small>
+                </div>
+              )}
               {/* A plan page places its title row here, level with search and Refresh. */}
               {activeKey && <div className="top-title" id="page-title" />}
               <label className="sr-only" htmlFor="work-search">
@@ -588,6 +644,35 @@ function Shell() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
+              {!activeKey && (
+                <select
+                  aria-label="Filter by agent"
+                  value={agent}
+                  onChange={(e) => {
+                    const next = new URLSearchParams(searchRef.current);
+                    if (e.target.value) next.set('agent', e.target.value);
+                    else next.delete('agent');
+                    searchRef.current = next;
+                    setSearch(next);
+                  }}
+                >
+                  <option value="">All agents ({filterPlans.length})</option>
+                  {agentNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name} (
+                      {filterPlans.filter((p) => agentMatches(p, name)).length})
+                    </option>
+                  ))}
+                  <option value="unreported">
+                    Not reported (
+                    {
+                      filterPlans.filter((p) => agentMatches(p, 'unreported'))
+                        .length
+                    }
+                    )
+                  </option>
+                </select>
+              )}
               <button
                 disabled={refreshing}
                 onClick={() => {
@@ -617,7 +702,11 @@ function Shell() {
                   <Route
                     path="/"
                     element={
-                      <Overview query={query} clear={() => setQuery('')} />
+                      <Overview
+                        query={query}
+                        agent={agent}
+                        clear={clearFilters}
+                      />
                     }
                   />
                   <Route
@@ -630,12 +719,25 @@ function Shell() {
                     element={
                       <TaskList
                         query={query}
+                        agent={agent}
                         status={status}
                         setStatus={setStatus}
-                        clearQuery={() => setQuery('')}
+                        clearQuery={clearFilters}
                         navigation={navigation}
                         setNavigation={setNavigation}
                       />
+                    }
+                  />
+                  <Route
+                    path="/board"
+                    element={
+                      <WorkViews view="board" query={query} agent={agent} />
+                    }
+                  />
+                  <Route
+                    path="/timeline"
+                    element={
+                      <WorkViews view="timeline" query={query} agent={agent} />
                     }
                   />
                   <Route
@@ -644,7 +746,8 @@ function Shell() {
                       <Overview
                         query={query}
                         view="attention"
-                        clear={() => setQuery('')}
+                        agent={agent}
+                        clear={clearFilters}
                       />
                     }
                   />
@@ -654,7 +757,8 @@ function Shell() {
                       <Overview
                         query={query}
                         view="archive"
-                        clear={() => setQuery('')}
+                        agent={agent}
+                        clear={clearFilters}
                       />
                     }
                   />
@@ -672,7 +776,7 @@ function Shell() {
                     path="*"
                     element={
                       <Empty title="Page unavailable">
-                        <Link to="/">Overview</Link>
+                        <Link to="/">Summary</Link>
                       </Empty>
                     }
                   />

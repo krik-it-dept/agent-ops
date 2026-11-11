@@ -123,7 +123,10 @@ test('the palette shows plan stages without the recorded reason', async () => {
     await page
       .getByRole('combobox', { name: 'Search plans or commands' })
       .fill('Chờ duyệt');
-    const option = page.getByRole('option').first();
+    const option = page
+      .getByRole('listbox', { name: 'Plans and commands' })
+      .getByRole('option')
+      .first();
     await expect(option).toContainText('Waiting for owner');
     await expect(option).not.toContainText('Please confirm');
     expect(fixture.errors).toEqual([]);

@@ -107,13 +107,13 @@ try {
   check(info.sampleModeAllowed === false, 'packaged sample mode is disabled despite the flag');
   await page.getByRole('button', { name: 'Set up later', exact: true }).click();
   await page.getByRole('alertdialog', { name: 'Skip setup?' }).getByRole('button', { name: 'Skip', exact: true }).click();
-  await page.getByRole('heading', { name: 'Overview', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Summary', exact: true }).waitFor();
   check(true, 'the real ledger opens after setup');
   await app.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows()[0];
     return window.loadURL(window.webContents.getURL().split('#')[0] + '#/?fixture=demo');
   });
-  await page.getByRole('heading', { name: 'Overview', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Summary', exact: true }).waitFor();
   check(await page.getByText('Sample workspace', { exact: true }).count() === 0, 'sample URL cannot replace packaged data');
   await app.close(); app = undefined;
   const snapshot = (root) => {

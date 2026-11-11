@@ -13,6 +13,9 @@ import {
   placeLabel,
 } from '../model';
 import { useLedger } from '../store';
+import { execution, stepAgentMatches } from '../agents';
+import { StepAgents, StepResult } from '../components/Agents';
+import { whenLabel } from '../model';
 import {
   Empty,
   Glyph,
@@ -56,7 +59,12 @@ export function restoreListPreferences(client: AgentOpsClient, value: unknown) {
 
 // Plan and step objects are kept while the plan revision is unchanged, so a
 // memoised row re-renders only when its own plan changed.
-const TaskRowView = memo(function TaskRowView({ plan, step, index }: TaskRow) {
+const TaskRowView = memo(function TaskRowView({
+  plan,
+  step,
+  index,
+  now,
+}: TaskRow & { now: string }) {
   return (
     <tr>
       <td>
@@ -87,9 +95,22 @@ const TaskRowView = memo(function TaskRowView({ plan, step, index }: TaskRow) {
         <SourceLabel plan={plan} />
       </td>
       <td>
+        <StepAgents plan={plan} step={step} />
+      </td>
+      <td>
         <span className={`pill step-${step.status}`}>
           {stepLabels[step.status]}
         </span>
+      </td>
+      <td>
+        <StepResult plan={plan} step={step} />
+      </td>
+      <td>
+        <time dateTime={execution(plan, step).latest?.updatedAt}>
+          {execution(plan, step).latest
+            ? whenLabel(execution(plan, step).latest!.updatedAt, now)
+            : 'Not reported'}
+        </time>
       </td>
     </tr>
   );
@@ -105,6 +126,7 @@ interface Draft {
   query: string;
 }
 export function TaskList({
+  agent = '',
   query,
   status,
   setStatus,
@@ -113,6 +135,7 @@ export function TaskList({
   setNavigation,
 }: {
   query: string;
+  agent?: string;
   status: ListFilters['status'];
   setStatus(status: ListFilters['status']): void;
   clearQuery(): void;
@@ -160,7 +183,11 @@ export function TaskList({
         : [],
     [snapshot, settings],
   );
-  const allRows = useMemo(() => taskRows(allPlans), [allPlans]);
+  const allRows = useMemo(
+    () =>
+      taskRows(allPlans).filter((r) => stepAgentMatches(r.plan, r.step, agent)),
+    [allPlans, agent],
+  );
   const rows = filterTasks(allRows, {
     query,
     status,
@@ -389,6 +416,7 @@ export function TaskList({
       plan={r.plan}
       step={r.step}
       index={r.index}
+      now={snapshot?.now || ''}
     />
   );
   const groups = new Map<string, TaskRow[]>();
@@ -400,6 +428,7 @@ export function TaskList({
   }
   let ordered = [...groups];
   const signature = JSON.stringify([
+    agent,
     query,
     status,
     work,
@@ -520,7 +549,7 @@ export function TaskList({
         <small className="muted">
           {sort && navigation.group === 'plan'
             ? 'Sorting within each plan'
-            : 'Read-only checklist tasks'}
+            : 'Checklist tasks'}
         </small>
       </div>
       <div className="table-scroll">
@@ -529,7 +558,10 @@ export function TaskList({
             <tr>
               {header('work', 'Work')}
               {header('plan', 'Plan')}
+              <th scope="col">Agent</th>
               {header('status', 'Status')}
+              <th scope="col">Latest result</th>
+              <th scope="col">Updated</th>
             </tr>
           </thead>
           {navigation.group === 'none' ? (
@@ -542,7 +574,7 @@ export function TaskList({
                 <Fragment key={key}>
                   <tbody className="task-group">
                     <tr>
-                      <th colSpan={3}>
+                      <th colSpan={6}>
                         <div className="row">
                           <button
                             aria-expanded={!closed}
@@ -560,7 +592,7 @@ export function TaskList({
                           <Status value={p.status} />
                           <Progress
                             {...progress(p.steps)}
-                            label={`Whole-plan progress for ${p.name}`}
+                            label={`Plan progress for ${p.name}`}
                           />
                         </div>
                         <small>
