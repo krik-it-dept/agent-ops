@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launchFixture, navigate } from './helpers';
@@ -149,6 +149,11 @@ for (const theme of ['light', 'dark'] as const) {
           await expect(
             page.locator('.timeline-table .agent-chain').first(),
           ).toBeVisible();
+          // The chain stays on one line: the arrow never wraps below the coordinator.
+          for (const chain of await page
+            .locator('.timeline-table .agent-chain')
+            .all())
+            expect((await chain.boundingBox())!.height).toBeLessThan(30);
           await page.getByRole('button', { name: 'Previous month' }).click();
           await expect(page.locator('.timeline-toolbar')).toContainText(
             'October 2026',
@@ -199,13 +204,26 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(
           page.getByRole('button', { name: 'Refresh F5' }),
         ).toBeInViewport();
-        // The board and six-column list retain readable columns in their own scroll area.
+        // At 1000 px the last column of every view must be reachable: scrolling
+        // its own area (never the page) brings it fully into the window.
+        const last = {
+          '/': page.getByRole('heading', { name: 'Recent activity' }),
+          '/list': page.getByRole('columnheader', {
+            name: 'Updated',
+            exact: true,
+          }),
+          '/board': page.getByRole('region', { name: 'Done', exact: true }),
+          '/timeline': page.locator('.timeline-table thead th').last(),
+        }[route];
+        await last.scrollIntoViewIfNeeded();
+        await expect(last).toBeInViewport({ ratio: 0.95 });
+        const box = (await last.boundingBox())!;
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(1001);
         expect(
-          await page
-            .locator('.view')
-            .evaluate(
-              (el) => el.clientWidth > 0 && el.scrollWidth >= el.clientWidth,
-            ),
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
         ).toBe(true);
         await app.evaluate(({ BrowserWindow }) =>
           BrowserWindow.getAllWindows()[0]!.setContentSize(1920, 1080),
@@ -226,3 +244,199 @@ for (const theme of ['light', 'dark'] as const) {
     }
   });
 }
+
+test('Ctrl+1..4 and the command palette open the work views and keep the search and agent filter', async () => {
+  const fixture = await launchFixture('demo', 'light');
+  const { page } = fixture;
+  try {
+    await page.getByRole('button', { name: 'Dismiss update' }).click();
+    const filter = page.getByRole('combobox', { name: 'Filter by agent' });
+    await filter.selectOption('Codex');
+    await expect(filter).toHaveValue('Codex');
+    for (const [key, path, heading] of [
+      ['2', '/list', 'List'],
+      ['3', '/board', 'Board'],
+      ['4', '/timeline', 'Timeline'],
+      ['1', '/', 'Summary'],
+    ] as const) {
+      await page.keyboard.press(`Control+${key}`);
+      await expect(
+        page.getByRole('heading', { name: heading, exact: true }),
+      ).toBeVisible();
+      await expect(filter).toHaveValue('Codex');
+      const hash = await page.evaluate(() => location.hash);
+      expect(hash.split('?')[0]).toBe(`#${path}`);
+      expect(hash).toContain('agent=Codex');
+    }
+    await page.keyboard.press('Control+k');
+    await page
+      .getByRole('combobox', { name: 'Search plans or commands' })
+      .fill('Board');
+    await page.getByRole('option', { name: /^Board/ }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Board', exact: true }),
+    ).toBeVisible();
+    await expect(filter).toHaveValue('Codex');
+    await page.keyboard.press('?');
+    await expect(
+      page.getByRole('dialog', { name: 'Keyboard shortcuts' }),
+    ).toContainText('Summary / List / Board / Timeline');
+    expect(fixture.errors).toEqual([]);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('Settings and shortcut help sit in the sidebar footer, are keyboard reachable and Settings has a way back', async () => {
+  const fixture = await launchFixture('demo', 'light');
+  const { page } = fixture;
+  try {
+    await page.getByRole('button', { name: 'Dismiss update' }).click();
+    await expect(page.locator('header.appbar a.icon-button')).toHaveCount(0);
+    const footer = page.locator('.plan-sidebar > footer');
+    const settings = footer.getByRole('link', { name: 'Settings' });
+    const help = footer.getByRole('button', { name: 'Keyboard shortcuts' });
+    const archive = footer.getByRole('link', { name: /^Archive/ });
+    // Bottom-left of the sidebar: the icons come before Archive.
+    const [s, h, a, side] = await Promise.all([
+      settings.boundingBox(),
+      help.boundingBox(),
+      archive.boundingBox(),
+      page.locator('.plan-sidebar').boundingBox(),
+    ]);
+    expect(s!.x).toBeLessThan(h!.x);
+    expect(h!.x).toBeLessThan(a!.x);
+    expect(s!.x - side!.x).toBeLessThan(40);
+    expect(side!.y + side!.height - (s!.y + s!.height)).toBeLessThan(30);
+    await help.focus();
+    await page.keyboard.press('Enter');
+    await expect(
+      page.getByRole('dialog', { name: 'Keyboard shortcuts' }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await settings.focus();
+    await page.keyboard.press('Enter');
+    await expect(
+      page.getByRole('heading', { name: 'Settings', exact: true }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: '← Back' }).click();
+    await expect(page.getByRole('navigation', { name: 'Views' })).toBeVisible();
+    expect(fixture.errors).toEqual([]);
+  } finally {
+    await fixture.close();
+  }
+});
+
+/** Presses Tab until the target has focus, as a keyboard-only user would. */
+async function tabTo(page: Page, target: Locator, limit = 800) {
+  for (let i = 0; i < limit; i++) {
+    if (await target.evaluate((el) => el === document.activeElement)) return;
+    await page.keyboard.press('Tab');
+  }
+  throw new Error(`Never reached ${String(target)} by keyboard`);
+}
+
+test('keyboard only: workload button, a group toggle and Show more', async () => {
+  const fixture = await launchFixture('large', 'light');
+  const { page } = fixture;
+  try {
+    await page.getByRole('button', { name: 'Dismiss update' }).click();
+    const filter = page.getByRole('combobox', { name: 'Filter by agent' });
+    await page
+      .locator('.view')
+      .first()
+      .focus()
+      .catch(() => undefined);
+    const workload = page
+      .locator('.agent-workload button:not(:disabled)')
+      .first();
+    await expect(workload).toBeVisible();
+    await tabTo(page, workload);
+    await page.keyboard.press('Space');
+    await expect(workload).toHaveAttribute('aria-pressed', 'true');
+    await expect(filter).not.toHaveValue('');
+    await filter.selectOption('');
+    await expect(filter).toHaveValue('');
+    await page.keyboard.press('Control+2');
+    await expect(
+      page.getByRole('heading', { name: 'List', exact: true }),
+    ).toBeVisible();
+    // A plan group opens and closes with the keyboard.
+    const toggle = page.locator('.task-group-name button').first();
+    await tabTo(page, toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    // The rest of the tasks are reachable without a pointer.
+    const more = page.getByRole('button', { name: /^Show \d+ more$/ });
+    await expect(more).toBeVisible();
+    const rows = page.locator('.task-table tbody:not(.task-group) tr');
+    const before = await rows.count();
+    await tabTo(page, more);
+    await page.keyboard.press('Enter');
+    await expect.poll(() => rows.count()).toBeGreaterThan(before);
+    expect(fixture.errors).toEqual([]);
+  } finally {
+    await fixture.close();
+  }
+});
+
+test('the agent filter also applies in Needs attention and Archive', async () => {
+  const fixture = await launchFixture('demo', 'light');
+  const { page } = fixture;
+  try {
+    await page.getByRole('button', { name: 'Dismiss update' }).click();
+    await navigate(page, '/settings/general');
+    await page
+      .getByRole('switch', { name: /Automatically archive Done plans/ })
+      .check();
+    for (const route of ['/attention', '/archive']) {
+      await navigate(page, route);
+      const cards = page.locator('article.work-card');
+      await expect(cards.first()).toBeVisible();
+      const total = await cards.count();
+      const filter = page.getByRole('combobox', { name: 'Filter by agent' });
+      const names = (
+        await filter
+          .locator('option')
+          .evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value))
+      ).filter((value) => value && value !== 'unreported');
+      expect(names.length).toBeGreaterThan(0);
+      // Every agent offered keeps only the plans that agent took part in.
+      let narrowed = false;
+      let matched = 0;
+      for (const name of names) {
+        await filter.selectOption(name);
+        await expect(filter).toHaveValue(name);
+        const shown = await cards.count();
+        expect(shown).toBeLessThanOrEqual(total);
+        if (shown < total) narrowed = true;
+        if (shown) matched += 1;
+        else
+          await expect(
+            page.getByRole('heading', { name: 'No matching work' }),
+          ).toBeVisible();
+        for (const chain of await cards.locator('.agent-chain').all())
+          expect(await chain.getAttribute('aria-label')).toContain(name);
+      }
+      expect(matched).toBeGreaterThan(0);
+      // An agent no plan here mentions leaves nothing, with a way out.
+      await navigate(page, `${route}?agent=Nobody`);
+      await expect(filter.locator('option:checked')).toHaveText('Nobody (0)');
+      await expect(
+        page.getByRole('heading', { name: 'No matching work' }),
+      ).toBeVisible();
+      await page
+        .getByRole('button', { name: 'Clear filters', exact: true })
+        .click();
+      await expect(filter).toHaveValue('');
+      await expect(cards).toHaveCount(total);
+      if (route === '/attention') expect(narrowed).toBe(true);
+    }
+    expect(fixture.errors).toEqual([]);
+  } finally {
+    await fixture.close();
+  }
+});

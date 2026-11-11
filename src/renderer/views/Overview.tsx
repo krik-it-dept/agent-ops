@@ -26,6 +26,9 @@ import {
 import { AgentBadge, AgentChain } from '../components/Agents';
 import { ActivityFeed } from './PlanPage';
 
+/** "1 plan", "3 plans". */
+export const plural = (count: number, noun: string) =>
+  `${count} ${noun}${count === 1 ? '' : 's'}`;
 export const COLUMNS = [
   'To do',
   'In progress',
@@ -40,6 +43,9 @@ export function columnOf(plan: DisplayPlan) {
   if (/^(reviewing|fixing review|testing)$/.test(status)) return 2;
   if (/^(implementing|shipping|in progress|partly done|dry run)$/.test(status))
     return 1;
+  // A stage the app does not recognise but with blocked steps is waiting on something.
+  if (status !== 'planning' && plan.steps.some((s) => s.status === 'blocked'))
+    return 3;
   return 0;
 }
 export const PlanCard = memo(function PlanCard({
@@ -330,9 +336,13 @@ export function Overview({
               <div className="agent-workload">
                 {agents.map((name) => {
                   const workload = agentWorkload(plans, name);
+                  const counts = `${plural(workload.plans, 'plan')} · ${plural(workload.tasks, 'task')}`;
                   return (
                     <button
                       key={name}
+                      className="workload-row"
+                      aria-pressed={agent === name}
+                      disabled={!workload.plans}
                       onClick={() => {
                         const next = new URLSearchParams(search);
                         next.set('agent', name);
@@ -340,13 +350,23 @@ export function Overview({
                       }}
                     >
                       <AgentBadge name={name} />
-                      <span>
-                        {workload.plans} plans · {workload.tasks} tasks
+                      <span
+                        className="workload-bar"
+                        title={`${plural(workload.plans, 'plan')} of ${plans.length} matching`}
+                      >
+                        <i
+                          style={{
+                            width: `${plans.length ? (workload.plans / plans.length) * 100 : 0}%`,
+                          }}
+                        />
                       </span>
-                      <small>
-                        {workload.coordinating} coordinating · {workload.active}{' '}
-                        active tasks
-                      </small>
+                      <span className="workload-counts">
+                        <strong>{counts}</strong>
+                        <small>
+                          {workload.coordinating} coordinating ·{' '}
+                          {plural(workload.active, 'active task')}
+                        </small>
+                      </span>
                     </button>
                   );
                 })}

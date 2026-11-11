@@ -1,6 +1,7 @@
 import { execution } from './agents';
 import type {
   Activity,
+  AgentRun,
   Milestone,
   Plan,
   PlanDiagnostic,
@@ -118,6 +119,54 @@ const objects = <T>(value: unknown): T[] =>
   Array.isArray(value)
     ? (value.filter((item: unknown) => item && typeof item === 'object') as T[])
     : [];
+const runEvents = ['start', 'progress', 'done', 'blocked', 'stopped'];
+const text = (value: unknown) => (typeof value === 'string' ? value : '');
+/** Agent names are plain strings; anything else is treated as not reported. */
+const strings = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+/**
+ * Keeps only usable reported runs: an object with an agent, a known event and
+ * a readable update time. Other fields are coerced like the rest of the plan.
+ */
+export function normalizeRuns(value: unknown): AgentRun[] {
+  return objects<Record<string, unknown>>(value).flatMap((run) => {
+    const agent = text(run.agent).trim();
+    if (
+      !agent ||
+      !runEvents.includes(run.event as string) ||
+      !Number.isFinite(Date.parse(text(run.updatedAt)))
+    )
+      return [];
+    const step = run.step;
+    const at = step && typeof step === 'object' ? step : null;
+    return [
+      {
+        runId: text(run.runId),
+        agent,
+        coordinator: text(run.coordinator),
+        role: run.role === 'coordinator' ? 'coordinator' : 'executor',
+        event: run.event as AgentRun['event'],
+        active: run.active === true,
+        startedAt: Number.isFinite(Date.parse(text(run.startedAt)))
+          ? text(run.startedAt)
+          : text(run.updatedAt),
+        updatedAt: text(run.updatedAt),
+        step: at
+          ? {
+              line: Number.isSafeInteger((at as Step).line)
+                ? (at as Step).line
+                : 0,
+              text: text((at as Step).text),
+              milestone: text((at as Step).milestone),
+            }
+          : null,
+        result: text(run.result),
+      },
+    ];
+  });
+}
 function normalizePlan(input: Plan): Plan {
   const plan = { ...input };
   for (const key of [
@@ -138,8 +187,11 @@ function normalizePlan(input: Plan): Plan {
     'file',
   ] as const)
     plan[key] = String(plan[key] || '');
+  plan.agent = text(plan.agent);
+  plan.runs = normalizeRuns(plan.runs);
   plan.steps = objects<Step>(plan.steps).map((s, index) => ({
     ...s,
+    executors: strings(s.executors),
     text: String(s.text || ''),
     status: Object.hasOwn(stepLabels, s.status)
       ? s.status
@@ -170,6 +222,7 @@ function normalizePlan(input: Plan): Plan {
       }
       return {
         ...s,
+        executors: strings(s.executors),
         text: String(s.text || ''),
         status: Object.hasOwn(stepLabels, s.status)
           ? s.status
@@ -251,8 +304,9 @@ export function acceptSnapshot(
                 return content;
               })(before),
             )) &&
-        JSON.stringify(before.runs) === JSON.stringify(input.runs) &&
-        before.agent === input.agent &&
+        JSON.stringify(before.runs) ===
+          JSON.stringify(normalizeRuns(input.runs)) &&
+        before.agent === text(input.agent) &&
         before.source === input.source &&
         before.root === input.root &&
         before.projectName === input.projectName &&

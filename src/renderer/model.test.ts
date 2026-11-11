@@ -19,6 +19,8 @@ import {
   whenLabel,
 } from './model';
 import { settingsGate } from './store';
+import { participation } from './agents';
+import type { Plan } from '../shared/contracts';
 import { fixtureData, samplePlan } from './dev/fixture-bridge';
 import {
   defaultNavigation,
@@ -26,7 +28,7 @@ import {
   normalizeNavigation,
   visitPlan,
 } from './preferences';
-import { openingHash } from './routes';
+import { openingHash, viewRoute, VIEW_SHORTCUTS } from './routes';
 import type { Step } from '../shared/contracts';
 
 describe('source-backed ledger state', () => {
@@ -251,6 +253,68 @@ describe('task filters and natural sorting', () => {
   });
 });
 describe('private navigation and history', () => {
+  it('normalises agent, runs and step executors from untrusted plan data', () => {
+    const data = fixtureData();
+    const good = {
+      runId: 'r1',
+      agent: 'Codex',
+      coordinator: 'Claude',
+      role: 'executor',
+      event: 'done',
+      active: false,
+      startedAt: '2026-11-10T08:00:00.000Z',
+      updatedAt: '2026-11-10T09:00:00.000Z',
+      step: null,
+      result: 'ok',
+    };
+    const dirty = {
+      ...samplePlan('Dirty', 'Repo'),
+      agent: 42,
+      runs: [
+        good,
+        null,
+        'run',
+        { ...good, agent: 7 },
+        { ...good, event: 'exploded' },
+        { ...good, updatedAt: 'not a time' },
+        { ...good, runId: 9, result: { a: 1 }, role: 'boss', startedAt: 'x' },
+      ],
+    } as unknown as Plan;
+    dirty.steps = dirty.steps.map((s, i) => ({
+      ...s,
+      executors: i === 0 ? ('Codex' as never) : (['Codex', 3, null] as never),
+    }));
+    const second = {
+      ...samplePlan('Other', 'Repo'),
+      runs: 'nope',
+    } as unknown as Plan;
+    data.snapshot.state.plans = [dirty, second];
+    const [plan, other] = acceptSnapshot(null, data.snapshot).state.plans;
+    expect(plan!.agent).toBe('');
+    expect(plan!.runs!.map((r) => r.runId)).toEqual(['r1', '']);
+    expect(plan!.runs![1]).toMatchObject({
+      result: '',
+      role: 'executor',
+      startedAt: '2026-11-10T09:00:00.000Z',
+    });
+    expect(plan!.steps[0]!.executors).toEqual([]);
+    expect(plan!.steps[1]!.executors).toEqual(['Codex']);
+    expect(other!.runs).toEqual([]);
+    // Readers that expect arrays and strings no longer throw.
+    expect(() => participation(plan!)).not.toThrow();
+    expect(participation(plan!).coordinator).toBe('Claude');
+    expect(participation(other!).agents).toEqual([]);
+  });
+  it('maps Ctrl+1..4 to the work views and keeps the current search and agent filter', () => {
+    expect(VIEW_SHORTCUTS).toEqual(['/', '/list', '/board', '/timeline']);
+    expect(
+      viewRoute('/board', new URLSearchParams('q=login&agent=Codex')),
+    ).toBe('/board?q=login&agent=Codex');
+    expect(viewRoute('/timeline', '?agent=Codex')).toBe(
+      '/timeline?agent=Codex',
+    );
+    expect(viewRoute('/', new URLSearchParams())).toBe('/');
+  });
   it('restores the previous view on reopen, clears saved filters and respects explicit deep links', () => {
     expect(openingHash('', { route: '/list?status=done&q=old' })).toBe(
       '#/list',

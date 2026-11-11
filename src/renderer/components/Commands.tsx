@@ -9,7 +9,7 @@ export const shortcuts = [
   ['R', 'Refresh plans'],
   ['?', 'Keyboard shortcuts'],
   ['Ctrl K', 'Plans and commands'],
-  ['Ctrl 1 / 2', 'Summary / List'],
+  ['Ctrl 1 / 2 / 3 / 4', 'Summary / List / Board / Timeline'],
   ['Ctrl B', 'Toggle sidebar'],
   ['Alt ↑ / ↓', 'Previous / next plan'],
   ['Ctrl F', 'Search Settings'],
@@ -20,11 +20,16 @@ export const shortcuts = [
 export function CommandSearch({
   plans,
   close,
+  viewRoute,
+  showShortcuts,
   toggleSidebar,
   refresh,
 }: {
   plans: DisplayPlan[];
   close(): void;
+  /** Adds the current search and agent filter to a view path. */
+  viewRoute(path: string): string;
+  showShortcuts(): void;
   toggleSidebar(): void;
   refresh(): void;
 }) {
@@ -32,21 +37,46 @@ export function CommandSearch({
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const actions = [
-    { label: 'Summary', detail: 'View', run: () => navigate('/') },
-    { label: 'Board', detail: 'View', run: () => navigate('/board') },
-    { label: 'Timeline', detail: 'View', run: () => navigate('/timeline') },
-    { label: 'List', detail: 'View', run: () => navigate('/list') },
+    {
+      label: 'Summary',
+      detail: 'View · Ctrl 1',
+      run: () => navigate(viewRoute('/')),
+    },
+    {
+      label: 'Board',
+      detail: 'View · Ctrl 3',
+      run: () => navigate(viewRoute('/board')),
+    },
+    {
+      label: 'Timeline',
+      detail: 'View · Ctrl 4',
+      run: () => navigate(viewRoute('/timeline')),
+    },
+    {
+      label: 'List',
+      detail: 'View · Ctrl 2',
+      run: () => navigate(viewRoute('/list')),
+    },
     {
       label: 'Needs attention',
       detail: 'View',
-      run: () => navigate('/attention'),
+      run: () => navigate(viewRoute('/attention')),
     },
-    { label: 'Archive', detail: 'View', run: () => navigate('/archive') },
+    {
+      label: 'Archive',
+      detail: 'View',
+      run: () => navigate(viewRoute('/archive')),
+    },
     { label: 'Refresh progress', detail: 'Action · F5', run: refresh },
     {
       label: 'Toggle plans sidebar',
       detail: 'Action · Ctrl B',
       run: toggleSidebar,
+    },
+    {
+      label: 'Keyboard shortcuts',
+      detail: 'Help · ?',
+      run: showShortcuts,
     },
     {
       label: 'Settings',

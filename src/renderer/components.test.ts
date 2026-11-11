@@ -3,12 +3,17 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { Glyph, Progress, Status } from './components/ui';
-import { createFixtureBridge, fixtureData } from './dev/fixture-bridge';
+import { AgentChain } from './components/Agents';
+import {
+  createFixtureBridge,
+  fixtureData,
+  samplePlan,
+} from './dev/fixture-bridge';
 import { createClient } from './client';
 import { LedgerProvider } from './store';
 import { Sidebar } from './components/Sidebar';
 import { acceptSnapshot } from './model';
-import { Overview } from './views/Overview';
+import { Overview, COLUMNS, columnOf } from './views/Overview';
 import { PlanPage } from './views/PlanPage';
 import { defaultNavigation } from './preferences';
 import { SettingsPage } from './settings/Settings';
@@ -218,12 +223,20 @@ describe('React screen components', () => {
             setNavigation: () => undefined,
             current: null,
             openCommands: () => undefined,
+            openHelp: () => undefined,
           }),
         ),
       }),
     );
     expect(html).toContain('steps · Waiting for owner</small>');
     expect(html).not.toContain('Please confirm the release wording');
+    // Settings and shortcut help live in the sidebar footer beside Archive.
+    const footer = html.slice(html.indexOf('<footer'));
+    expect(footer).toMatch(
+      /aria-label="Settings"[^>]*href="\/settings\/general"|href="\/settings\/general"[^>]*aria-label="Settings"/,
+    );
+    expect(footer).toContain('aria-label="Keyboard shortcuts"');
+    expect(footer).toContain('Archive');
   });
   it('does not mix decisions and questions into the milestone work', () => {
     const key = encodeURIComponent('studio/Ledger/Cải thiện tìm kiếm');
@@ -248,4 +261,111 @@ describe('React screen components', () => {
       );
     },
   );
+  describe('agent chain', () => {
+    const chain = (coordinator: string, executors: string[]) => {
+      const plan = samplePlan();
+      plan.agent = coordinator;
+      plan.runs = executors.map((agent, n) => ({
+        runId: `r${n}`,
+        agent,
+        coordinator,
+        role: 'executor' as const,
+        event: 'done' as const,
+        active: false,
+        startedAt: `2026-11-10T0${n}:00:00.000Z`,
+        updatedAt: `2026-11-10T0${n}:30:00.000Z`,
+        step: null,
+        result: '',
+      }));
+      plan.steps = plan.steps.map((s) => ({ ...s, executors: [] }));
+      return renderToStaticMarkup(createElement(AgentChain, { plan }));
+    };
+    it('shows one badge when the coordinator is the only executor', () => {
+      const html = chain('Claude', ['Claude']);
+      expect(html.match(/class="agent-chip"/g)).toHaveLength(1);
+      expect(html).not.toContain('→');
+      expect(html).toContain(
+        'aria-label="Coordinator: Claude; Executed by: Claude"',
+      );
+    });
+    it('separates two executors and collapses more into Multi with the full list named', () => {
+      const two = chain('Claude', ['Codex', 'Gemini']);
+      expect(two.match(/class="agent-chip"/g)).toHaveLength(3);
+      expect(two).toContain('class="agent-sep"');
+      const many = chain('Claude', ['Codex', 'Gemini', 'Cursor']);
+      expect(many).toContain('<span>Multi</span>');
+      expect(many.match(/class="agent-chip"/g)).toHaveLength(1);
+      // The tooltip and the accessible name both list every executor.
+      const names = many.match(
+        /aria-label="Coordinator: Claude; Executed by: ([^"]*)"/,
+      )?.[1];
+      expect(names?.split(', ').sort()).toEqual(['Codex', 'Cursor', 'Gemini']);
+      expect(many).toContain(
+        `title="Coordinator: Claude; Executed by: ${names}"`,
+      );
+      expect(many).toMatch(/class="sr-only">: [^<]*Cursor/);
+    });
+  });
+  describe('agent workload', () => {
+    const summary = (agent: string) => {
+      const data = fixtureData();
+      return renderToStaticMarkup(
+        createElement(LedgerProvider, {
+          source: {
+            client: createClient(createFixtureBridge()),
+            fixture: true,
+          },
+          initial: data,
+          children: createElement(
+            MemoryRouter,
+            { initialEntries: ['/'] },
+            createElement(
+              Routes,
+              null,
+              createElement(Route, {
+                path: '/',
+                element: createElement(Overview, {
+                  query: '',
+                  agent,
+                  clear: () => undefined,
+                }),
+              }),
+            ),
+          ),
+        }),
+      );
+    };
+    it('uses plural forms, a workload bar and marks the filtered agent as pressed', () => {
+      const html = summary('Codex');
+      const rows = html.match(/<button class="workload-row"[^>]*>/g) ?? [];
+      expect(rows.length).toBeGreaterThan(0);
+      expect(html).toMatch(/class="workload-bar"/);
+      expect(html).toMatch(/\d+ plans? · \d+ tasks?/);
+      expect(html).not.toMatch(/(?<![\d])1 (plans|tasks|active tasks)/);
+      expect(
+        rows.filter((r) => r.includes('aria-pressed="true"')),
+      ).toHaveLength(1);
+      expect(summary('').match(/aria-pressed="true"/)).toBeNull();
+    });
+  });
+  describe('board and chart columns', () => {
+    const plan = (status: string, blocked: boolean) => ({
+      ...samplePlan(),
+      status,
+      steps: samplePlan().steps.map((s) => ({
+        ...s,
+        status: blocked ? ('blocked' as const) : ('todo' as const),
+      })),
+      diagnostics: [],
+    });
+    it('puts an unrecognised stage with blocked steps in Waiting, as the beta did', () => {
+      expect(COLUMNS[3]).toBe('Waiting');
+      expect(columnOf(plan('Parked', true))).toBe(3);
+      expect(columnOf(plan('Parked', false))).toBe(0);
+      expect(columnOf(plan('Planning', true))).toBe(0);
+      expect(columnOf(plan('Blocked', false))).toBe(3);
+      expect(columnOf(plan('Implementing', true))).toBe(1);
+      expect(columnOf(plan('Done', true))).toBe(4);
+    });
+  });
 });

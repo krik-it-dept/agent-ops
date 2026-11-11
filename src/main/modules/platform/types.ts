@@ -40,7 +40,15 @@ export interface WindowPort {
   onShow(callback: () => void): Dispose;
 }
 export interface StartupPort {
-  read(options: { path: string; args: string[] }): { openAtLogin: boolean };
+  /** `name` is the Run value name the item was written under. */
+  read(options: { path: string; args: string[]; name: string }): {
+    openAtLogin: boolean;
+    launchItems?: readonly {
+      name: string;
+      path: string;
+      enabled: boolean;
+    }[];
+  };
   write(settings: {
     openAtLogin: boolean;
     path: string;

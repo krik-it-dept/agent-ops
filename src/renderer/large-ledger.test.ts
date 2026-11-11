@@ -11,9 +11,9 @@ import { createClient } from './client';
 import { LedgerProvider } from './store';
 import { Overview } from './views/Overview';
 import { WorkViews } from './views/WorkViews';
-import { LIST_PAGE, TaskList } from './views/TaskList';
+import { LIST_PAGE, TaskList, taskRowProps } from './views/TaskList';
 import { defaultNavigation } from './preferences';
-import { acceptSnapshot, filterTasks, taskRows } from './model';
+import { acceptSnapshot, filterTasks, taskRows, whenLabel } from './model';
 
 // 400 plans with 21 steps each: 8,400 checklist tasks.
 function largeLedger() {
@@ -207,5 +207,49 @@ describe('large ledgers', () => {
     // Measured about 20 ms per snapshot and 150 ms for the Summary on a dev machine.
     expect(accepted / 20).toBeLessThan(150);
     expect(rendered).toBeLessThan(2000);
+  });
+  it('passes unchanged List rows equal props when only the snapshot time and one run change', () => {
+    const data = largeLedger();
+    const first = acceptSnapshot(null, data.snapshot);
+    const next = structuredClone(data.snapshot);
+    next.generation += 1;
+    next.now = new Date(Date.parse(next.now) + 90_000).toISOString();
+    next.state.plans[3]!.runs = [
+      {
+        runId: 'r1',
+        agent: 'Codex',
+        coordinator: 'Claude',
+        role: 'executor',
+        event: 'progress',
+        active: true,
+        startedAt: next.now,
+        updatedAt: next.now,
+        step: null,
+        result: 'Working',
+      },
+    ];
+    const second = acceptSnapshot(first, next);
+    expect(second.now).not.toBe(first.now);
+    const before = taskRows(first.state.plans);
+    const after = taskRows(second.state.plans);
+    let rerendered = 0;
+    before.forEach((row, i) => {
+      const a = taskRowProps(row, first.now);
+      const b = taskRowProps(after[i]!, second.now);
+      // React.memo compares props shallowly.
+      if (
+        Object.keys(a).some(
+          (k) => a[k as keyof typeof a] !== b[k as keyof typeof b],
+        )
+      )
+        rerendered += 1;
+    });
+    // Only the 21 rows of the plan whose run changed re-render.
+    expect(rerendered).toBe(21);
+    // The day-level value gives the same label as the full time.
+    const stamp = new Date(Date.parse(first.now) - 3_600_000).toISOString();
+    expect(whenLabel(stamp, taskRowProps(before[0]!, first.now).today)).toBe(
+      whenLabel(stamp, first.now),
+    );
   });
 });

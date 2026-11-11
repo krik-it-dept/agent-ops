@@ -30,7 +30,7 @@ import {
   visitPlan,
   type Navigation,
 } from './preferences';
-import { routePlan } from './routes';
+import { routePlan, viewRoute, VIEW_SHORTCUTS } from './routes';
 import { Empty, planRoute } from './components/ui';
 import { UpdatePanel, updating, useUpdateDock } from './components/Updates';
 import { CommandSearch, ShortcutSheet } from './components/Commands';
@@ -291,9 +291,11 @@ function Shell() {
         setNavigation((nav) => ({ ...nav, collapsed: !nav.collapsed }));
         return;
       }
-      if (event.ctrlKey && !event.altKey && /^[12]$/.test(event.key)) {
+      if (event.ctrlKey && !event.altKey && /^[1-4]$/.test(event.key)) {
         event.preventDefault();
-        navigate(event.key === '1' ? '/' : '/list');
+        navigate(
+          viewRoute(VIEW_SHORTCUTS[Number(event.key) - 1]!, searchRef.current),
+        );
         return;
       }
       if (event.ctrlKey && !event.altKey && event.key === ',') {
@@ -435,16 +437,6 @@ function Shell() {
         <span className="save-state" role="status">
           {notice.includes('Recycle Bin') ? '' : notice}
         </span>
-        <button aria-label="Keyboard shortcuts" onClick={() => setHelp(true)}>
-          ?
-        </button>
-        <Link
-          className="icon-button"
-          aria-label="Settings"
-          to="/settings/general"
-        >
-          ⚙
-        </Link>
       </header>
       {actionError && (
         <section className="banner error-banner action-error" role="alert">
@@ -464,6 +456,7 @@ function Shell() {
             setNavigation={setNavigation}
             current={activeKey}
             openCommands={() => setCommands(true)}
+            openHelp={() => setHelp(true)}
           />
           <main className="main">
             <nav className="workspace-strip" aria-label="Views">
@@ -865,6 +858,8 @@ function Shell() {
               b.mtime.localeCompare(a.mtime),
           )}
           close={() => setCommands(false)}
+          viewRoute={(path) => viewRoute(path, searchRef.current)}
+          showShortcuts={() => setHelp(true)}
           toggleSidebar={() =>
             setNavigation((nav) => ({ ...nav, collapsed: !nav.collapsed }))
           }

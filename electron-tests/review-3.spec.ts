@@ -148,11 +148,11 @@ test('setup keeps the app bar out of reach and draws no focus box on its heading
     ).toBe('none');
     await expect(page.locator('header.appbar')).toHaveAttribute('inert', '');
     await expect(page.locator('footer.statusbar')).toHaveAttribute('inert', '');
-    // Inert controls do not receive the click.
-    await page
-      .locator('header.appbar a.icon-button')
-      .click({ timeout: 1000, force: true })
-      .catch(() => undefined);
+    // Settings and help sit in the sidebar, which setup replaces entirely.
+    await expect(page.getByRole('link', { name: 'Settings' })).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: 'Keyboard shortcuts' }),
+    ).toHaveCount(0);
     await expect(heading).toBeVisible();
     await expect(page).not.toHaveURL(/#\/settings/);
     await page.getByRole('button', { name: 'Set up later' }).click();

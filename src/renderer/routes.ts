@@ -46,3 +46,10 @@ export function openingHash(
     route = '/';
   return '#' + route;
 }
+/** Ctrl+1..4 open these work views, in tab order. */
+export const VIEW_SHORTCUTS = ['/', '/list', '/board', '/timeline'] as const;
+/** A work view path that keeps the current search and agent filter, as the view tabs do. */
+export function viewRoute(path: string, search: URLSearchParams | string) {
+  const query = String(search).replace(/^\?/, '');
+  return query ? `${path}?${query}` : path;
+}

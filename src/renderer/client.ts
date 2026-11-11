@@ -55,9 +55,16 @@ export function selectBridge(): { client: AgentOpsClient; fixture: boolean } {
   if (
     fixtureModeAllowed &&
     mode &&
-    ['demo', 'setup', 'empty', 'hidden', 'error', 'loading', 'update'].includes(
-      mode,
-    )
+    [
+      'demo',
+      'setup',
+      'empty',
+      'hidden',
+      'error',
+      'loading',
+      'update',
+      'large',
+    ].includes(mode)
   ) {
     try {
       sessionStorage.setItem('agent-ops-ui-fixture', mode);
