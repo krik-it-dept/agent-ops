@@ -119,6 +119,34 @@
   margin-top: 6px;
   color: var(--muted-fg);
 }
+/* Agents, Working now and the latest result share one line under a step. */
+.step-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 6px;
+  color: var(--muted-fg);
+}
+.step-meta .latest-result {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.step-meta .agent-badges + .latest-result::before,
+.step-meta .working-now + .latest-result::before {
+  content: '·';
+  margin-right: 8px;
+}
+/* On the plan page the chain is one row: "Coordinator Claude → Executed by Codex". */
+.plan-header .agent-chain > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.plan-header .agent-chain > span > small {
+  display: inline;
+  margin-bottom: 0;
+}
 .plan-header > .agent-chain {
   margin-top: 8px;
 }

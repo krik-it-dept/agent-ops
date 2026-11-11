@@ -103,11 +103,26 @@ for (const theme of ['light', 'dark'] as const) {
         /Coordinator: Claude; Executed by:/,
       );
       await expect(
-        page.locator('.step-agents .working-now').first(),
+        page.locator('.step-meta .working-now').first(),
       ).toBeVisible();
+      // Agents, Working now and the result share one line under the step.
+      const meta = page.locator('[data-source-line="18"] .step-meta');
+      await expect(meta).toContainText('Đang kiểm tra');
+      const boxes = await meta
+        .locator(':scope > *')
+        .evaluateAll((els) =>
+          els.map((el) => Math.round(el.getBoundingClientRect().top)),
+        );
+      expect(new Set(boxes).size).toBe(1);
+      // A step nothing was reported for has no agent line at all.
       await expect(
-        page.locator('[data-source-line="18"] .step-result'),
-      ).toContainText('Đang kiểm tra');
+        page
+          .locator('.step-row')
+          .filter({ hasNot: page.locator('.step-meta') }),
+      ).not.toHaveCount(0);
+      await expect(
+        page.locator('.step-content').filter({ hasText: 'Not reported' }),
+      ).toHaveCount(0);
       await navigate(
         page,
         `/plan/${encodeURIComponent('personal/Ledger/Kế hoạch cũ')}/summary`,

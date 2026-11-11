@@ -130,3 +130,29 @@ export function StepResult({ plan, step }: { plan: Plan; step: Step }) {
     </span>
   );
 }
+/**
+ * StepMeta is one line under a step: the agents, "Working now" and the latest
+ * result. A step nothing was reported for shows no line at all.
+ */
+export function StepMeta({ plan, step }: { plan: Plan; step: Step }) {
+  const info = execution(plan, step);
+  const names = info.active.length ? info.active : info.agents;
+  const latest = info.latest;
+  if (!names.length && !latest?.result) return null;
+  return (
+    <div className="step-meta">
+      {names.length > 0 && <AgentBadges names={names} />}
+      {info.active.length > 0 && (
+        <small className="working-now">Working now</small>
+      )}
+      {latest?.result && (
+        <small
+          className={`latest-result${latest.event === 'blocked' ? ' blocked-result' : ''}`}
+        >
+          {latest.event === 'blocked' && <strong>Blocked · </strong>}
+          {latest.result}
+        </small>
+      )}
+    </div>
+  );
+}

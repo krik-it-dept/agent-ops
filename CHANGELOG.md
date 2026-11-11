@@ -15,6 +15,9 @@ The release workflow takes the section whose heading starts with the pushed tag.
   app.
 - **One line less on plan pages.** The workspace name above the plan title is
   gone; it is in the sidebar and in the title's tooltip.
+- **Agents on one line.** Under each step, the agent, "Working now" and the
+  latest result share one line, and a step nothing was reported for shows no
+  extra line. The coordinator and executors at the top are one row.
 
 ## v1.2.0 - Mark a plan Done from the Board
 

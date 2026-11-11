@@ -26,7 +26,7 @@ import {
   placeLabel,
 } from '../model';
 import { useLedger } from '../store';
-import { AgentChain, StepAgents, StepResult } from '../components/Agents';
+import { AgentChain, StepMeta } from '../components/Agents';
 import { execution } from '../agents';
 import {
   Empty,
@@ -239,10 +239,7 @@ export function PlanPage({
             <p>
               <RichText text={s.text} plan={plan} />
             </p>
-            <StepAgents plan={plan!} step={s} />
-            <small className="step-result">
-              <StepResult plan={plan!} step={s} />
-            </small>
+            <StepMeta plan={plan!} step={s} />
           </div>
           <small>{stepLabels[s.status] || 'Unknown'}</small>
         </div>
