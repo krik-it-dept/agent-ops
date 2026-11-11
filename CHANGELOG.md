@@ -3,6 +3,36 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v1.1.1 - Smaller fixes
+
+Fixes for Start with Windows and the work views, and Settings and Help move to
+the sidebar.
+
+- **Start with Windows shows as on.** Turning it on in Settings now keeps the
+  switch on. Before, the app saved the setting but then read it back under the
+  wrong name and showed it as off.
+- **Settings and Help in the sidebar.** The Settings gear and the `?` shortcut
+  help are now small buttons at the bottom left of the sidebar, next to
+  Archive, instead of the top right of the window. The shortcut help is also in
+  the Ctrl+K search for when the sidebar is hidden.
+- **More keyboard shortcuts.** Ctrl+3 opens Board and Ctrl+4 opens Timeline,
+  after Ctrl+1 for Summary and Ctrl+2 for List. Shortcuts and the Ctrl+K search
+  keep your current search and agent filter, as the tabs do.
+- **Clearer agent names.** A plan the coordinator carries out alone shows one
+  agent instead of a chain. Several executors are separated with commas, and
+  more than two show as "Multi" with the full list on hover and for screen
+  readers. The chain no longer wraps after the arrow in Timeline.
+- **Agent workload.** Rows read "1 plan · 3 tasks", show a bar for the share of
+  plans, mark the agent you are filtering by, and are disabled when an agent
+  has no plans.
+- **Board and chart columns.** A plan with a stage the app does not recognise
+  but with blocked steps now appears under Waiting instead of To do.
+- **Smoother large lists.** The List and Timeline no longer redraw every row
+  each time a report arrives.
+- **Safer reading of reports.** Agent names, reports and executors that are
+  missing or malformed no longer break a plan; unusable report entries are
+  skipped.
+
 ## v1.1.0 - Work views and agent tracking
 
 The card-style work views from the beta are back, and every AI tool can report
