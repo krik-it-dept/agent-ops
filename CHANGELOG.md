@@ -3,6 +3,20 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v1.0.1 - Easier plan pages and Tasks folder
+
+Fixes from the first installs of v1.0.0.
+
+- **Plan title stays in view.** The plan name, status and actions stay at the
+  top of the page while you scroll through milestones and steps.
+- **No extra "Tasks" level.** The sidebar and Overview list plans by workspace
+  directly; labels show just the workspace name.
+- **Clearer Tasks folder choice.** A folder that holds one of your workspaces is
+  refused with a ready alternative, a new `Tasks` folder inside it, one click
+  away. Results of an earlier move no longer stay on screen after you pick a
+  new folder.
+- **The MIT License** is now included.
+
 ## v1.0.0 - First public release
 
 Agent Ops is a Windows desktop ledger for the Markdown plans your AI tools keep.

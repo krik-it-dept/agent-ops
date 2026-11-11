@@ -300,6 +300,23 @@ test('Settings: preferences, Workspace picker/paste, Tasks confirmation and per-
     await expect(
       page.getByRole('region', { name: 'Plan move results' }),
     ).toContainText('left in place');
+    // A folder that holds a workspace is refused with a ready subfolder,
+    // and the earlier move results are cleared for the new choice.
+    await page.getByLabel('Tasks folder', { exact: true }).fill('D:\\Projects');
+    await page.getByRole('button', { name: 'Use folder', exact: true }).click();
+    await expect(
+      page.getByRole('region', { name: 'Plan move results' }),
+    ).toHaveCount(0);
+    await confirm.getByRole('button', { name: 'Change Tasks folder' }).click();
+    await expect(page.getByRole('alert')).toContainText(
+      'contains the workspace',
+    );
+    await confirm
+      .getByRole('button', { name: 'Use D:\\Projects\\Tasks', exact: true })
+      .click();
+    await expect(confirm.locator('code')).toHaveText('D:\\Projects\\Tasks');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page
       .getByRole('navigation', { name: 'Settings sections' })
       .getByRole('link', { name: 'Skills', exact: true })

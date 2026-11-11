@@ -437,6 +437,11 @@ export function createFixtureBridge(
           break;
         case 'settings:set': {
           const patch = request as SettingsPatch;
+          if (/[\\/]projects[\\/]?$/i.test(patch.tasksDir ?? ''))
+            fail(
+              'CONTAINS_WORKSPACE',
+              'This folder contains the workspace “Studio”, so its files would be read as plans. Use a new folder inside it instead.',
+            );
           if (
             patch.tasksDir?.toLowerCase().includes('inside') &&
             !patch.allowInsideWorkspace
