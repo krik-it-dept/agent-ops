@@ -27,7 +27,8 @@
 ;   - asks whether to remove skills (guarded --cleanup-skills) and whether to
 ;     delete the data folder (default: keep; never through a link);
 ;   - removes the startup entry, protocol, AppUserModelID key and the
-;     AGENT_OPS_TASKS variable. The Tasks folder and its plans are never touched.
+;     AGENT_OPS_TASKS and AGENT_OPS_REPORT variables. The Tasks folder and its
+;     plans are never touched.
 ;
 ; Nothing here runs while electron-builder builds the uninstaller on the build
 ; machine (BUILD_UNINSTALLER), so building never touches the registry.
@@ -198,6 +199,7 @@ Var aoOut
     DeleteRegKey HKCU "${AO_PROTOCOL_KEY}"
     DeleteRegKey HKCU "${AO_AUMID_KEY}"
     DeleteRegValue HKCU "Environment" "AGENT_OPS_TASKS"
+    DeleteRegValue HKCU "Environment" "AGENT_OPS_REPORT"
     SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
     ${If} $R9 == "1"
     ${AndIf} "$LOCALAPPDATA" != ""

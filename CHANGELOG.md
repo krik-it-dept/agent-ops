@@ -3,6 +3,27 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## Unreleased
+
+- **Agents report their work.** Agents record their own runs with the app's
+  report command (`agent-ops.exe --report --agent <name> --plan-file <plan.md>
+  --event start|progress|done|blocked|stopped`, with a step line, run ID and
+  result). It works while the app runs, prints the run ID or `ok`, and never
+  changes the plan. The app reads the reports with the plans: each plan lists
+  its latest 50 runs, a run counts as working now for 12 hours after its last
+  start or progress, and a report shows up within seconds. Finished runs older
+  than 90 days are removed at start.
+- **Agent fields in plans.** The `Agent:` line names the coordinating agent and
+  a step's `<!-- Executors: A, B -->` comment the agents that worked on it;
+  known names are spelled one way (Claude, Codex, Gemini, Antigravity, Cursor,
+  Copilot) and the comment is hidden from the step text.
+- **Activity** shows "Agent started", "Agent finished" and "Agent blocked", and
+  a blocked report is notified.
+- **The installed app** keeps `AGENT_OPS_REPORT` and `report-command.txt`
+  pointing at its executable; uninstalling removes the variable.
+- **Skills version 4** explains the new fields and execution reporting;
+  installed Skills show an update.
+
 ## v1.0.1 - Easier plan pages and Tasks folder
 
 Fixes from the first installs of v1.0.0.

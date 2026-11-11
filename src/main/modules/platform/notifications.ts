@@ -21,6 +21,7 @@ const labels: Readonly<Record<string, string>> = {
   waiting: 'Cần bạn xử lý',
   blocked: 'Bị chặn',
   question: 'Câu hỏi mới',
+  'run-blocked': 'Agent bị chặn',
 };
 export function notificationText(text: string): string {
   return Array.from(text)
@@ -44,7 +45,10 @@ export function createNotifier(options: {
   icon: string;
   openPlan(key: string): void;
   onError?: () => void;
+  now?: () => number;
 }) {
+  let runWindow = Number.NEGATIVE_INFINITY;
+  const runPlans = new Set<string>();
   return {
     notify(events: readonly NotificationEvent[]): number {
       if (!options.managed || !options.enabled() || !options.port.supported())
@@ -65,12 +69,22 @@ export function createNotifier(options: {
           .filter((v) => v !== undefined && v !== '')
           .join('/');
         if (!validPlanKey(key)) continue;
+        if (event.kind === 'run-blocked') {
+          const now = options.now?.() ?? Date.now();
+          if (now - runWindow >= 60_000) {
+            runWindow = now;
+            runPlans.clear();
+          }
+          // Keep every activity entry, but limit run toasts across watcher batches.
+          if (runPlans.has(key) || runPlans.size >= 3) continue;
+          runPlans.add(key);
+        }
         try {
           options.port.show(
             {
               title: APP_NAME,
               body: notificationText(
-                `${label} · ${event.plan}\n${event.kind === 'waiting' ? (event.extra ?? '') : event.text}`,
+                `${label} · ${event.plan}\n${event.kind === 'waiting' ? (event.extra ?? '') : event.text}${event.kind === 'run-blocked' && event.extra ? `\n${event.extra}` : ''}`,
               ),
               icon: options.icon,
             },

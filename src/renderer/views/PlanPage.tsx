@@ -104,6 +104,9 @@ export function ActivityFeed({
                     waiting: 'Waiting for you',
                     stale: 'Stale',
                     partial: 'Partly done',
+                    'run-started': 'Agent started',
+                    'run-finished': 'Agent finished',
+                    'run-blocked': 'Agent blocked',
                   } as Record<string, string>
                 )[e.kind] || 'Agent activity'}
               </small>

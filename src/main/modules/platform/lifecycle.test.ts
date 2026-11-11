@@ -383,8 +383,20 @@ describe('tray and notifications through fakes', () => {
       },
       { kind: 'stale', repo: 'web', plan: 'd', text: 'never show' },
       { kind: 'constructor', repo: 'web', plan: 'd', text: 'never show' },
+      { kind: 'run-started', repo: 'web', plan: 'd', text: 'never show' },
+      {
+        kind: 'run-blocked',
+        project: 'tasks',
+        repo: 'web',
+        plan: 'e',
+        text: 'Build it',
+        extra: 'Thiếu quyền',
+      },
     ];
-    expect(notifier.notify(events)).toBe(3);
+    expect(notifier.notify(events)).toBe(4);
+    expect(show.mock.calls[3]?.[0].body).toBe(
+      'Agent bị chặn · e\nBuild it\nThiếu quyền',
+    );
     expect(show.mock.calls[0]?.[0]).toEqual({
       title: 'Agent Ops',
       body: 'Bị chặn · a\n"; $(calc) <unsafe> “quotes”',
@@ -414,5 +426,30 @@ describe('tray and notifications through fakes', () => {
     expect(Array.from(notificationText('😀'.repeat(1200)))).toHaveLength(1000);
     expect(notificationText('a\0b\ufffd')).toBe('ab');
     clicks = [];
+  });
+  it('limits blocked-run notifications across large and repeated watcher batches', () => {
+    let now = 0;
+    const show = vi.fn();
+    const notifier = createNotifier({
+      port: { supported: () => true, show },
+      enabled: () => true,
+      managed: true,
+      icon: 'app.png',
+      openPlan: () => {},
+      now: () => now,
+    });
+    const events = Array.from({ length: 100 }, (_, i) => ({
+      kind: 'run-blocked',
+      repo: 'ws',
+      plan: `plan-${i}`,
+      text: 'Build',
+      extra: 'Permission denied',
+    }));
+    expect(notifier.notify(Array(100).fill(events[0]!))).toBe(1);
+    expect(notifier.notify(events)).toBe(2);
+    expect(notifier.notify(events)).toBe(0);
+    expect(show).toHaveBeenCalledTimes(3);
+    now = 60_000;
+    expect(notifier.notify(events)).toBe(3);
   });
 });

@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { collectOverview } from '../plans';
+import { collectOverview, parsePlan } from '../plans';
 import { FileOverviewCache } from './cache';
 import { LedgerService } from './service';
 import {
@@ -47,6 +47,54 @@ function service(
   return ledger;
 }
 describe('ledger publication, cancellation and filesystem reconciliation', () => {
+  it('expires working runs without a file change or manual refresh', async () => {
+    const root = await fixture();
+    let now = new Date('2026-11-11T00:00:00Z');
+    const collect = vi.fn<Collector>(async () => {
+      const out = await collectOverview({ tasksDir: root });
+      out.plans = [
+        {
+          ...parsePlan('- [doing] work\n', {
+            project: 'tasks',
+            repo: 'ws',
+            name: 'p',
+            mtime: now,
+          }),
+          runs: [
+            {
+              runId: '00000000-0000-4000-8000-000000000001',
+              agent: 'Codex',
+              coordinator: '',
+              role: 'coordinator',
+              event: 'start',
+              active: true,
+              startedAt: now.toISOString(),
+              updatedAt: now.toISOString(),
+              step: null,
+              result: '',
+            },
+          ],
+        },
+      ];
+      return out;
+    });
+    const changed = vi.fn();
+    const ledger = service(
+      async () => ({ projects: [], tasksDir: root }),
+      collect,
+      memoryCache(),
+      { now: () => now, changed },
+    );
+    await ledger.start();
+    const generation = ledger.getState().generation;
+    now = new Date(now.getTime() + 12 * 60 * 60 * 1000 + 1);
+    await vi.waitFor(() =>
+      expect(ledger.getState().state.plans[0]?.runs?.[0]?.active).toBe(false),
+    );
+    expect(ledger.getState().generation).toBe(generation + 1);
+    expect(collect).toHaveBeenCalledOnce();
+    expect(changed).toHaveBeenCalledTimes(2);
+  });
   it('starts empty without polling/collecting and never mutates sources', async () => {
     const collect = vi.fn<Collector>();
     const ledger = service(async () => ({ projects: [] }), collect);

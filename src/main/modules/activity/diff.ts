@@ -29,6 +29,15 @@ export interface Entry {
   open: boolean;
 }
 
+/** RunMark is what the feed remembers of a reported run, to tell when it started or ended. */
+export interface RunMark {
+  runId: string;
+  event: string;
+  agent: string;
+  step: string;
+  result: string;
+}
+
 /** Plan is the part of a board plan the activity feed reads; other fields pass through the snapshot. */
 export interface Plan {
   revision: string;
@@ -48,6 +57,8 @@ export interface Plan {
   source?: string;
   file?: string;
   workspace?: string;
+  /** Reported runs; absent in snapshots from before run reporting, which then announce none. */
+  runs?: RunMark[];
 }
 
 export type EventKind =
@@ -64,7 +75,10 @@ export type EventKind =
   | 'answer'
   | 'milestone'
   | 'waiting'
-  | 'stale';
+  | 'stale'
+  | 'run-started'
+  | 'run-finished'
+  | 'run-blocked';
 
 export interface ActivityEvent {
   /** RFC 3339 time. */
@@ -310,6 +324,33 @@ export function movedPlans(
   return { movedFrom, movedAway };
 }
 
+const ended = (event: string): boolean =>
+  event === 'done' || event === 'blocked' || event === 'stopped';
+
+/**
+ * runEvents announces runs an agent reported: a run seen for the first time
+ * started (or already ended), and a run that was going and now ended finished
+ * or is blocked. The text is the step it worked on, the extra its result.
+ */
+export function runEvents(
+  p: Plan,
+  old: RunMark[],
+  ts: string,
+): ActivityEvent[] {
+  const out: ActivityEvent[] = [];
+  const before = new Map(old.map((r) => [r.runId, r]));
+  for (const r of [...(p.runs ?? [])].reverse()) {
+    const was = before.get(r.runId);
+    let kind = '';
+    if (ended(r.event) && (!was || !ended(was.event)))
+      kind = r.event === 'blocked' ? 'run-blocked' : 'run-finished';
+    else if (!was && !ended(r.event)) kind = 'run-started';
+    if (kind)
+      out.push(event(p, ts, kind, r.step || 'Cả plan', r.result, r.agent));
+  }
+  return out;
+}
+
 /** diff returns the events between two snapshots, at time now, ordered by plan name. */
 export function diff(
   old: PlanMap,
@@ -335,8 +376,10 @@ export function diff(
       for (const s of p.steps ?? [])
         if (s.status === 'blocked') add(p, 'blocked', s.text);
       for (const q of p.questions ?? []) if (q.open) add(p, 'question', q.ask);
+      out.push(...runEvents(p, [], ts));
       continue;
     }
+    if (o.runs) out.push(...runEvents(p, o.runs, ts));
     if (stage(o.status) !== stage(p.status)) {
       add(p, 'status', `${stage(o.status)} → ${stage(p.status)}`, p.status);
       if (p.status.toLowerCase().startsWith('waiting for owner'))

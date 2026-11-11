@@ -8,6 +8,7 @@ import {
 } from './types';
 import { hasSources, PlanWatcher, type WatchOptions } from './watch';
 import type { Overview, Plan } from '../plans';
+import { ACTIVE_FOR_MS } from '../runs/read';
 
 export class LedgerService {
   private overview: Overview;
@@ -192,6 +193,17 @@ export class LedgerService {
   }
   private tick(): void {
     if (this.closed || this.suspended) return;
+    let expired = false;
+    for (const plan of this.overview.plans)
+      for (const run of plan.runs ?? [])
+        if (
+          run.active &&
+          this.now().getTime() - Date.parse(run.updatedAt) > ACTIVE_FOR_MS
+        ) {
+          run.active = false;
+          expired = true;
+        }
+    if (expired) this.publish();
     if (
       this.lastFailure &&
       Date.now() - this.lastFailure >= 10000 &&
