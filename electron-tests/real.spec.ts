@@ -347,7 +347,9 @@ test('real first-run setup, native picker port, Skills install, Tasks move, live
     await expect(
       page.getByText('Ship a real feature', { exact: true }),
     ).toBeVisible();
+    await page.locator('.plan-header .plan-actions summary').click();
     await page.getByRole('button', { name: 'Open plan folder' }).click();
+    await page.locator('.plan-header .plan-actions summary').click();
     await expect
       .poll(async () => (await controls(app)).opened)
       .toContain(realpathSync.native(join(root, 'Tasks', 'workspace')));

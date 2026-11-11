@@ -29,7 +29,7 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(
         page.locator('.summary-focus .agent-chain').first(),
       ).toContainText('Codex');
-      await expect(page.locator('.summary-focus')).toContainText(
+      await expect(page.locator('.summary-focus')).not.toContainText(
         'Not reported',
       );
       await expect(
@@ -52,7 +52,7 @@ for (const theme of ['light', 'dark'] as const) {
       await filter.selectOption('unreported');
       await expect(rows.first()).toBeVisible();
       for (const row of await rows.all())
-        await expect(row.locator('td').nth(2)).toContainText('Not reported');
+        await expect(row.locator('td').nth(2)).toHaveText('');
       await filter.selectOption('');
       // Plan group rows line up with the task columns, as in the beta List.
       const group = page.locator('.task-table tbody.task-group tr').first();
@@ -103,22 +103,16 @@ for (const theme of ['light', 'dark'] as const) {
         /Coordinator: Claude; Executed by:/,
       );
       await expect(
-        page.locator('.step-meta .working-now').first(),
+        page.locator('.step-heading .step-agents .working-now').first(),
       ).toBeVisible();
-      // Agents, Working now and the result share one line under the step.
-      const meta = page.locator('[data-source-line="18"] .step-meta');
-      await expect(meta).toContainText('Đang kiểm tra');
-      const boxes = await meta
-        .locator(':scope > *')
-        .evaluateAll((els) =>
-          els.map((el) => Math.round(el.getBoundingClientRect().top)),
-        );
-      expect(new Set(boxes).size).toBe(1);
-      // A step nothing was reported for has no agent line at all.
+      await expect(
+        page.locator('[data-source-line="18"] .step-result'),
+      ).toContainText('Đang kiểm tra');
+      // A step nothing was reported for shows no agents and no result line.
       await expect(
         page
           .locator('.step-row')
-          .filter({ hasNot: page.locator('.step-meta') }),
+          .filter({ hasNot: page.locator('.step-agents, .step-result') }),
       ).not.toHaveCount(0);
       await expect(
         page.locator('.step-content').filter({ hasText: 'Not reported' }),
@@ -127,9 +121,9 @@ for (const theme of ['light', 'dark'] as const) {
         page,
         `/plan/${encodeURIComponent('personal/Ledger/Kế hoạch cũ')}/summary`,
       );
-      await expect(page.locator('.plan-header .agent-chain')).toHaveAttribute(
-        'aria-label',
-        'Coordinator: Not reported; Executed by: Not reported',
+      await expect(page.locator('.plan-header .agent-chain')).toHaveCount(0);
+      await expect(page.locator('.plan-page')).not.toContainText(
+        'Not reported',
       );
 
       // Capture the actual Electron surface at full HD, with all native effects isolated.
@@ -138,6 +132,35 @@ for (const theme of ['light', 'dark'] as const) {
       );
       const screenDir = process.env.AGENT_OPS_SCREEN_DIR;
       if (screenDir) await mkdir(screenDir, { recursive: true });
+      await navigate(
+        page,
+        `/plan/${encodeURIComponent('studio/Ledger/Cải thiện tìm kiếm')}/summary`,
+      );
+      await expect(page.locator('.plan-header .breadcrumb')).toHaveCount(0);
+      await expect(page.locator('.plan-summary')).not.toContainText('Updated');
+      const actions = page.locator('.plan-header .plan-actions');
+      await actions.locator('summary').click();
+      await expect(
+        actions.getByRole('button', { name: 'Open plan folder' }),
+      ).toBeVisible();
+      await expect(
+        actions.getByRole('button', { name: 'Copy link' }),
+      ).toBeVisible();
+      await expect(actions.locator('.plan-action-info code')).not.toBeEmpty();
+      await actions.locator('summary').click();
+      const task = page
+        .locator('.step-heading')
+        .filter({ has: page.locator('.step-agents') })
+        .first();
+      const textBox = await task.locator('p').boundingBox();
+      const agentBox = await task.locator('.step-agents').boundingBox();
+      expect(Math.abs(textBox!.y - agentBox!.y)).toBeLessThan(7);
+      await page.screenshot({
+        scale: 'css',
+        path: screenDir
+          ? join(screenDir, `compact-plan-${theme}.png`)
+          : test.info().outputPath(`compact-plan-${theme}.png`),
+      });
       for (const [route, title] of [
         ['/', 'Summary'],
         ['/list', 'List'],

@@ -293,9 +293,11 @@ export function ToastHost() {
 export function PlanActions({
   plan,
   afterDelete,
+  children,
 }: {
   plan: Plan;
   afterDelete?: () => void;
+  children?: ReactNode;
 }) {
   const { client, settings, setSettings, reload, report, announce } =
     useLedger();
@@ -351,6 +353,7 @@ export function PlanActions({
       <details className="plan-actions">
         <summary aria-label={`Actions for ${plan.name}`}>⋯</summary>
         <div>
+          {children}
           {!isDone(plan) && (
             <button
               disabled={locked}

@@ -39,8 +39,7 @@ export function AgentBadges({
   names: string[];
   collapseAfter?: number;
 }) {
-  if (!names.length)
-    return <span className="muted role-none">Not reported</span>;
+  if (!names.length) return null;
   if (names.length > collapseAfter)
     return (
       <span className="agent-badges">
@@ -76,7 +75,13 @@ export function AgentChain({
   labels?: boolean;
 }) {
   const { coordinator, executors } = participation(plan);
-  const label = `Coordinator: ${coordinator || 'Not reported'}; Executed by: ${executors.join(', ') || 'Not reported'}`;
+  if (!coordinator && !executors.length) return null;
+  const label = [
+    coordinator && `Coordinator: ${coordinator}`,
+    executors.length && `Executed by: ${executors.join(', ')}`,
+  ]
+    .filter(Boolean)
+    .join('; ');
   // The coordinator doing all the work is one agent, not a chain.
   if (coordinator && executors.length === 1 && executors[0] === coordinator)
     return (
@@ -94,22 +99,29 @@ export function AgentChain({
     );
   return (
     <div className="agent-chain" role="group" aria-label={label} title={label}>
-      <span>
-        {labels && <small>Coordinator</small>}
-        <AgentBadges names={coordinator ? [coordinator] : []} />
-      </span>
-      <span className="muted agent-arrow" aria-hidden="true">
-        →
-      </span>
-      <span>
-        {labels && <small>Executed by</small>}
-        <AgentBadges names={executors} collapseAfter={CHAIN_EXECUTORS} />
-      </span>
+      {coordinator && (
+        <span>
+          {labels && <small>Coordinator</small>}
+          <AgentBadges names={[coordinator]} />
+        </span>
+      )}
+      {coordinator && executors.length > 0 && (
+        <span className="muted agent-arrow" aria-hidden="true">
+          →
+        </span>
+      )}
+      {executors.length > 0 && (
+        <span>
+          {labels && <small>Executed by</small>}
+          <AgentBadges names={executors} collapseAfter={CHAIN_EXECUTORS} />
+        </span>
+      )}
     </div>
   );
 }
 export function StepAgents({ plan, step }: { plan: Plan; step: Step }) {
   const info = execution(plan, step);
+  if (!info.agents.length && !info.active.length) return null;
   return (
     <div className="step-agents">
       <AgentBadges names={info.active.length ? info.active : info.agents} />
@@ -121,38 +133,13 @@ export function StepAgents({ plan, step }: { plan: Plan; step: Step }) {
 }
 export function StepResult({ plan, step }: { plan: Plan; step: Step }) {
   const latest = execution(plan, step).latest;
+  if (!latest?.result) return null;
   return (
     <span
       className={`latest-result${latest?.event === 'blocked' ? ' blocked-result' : ''}`}
     >
       {latest?.event === 'blocked' && <strong>Blocked · </strong>}
-      {latest?.result || 'Not reported'}
+      {latest.result}
     </span>
-  );
-}
-/**
- * StepMeta is one line under a step: the agents, "Working now" and the latest
- * result. A step nothing was reported for shows no line at all.
- */
-export function StepMeta({ plan, step }: { plan: Plan; step: Step }) {
-  const info = execution(plan, step);
-  const names = info.active.length ? info.active : info.agents;
-  const latest = info.latest;
-  if (!names.length && !latest?.result) return null;
-  return (
-    <div className="step-meta">
-      {names.length > 0 && <AgentBadges names={names} />}
-      {info.active.length > 0 && (
-        <small className="working-now">Working now</small>
-      )}
-      {latest?.result && (
-        <small
-          className={`latest-result${latest.event === 'blocked' ? ' blocked-result' : ''}`}
-        >
-          {latest.event === 'blocked' && <strong>Blocked · </strong>}
-          {latest.result}
-        </small>
-      )}
-    </div>
   );
 }

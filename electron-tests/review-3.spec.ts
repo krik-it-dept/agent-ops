@@ -36,6 +36,7 @@ test('a failed plan action is reported as that action, not as a plan read failur
         value: { writeText: () => Promise.reject(new Error('denied')) },
       });
     });
+    await page.locator('.plan-header .plan-actions summary').click();
     await page.getByRole('button', { name: 'Copy link' }).click();
     await expect(page.getByRole('alert')).toContainText(
       'That didn’t work — Copying is not available here.',
