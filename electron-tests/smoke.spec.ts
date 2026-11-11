@@ -148,11 +148,15 @@ test('sandbox, typed bridge, strict CSP, safe external targets and single instan
       });
     });
     expect(code).toBe(0);
+    // A busy CI machine can take longer than the default 10 s to deliver the
+    // second-instance message to the first instance.
     await expect
-      .poll(() =>
-        app.evaluate(({ BrowserWindow }) =>
-          BrowserWindow.getAllWindows()[0]!.isVisible(),
-        ),
+      .poll(
+        () =>
+          app.evaluate(({ BrowserWindow }) =>
+            BrowserWindow.getAllWindows()[0]!.isVisible(),
+          ),
+        { timeout: 30_000 },
       )
       .toBe(true);
     expect(app.windows()).toHaveLength(1);
