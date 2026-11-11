@@ -337,6 +337,38 @@ describe('refresh seeding rules', () => {
     expect(back.quiet).toEqual([]);
   });
 
+  it('an app-recorded Mark as Done is logged once, not again by the next refresh', async () => {
+    const { dir, log } = await newLog();
+    const p = plan({ project: 'tasks', repo: 'web', mtime: now.toISOString() });
+    await log.apply({ plans: [p], projects: ok('tasks') }, ['tasks']);
+    const before = lines(dir);
+    await log.record(
+      {
+        ts: now.toISOString(),
+        project: 'tasks',
+        repo: 'web',
+        plan: 'plan',
+        kind: 'status',
+        text: 'Marked Done in Agent Ops',
+        extra: 'Implementing → Done',
+        actor: 'Agent Ops',
+      },
+      { key: 'tasks/web/plan', value: 'Done' },
+    );
+    expect(lines(dir)).toBe(before + 1);
+    expect(log.events.at(-1)?.text).toBe('Marked Done in Agent Ops');
+    const out = await log.apply(
+      { plans: [{ ...p, status: 'Done' }], projects: ok('tasks') },
+      ['tasks'],
+    );
+    expect(out.fresh).toEqual([]);
+    // Undo shows as an ordinary stage change.
+    const back = await log.apply({ plans: [p], projects: ok('tasks') }, [
+      'tasks',
+    ]);
+    expect(back.fresh.map((e) => e.text)).toEqual(['Done → Implementing']);
+  });
+
   it('a move between plan sources is one moved event', async () => {
     const { log } = await newLog();
     const legacy = plan({

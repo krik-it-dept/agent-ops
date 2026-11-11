@@ -6,7 +6,13 @@ import {
   type Result,
 } from '../settings';
 import { WorkspaceService } from '../workspaces';
-import { TasksService, PlanActions, type UserEnvironment } from '../tasks';
+import {
+  TasksService,
+  PlanActions,
+  MarkDone,
+  stage,
+  type UserEnvironment,
+} from '../tasks';
 import { ConfigChangedError, type SkillsConfigStore } from '../skills';
 import type { LedgerConfiguration, LedgerService } from '../ledger';
 import { ServiceFault } from '../../ipc/errors';
@@ -54,6 +60,7 @@ export class CoreServices {
   readonly workspaces: WorkspaceService;
   readonly tasks: TasksService;
   readonly actions: PlanActions;
+  readonly marker: MarkDone;
   private pointerWarnings: string[] = [];
   private sourceActionBusy = false;
   private async planAction<T>(action: () => Promise<T>): Promise<T> {
@@ -96,6 +103,25 @@ export class CoreServices {
             'Moving files to the Recycle Bin is not ready in this build.',
           );
         }),
+    });
+    this.marker = new MarkDone({
+      store: this.store,
+      lookup: (key) => options.ledger().findPlan(key),
+      changed: options.changed,
+      record: ({ key, plan, previous, at }) =>
+        options.ledger().record(
+          {
+            ts: at.toISOString(),
+            ...(plan.project ? { project: plan.project } : {}),
+            repo: plan.repo,
+            plan: plan.name,
+            kind: 'status',
+            text: 'Marked Done in Agent Ops',
+            extra: `${stage(previous) || 'No stage'} → Done`,
+            actor: 'Agent Ops',
+          },
+          { key, value: 'Done' },
+        ),
     });
   }
   async initialize(): Promise<void> {
@@ -294,6 +320,30 @@ export class CoreServices {
         unwrap(await this.planAction(() => this.actions.recycle(request)));
         await this.committed();
         return { recycled: true };
+      },
+      'plans:mark-done': async (request) => {
+        const done = unwrap(
+          await this.planAction(() => this.marker.markDone(request)),
+        );
+        await this.options.ledger().settled();
+        return {
+          plan: { key: done.key, status: done.status, revision: done.revision },
+          changed: done.changed,
+          undo: done.undo,
+        };
+      },
+      'plans:undo-mark-done': async (request) => {
+        const undone = unwrap(
+          await this.planAction(() => this.marker.undo(request)),
+        );
+        await this.options.ledger().settled();
+        return {
+          plan: {
+            key: undone.key,
+            status: undone.status,
+            revision: undone.revision,
+          },
+        };
       },
     };
   }

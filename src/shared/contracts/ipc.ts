@@ -15,6 +15,8 @@ export interface RequestMap {
   'tasks:move-all': { from: string };
   'plans:archive': { key: D.PlanKey; archived: boolean };
   'plans:recycle': { key: D.PlanKey; revision: D.Revision; confirm: true };
+  'plans:mark-done': { key: D.PlanKey; revision: D.Revision };
+  'plans:undo-mark-done': { key: D.PlanKey; token: string };
   'skills:list': D.Empty;
   'skills:add': D.TargetInput & { skillDir: string };
   'skills:edit': D.TargetInput & { id: D.TargetId };
@@ -60,6 +62,8 @@ export interface ResponseMap {
   'tasks:move-all': D.MoveResponse;
   'plans:archive': D.Settings;
   'plans:recycle': { recycled: true };
+  'plans:mark-done': D.MarkDoneResponse;
+  'plans:undo-mark-done': D.UndoMarkDoneResponse;
   'skills:list': D.SkillsResponse;
   'skills:add': D.SkillsResponse;
   'skills:edit': D.SkillsResponse;
@@ -112,7 +116,12 @@ export interface AgentOpsBridge {
     moveLegacy: Call<'tasks:move-legacy'>;
     moveAll: Call<'tasks:move-all'>;
   };
-  plans: { archive: Call<'plans:archive'>; recycle: Call<'plans:recycle'> };
+  plans: {
+    archive: Call<'plans:archive'>;
+    recycle: Call<'plans:recycle'>;
+    markDone: Call<'plans:mark-done'>;
+    undoMarkDone: Call<'plans:undo-mark-done'>;
+  };
   skills: {
     list: Call<'skills:list'>;
     add: Call<'skills:add'>;

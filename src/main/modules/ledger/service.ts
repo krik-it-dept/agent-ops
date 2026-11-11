@@ -9,6 +9,7 @@ import {
 import { hasSources, PlanWatcher, type WatchOptions } from './watch';
 import type { Overview, Plan } from '../plans';
 import { ACTIVE_FOR_MS } from '../runs/read';
+import type { Activity } from '../../../shared/contracts';
 
 export class LedgerService {
   private overview: Overview;
@@ -277,6 +278,15 @@ export class LedgerService {
       crash: null,
       planArchive: this.config.planArchive ?? null,
     });
+  }
+  /** record logs an activity entry the app caused and publishes the new state. */
+  async record(
+    event: Activity,
+    status?: { key: string; value: string },
+  ): Promise<void> {
+    if (this.closed || !this.options.activity?.record) return;
+    await this.options.activity.record(event, status);
+    this.publish();
   }
   findPlan(key: string): Plan | undefined {
     const found = this.overview.plans.find((p) => planKey(p) === key);

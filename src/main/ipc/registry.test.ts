@@ -153,7 +153,7 @@ describe('application IPC registry', () => {
     expect(removeHandler).toHaveBeenCalledTimes(2);
   });
   it('has request validators for every document channel and rejects empty/oversized or unsafe variants', () => {
-    expect(Object.keys(requestSchemas)).toHaveLength(38);
+    expect(Object.keys(requestSchemas)).toHaveLength(40);
     expect(parseRequest('tasks:move-legacy', { keys: [] })).toEqual({
       keys: [],
     });
@@ -164,6 +164,18 @@ describe('application IPC registry', () => {
         confirm: true,
       }),
     ).toMatchObject({ confirm: true });
+    expect(
+      parseRequest('plans:mark-done', {
+        key: 'tasks/team/plan',
+        revision: 'a'.repeat(64),
+      }),
+    ).toEqual({ key: 'tasks/team/plan', revision: 'a'.repeat(64) });
+    expect(
+      parseRequest('plans:undo-mark-done', {
+        key: 'tasks/team/plan',
+        token: 'b'.repeat(32),
+      }),
+    ).toEqual({ key: 'tasks/team/plan', token: 'b'.repeat(32) });
     for (const [channel, payload] of [
       ['settings:set', { theme: null }],
       ['settings:set', { theme: 'auto' }],
@@ -171,6 +183,17 @@ describe('application IPC registry', () => {
         'plans:recycle',
         { key: 'plan', revision: 'a'.repeat(64), confirm: false },
       ],
+      ['plans:mark-done', { key: 'plan', revision: 'short' }],
+      [
+        'plans:mark-done',
+        { key: 'plan', revision: 'a'.repeat(64), path: 'C:/plan.md' },
+      ],
+      [
+        'plans:mark-done',
+        { key: 'plan', revision: 'a'.repeat(64), status: 'Done' },
+      ],
+      ['plans:undo-mark-done', { key: 'plan', token: 'not-a-token' }],
+      ['plans:undo-mark-done', { key: 'plan' }],
       ['shell:open-folder', { target: 'data', path: 'C:/owner' }],
       ['shell:open-external', { url: 'https://example.com' }],
       ['updates:apply', { version: 'v01.0.0' }],

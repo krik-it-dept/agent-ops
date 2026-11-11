@@ -134,6 +134,60 @@ describe('composition adapters with real libraries and isolated files', () => {
       source,
     );
   });
+  it('marks a Tasks plan Done through the handler, records it once, refreshes and undoes it', async () => {
+    const { root, runtime } = await fixture();
+    const tasks = join(root, 'Tasks');
+    const file = join(tasks, 'web', 'ship.md');
+    const source = 'Status: Testing\r\nGoal: Ship\r\n- [doing] Verify\r\n';
+    await mkdir(join(tasks, 'web'), { recursive: true });
+    await writeFile(file, source);
+    await runtime.handlers['settings:set']!({ tasksDir: tasks });
+    const plan = runtime.ledger.findPlan('tasks/web/ship')!;
+    expect(plan.status).toBe('Testing');
+    const done = await runtime.handlers['plans:mark-done']!({
+      key: 'tasks/web/ship',
+      revision: plan.revision,
+    });
+    expect(done).toMatchObject({
+      plan: { key: 'tasks/web/ship', status: 'Done' },
+      changed: true,
+    });
+    expect(await readFile(file, 'utf8')).toBe(
+      'Status: Done\r\nGoal: Ship\r\n- [doing] Verify\r\n',
+    );
+    const state = runtime.ledger.getState();
+    expect(state.state.plans[0]?.status).toBe('Done');
+    expect(state.state.plans[0]?.revision).toBe(done.plan.revision);
+    const stages = state.activity.filter((e) => e.kind === 'status');
+    expect(stages).toHaveLength(1);
+    expect(stages[0]).toMatchObject({
+      text: 'Marked Done in Agent Ops',
+      extra: 'Testing → Done',
+      actor: 'Agent Ops',
+      plan: 'ship',
+    });
+    // A stale revision is refused plainly.
+    await expect(
+      runtime.handlers['plans:mark-done']!({
+        key: 'tasks/web/ship',
+        revision: plan.revision,
+      }),
+    ).rejects.toMatchObject({
+      code: 'REVISION_CHANGED',
+      message: 'This plan changed. Look again before marking it Done.',
+    });
+    const undone = await runtime.handlers['plans:undo-mark-done']!({
+      key: 'tasks/web/ship',
+      token: done.undo!.token,
+    });
+    expect(undone.plan).toEqual({
+      key: 'tasks/web/ship',
+      status: 'Testing',
+      revision: plan.revision,
+    });
+    expect(await readFile(file, 'utf8')).toBe(source);
+    expect(runtime.ledger.findPlan('tasks/web/ship')?.status).toBe('Testing');
+  });
   it('keeps platform mutations unavailable until injected and respects newer config', async () => {
     const { root, runtime } = await fixture();
     await expect(
@@ -196,6 +250,12 @@ describe('composition adapters with real libraries and isolated files', () => {
     try {
       await expect(
         runtime.handlers['tasks:move-all']!({ from: join(root, 'Old') }),
+      ).rejects.toMatchObject({ code: 'BUSY' });
+      await expect(
+        runtime.handlers['plans:mark-done']!({
+          key: 'tasks/web/plan',
+          revision: 'a'.repeat(64),
+        }),
       ).rejects.toMatchObject({ code: 'BUSY' });
     } finally {
       release!();

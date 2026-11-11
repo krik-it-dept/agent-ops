@@ -92,12 +92,12 @@ function insideRoot(root: string, file: string): boolean {
   );
 }
 
-async function regularFile(file: string): Promise<string> {
+async function regularFile(file: string, verb: string): Promise<string> {
   const info = await fs.lstat(file);
   if (!info.isFile())
     throw new OwnerError(
       'CONFLICT',
-      'Only a regular plan file can be moved to the Recycle Bin.',
+      `Only a regular plan file can be ${verb}.`,
     );
   return file;
 }
@@ -123,10 +123,12 @@ async function sameFile(a: string, b: string): Promise<boolean> {
 export async function planActionPath(
   p: PlanRef,
   config: AppConfig,
+  verb = 'moved to the Recycle Bin',
 ): Promise<string> {
   if (badName(p.name))
     throw new OwnerError('INVALID_REQUEST', 'Invalid plan file name.');
-  if (p.project === TASKS_PROJECT_ID) return tasksPlanPath(p, config.tasksDir);
+  if (p.project === TASKS_PROJECT_ID)
+    return tasksPlanPath(p, config.tasksDir, verb);
   const project = config.projects.find(
     (x: Project) => x.enabled && x.id === p.project,
   );
@@ -172,7 +174,7 @@ export async function planActionPath(
         'CONFLICT',
         'The plan folder is redirected outside its workspace.',
       );
-    return regularFile(path.join(dir, p.name + '.md'));
+    return regularFile(path.join(dir, p.name + '.md'), verb);
   }
   throw new OwnerError(
     'CONFLICT',
@@ -180,7 +182,11 @@ export async function planActionPath(
   );
 }
 
-async function tasksPlanPath(p: PlanRef, tasksDir: string): Promise<string> {
+async function tasksPlanPath(
+  p: PlanRef,
+  tasksDir: string,
+  verb: string,
+): Promise<string> {
   if (tasksDir === '')
     throw new OwnerError('CONFLICT', 'No Tasks folder is chosen.');
   const ws = p.repo;
@@ -199,7 +205,7 @@ async function tasksPlanPath(p: PlanRef, tasksDir: string): Promise<string> {
     );
   // Return the canonical long path, like a workspace plan, so the Recycle Bin
   // check compares it with the resolved file even when tasksDir is an 8.3 name.
-  return regularFile(path.join(dir, p.name + '.md'));
+  return regularFile(path.join(dir, p.name + '.md'), verb);
 }
 
 export interface RecycleRequest {

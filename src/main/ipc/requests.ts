@@ -141,6 +141,11 @@ export const requestSchemas = {
   'tasks:move-all': object({ from: text() }),
   'plans:archive': object({ key, archived: bool }),
   'plans:recycle': object({ key, revision, confirm: literal(true) }),
+  'plans:mark-done': object({ key, revision }),
+  'plans:undo-mark-done': object({
+    key,
+    token: text(32, 32, /^[a-f0-9]{32}$/),
+  }),
   'skills:list': empty,
   'skills:add': object({ ...target, skillDir: text() }),
   'skills:edit': object({ id, ...target }),

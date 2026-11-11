@@ -18,6 +18,11 @@ export interface ActivityPort {
   apply(overview: Overview): Promise<void>;
   snapshot(): ActivitySnapshot;
   tick?(): Promise<boolean>;
+  /** record logs an event the app caused; status updates the last board for that plan. */
+  record?(
+    event: Activity,
+    status?: { key: string; value: string },
+  ): Promise<void>;
 }
 export interface OverviewCache {
   load(): Promise<Overview | undefined>;
