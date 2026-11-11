@@ -150,4 +150,62 @@ describe('large ledgers', () => {
       filterTasks(rows, { ...filters, query });
     expect(performance.now() - started).toBeLessThan(500);
   });
+  it('re-renders only the plan whose runs changed among 400 plans with 50 runs each', () => {
+    const data = largeLedger();
+    const agents = ['Claude', 'Codex', 'Gemini', 'Cursor'];
+    for (const plan of data.snapshot.state.plans)
+      plan.runs = Array.from({ length: 50 }, (_, n) => {
+        const step = plan.steps[n % plan.steps.length]!;
+        const at = new Date(Date.UTC(2026, 10, 10, 0, n)).toISOString();
+        return {
+          runId: `${plan.name}-${n}`,
+          agent: agents[n % agents.length]!,
+          coordinator: 'Claude',
+          role: 'executor' as const,
+          event: n % 7 ? ('done' as const) : ('progress' as const),
+          active: n === 49,
+          startedAt: at,
+          updatedAt: at,
+          step: { line: step.line, text: step.text, milestone: step.milestone },
+          result: `Kết quả ${n} của ${plan.name}`,
+        };
+      });
+    data.snapshot.activity = data.snapshot.state.plans.flatMap((plan) =>
+      plan.runs!.slice(0, 2).map((run) => ({
+        ts: run.updatedAt,
+        project: plan.project,
+        repo: plan.repo,
+        plan: plan.name,
+        actor: run.agent,
+        kind: 'doing' as const,
+        text: run.result,
+      })),
+    );
+    let snapshot = acceptSnapshot(null, data.snapshot);
+    let accepted = 0;
+    // Twenty run reports in a row, each on a different plan, file revisions unchanged.
+    for (let i = 0; i < 20; i++) {
+      const next = structuredClone(data.snapshot);
+      next.generation = snapshot.generation + 1;
+      next.state.plans[i * 7]!.runs![0]!.result = `Báo cáo mới ${i}`;
+      const previous = snapshot;
+      const started = performance.now();
+      snapshot = acceptSnapshot(previous, next);
+      accepted += performance.now() - started;
+      expect(
+        snapshot.state.plans.filter((p, n) => p !== previous.state.plans[n]),
+      ).toHaveLength(1);
+      data.snapshot = next;
+    }
+    const started = performance.now();
+    const html = render(
+      { ...data, snapshot },
+      createElement(Overview, { query: '', clear: () => undefined }),
+    );
+    const rendered = performance.now() - started;
+    expect(html).toContain('Agent workload');
+    // Measured about 20 ms per snapshot and 150 ms for the Summary on a dev machine.
+    expect(accepted / 20).toBeLessThan(150);
+    expect(rendered).toBeLessThan(2000);
+  });
 });
