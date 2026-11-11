@@ -437,16 +437,6 @@ function Shell() {
         <span className="save-state" role="status">
           {notice.includes('Recycle Bin') ? '' : notice}
         </span>
-        <button aria-label="Keyboard shortcuts" onClick={() => setHelp(true)}>
-          ?
-        </button>
-        <Link
-          className="icon-button"
-          aria-label="Settings"
-          to="/settings/general"
-        >
-          ⚙
-        </Link>
       </header>
       {actionError && (
         <section className="banner error-banner action-error" role="alert">
@@ -466,6 +456,7 @@ function Shell() {
             setNavigation={setNavigation}
             current={activeKey}
             openCommands={() => setCommands(true)}
+            openHelp={() => setHelp(true)}
           />
           <main className="main">
             <nav className="workspace-strip" aria-label="Views">
@@ -868,6 +859,7 @@ function Shell() {
           )}
           close={() => setCommands(false)}
           viewRoute={(path) => viewRoute(path, searchRef.current)}
+          showShortcuts={() => setHelp(true)}
           toggleSidebar={() =>
             setNavigation((nav) => ({ ...nav, collapsed: !nav.collapsed }))
           }

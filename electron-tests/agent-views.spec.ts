@@ -273,3 +273,43 @@ test('Ctrl+1..4 and the command palette open the work views and keep the search 
     await fixture.close();
   }
 });
+
+test('Settings and shortcut help sit in the sidebar footer, are keyboard reachable and Settings has a way back', async () => {
+  const fixture = await launchFixture('demo', 'light');
+  const { page } = fixture;
+  try {
+    await page.getByRole('button', { name: 'Dismiss update' }).click();
+    await expect(page.locator('header.appbar a.icon-button')).toHaveCount(0);
+    const footer = page.locator('.plan-sidebar > footer');
+    const settings = footer.getByRole('link', { name: 'Settings' });
+    const help = footer.getByRole('button', { name: 'Keyboard shortcuts' });
+    const archive = footer.getByRole('link', { name: /^Archive/ });
+    // Bottom-left of the sidebar: the icons come before Archive.
+    const [s, h, a, side] = await Promise.all([
+      settings.boundingBox(),
+      help.boundingBox(),
+      archive.boundingBox(),
+      page.locator('.plan-sidebar').boundingBox(),
+    ]);
+    expect(s!.x).toBeLessThan(h!.x);
+    expect(h!.x).toBeLessThan(a!.x);
+    expect(s!.x - side!.x).toBeLessThan(40);
+    expect(side!.y + side!.height - (s!.y + s!.height)).toBeLessThan(30);
+    await help.focus();
+    await page.keyboard.press('Enter');
+    await expect(
+      page.getByRole('dialog', { name: 'Keyboard shortcuts' }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await settings.focus();
+    await page.keyboard.press('Enter');
+    await expect(
+      page.getByRole('heading', { name: 'Settings', exact: true }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: '← Back' }).click();
+    await expect(page.getByRole('navigation', { name: 'Views' })).toBeVisible();
+    expect(fixture.errors).toEqual([]);
+  } finally {
+    await fixture.close();
+  }
+});

@@ -223,12 +223,20 @@ describe('React screen components', () => {
             setNavigation: () => undefined,
             current: null,
             openCommands: () => undefined,
+            openHelp: () => undefined,
           }),
         ),
       }),
     );
     expect(html).toContain('steps · Waiting for owner</small>');
     expect(html).not.toContain('Please confirm the release wording');
+    // Settings and shortcut help live in the sidebar footer beside Archive.
+    const footer = html.slice(html.indexOf('<footer'));
+    expect(footer).toMatch(
+      /aria-label="Settings"[^>]*href="\/settings\/general"|href="\/settings\/general"[^>]*aria-label="Settings"/,
+    );
+    expect(footer).toContain('aria-label="Keyboard shortcuts"');
+    expect(footer).toContain('Archive');
   });
   it('does not mix decisions and questions into the milestone work', () => {
     const key = encodeURIComponent('studio/Ledger/Cải thiện tìm kiếm');

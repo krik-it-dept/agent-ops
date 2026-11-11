@@ -360,13 +360,35 @@ kbd {
   color: var(--muted-fg);
 }
 .plan-sidebar > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   border-top: 1px solid var(--border);
-  padding: 10px;
+  padding: 8px 10px;
   margin: 8px -8px 0;
 }
-.plan-sidebar > footer a {
+.sidebar-tools {
+  display: inline-flex;
+  gap: 4px;
+}
+.plan-sidebar > footer .icon-button {
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted-fg);
+}
+.plan-sidebar > footer .icon-button:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+.plan-sidebar > footer .sidebar-archive {
   display: flex;
-  justify-content: space-between;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 8px;
   color: var(--muted-fg);
   text-decoration: none;
 }

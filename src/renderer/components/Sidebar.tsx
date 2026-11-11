@@ -20,12 +20,14 @@ export function Sidebar({
   setNavigation,
   current,
   openCommands,
+  openHelp,
 }: {
   plans: DisplayPlan[];
   navigation: Navigation;
   setNavigation(update: (nav: Navigation) => Navigation): void;
   current: string | null;
   openCommands(): void;
+  openHelp(): void;
 }) {
   const { snapshot, settings } = useLedger();
   const visible = sidebarPlans(plans, navigation);
@@ -214,7 +216,23 @@ export function Sidebar({
         )}
       </nav>
       <footer>
-        <Link to="/archive">
+        <span className="sidebar-tools">
+          <Link
+            className="icon-button"
+            aria-label="Settings"
+            to="/settings/general"
+          >
+            ⚙
+          </Link>
+          <button
+            className="icon-button"
+            aria-label="Keyboard shortcuts"
+            onClick={openHelp}
+          >
+            ?
+          </button>
+        </span>
+        <Link className="sidebar-archive" to="/archive">
           Archive{' '}
           <small>
             {settings

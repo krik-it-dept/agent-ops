@@ -21,6 +21,7 @@ export function CommandSearch({
   plans,
   close,
   viewRoute,
+  showShortcuts,
   toggleSidebar,
   refresh,
 }: {
@@ -28,6 +29,7 @@ export function CommandSearch({
   close(): void;
   /** Adds the current search and agent filter to a view path. */
   viewRoute(path: string): string;
+  showShortcuts(): void;
   toggleSidebar(): void;
   refresh(): void;
 }) {
@@ -70,6 +72,11 @@ export function CommandSearch({
       label: 'Toggle plans sidebar',
       detail: 'Action · Ctrl B',
       run: toggleSidebar,
+    },
+    {
+      label: 'Keyboard shortcuts',
+      detail: 'Help · ?',
+      run: showShortcuts,
     },
     {
       label: 'Settings',
