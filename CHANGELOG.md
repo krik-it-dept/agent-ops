@@ -13,6 +13,8 @@ The release workflow takes the section whose heading starts with the pushed tag.
   whole interface larger or smaller, and Ctrl + `0` goes back to the default.
   The size is the Text size setting, so it is kept the next time you open the
   app.
+- **One line less on plan pages.** The workspace name above the plan title is
+  gone; it is in the sidebar and in the title's tooltip.
 
 ## v1.2.0 - Mark a plan Done from the Board
 

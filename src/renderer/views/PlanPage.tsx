@@ -260,10 +260,10 @@ export function PlanPage({
   }
   const titleRow = (
     <header className="plan-header">
-      <p className="breadcrumb">{placeLabel(plan)}</p>
       <div className="row">
         <Link to="/">← Summary</Link>
-        <h1>{plan.name}</h1>
+        {/* The workspace is in the sidebar; it is kept as the title's tooltip. */}
+        <h1 title={placeLabel(plan)}>{plan.name}</h1>
         <button
           aria-pressed={starred}
           aria-label={`${starred ? 'Unstar' : 'Star'} ${plan.name}`}
