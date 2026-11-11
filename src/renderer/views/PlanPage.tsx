@@ -23,6 +23,7 @@ import {
   timeLabel,
   whenLabel,
   workflow,
+  placeLabel,
 } from '../model';
 import { useLedger } from '../store';
 import { AgentChain, StepAgents, StepResult } from '../components/Agents';

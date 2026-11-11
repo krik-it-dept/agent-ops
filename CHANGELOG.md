@@ -3,6 +3,17 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## Unreleased - Plan pages focus on goals and milestones
+
+- **Agents beside the task.** On a plan page each task shows its agents and
+  "Working now" on the task's own line, wrapping below it in a narrow window.
+  The latest result, when there is one, is on the line under the task. This
+  replaces the single agent line under each step from v1.2.1.
+- **Quieter plan header.** Open plan folder, Copy link, the source file and
+  when it was last updated are in the plan's `⋯` menu.
+- **Blank instead of "Not reported".** Where no agent, result or report time
+  was recorded, the space is left empty.
+
 ## v1.2.1 - Update all Skills and zoom with Ctrl
 
 - **Update all.** When newer Skills are available, Settings → Skills shows
