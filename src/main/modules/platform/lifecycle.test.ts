@@ -383,8 +383,20 @@ describe('tray and notifications through fakes', () => {
       },
       { kind: 'stale', repo: 'web', plan: 'd', text: 'never show' },
       { kind: 'constructor', repo: 'web', plan: 'd', text: 'never show' },
+      { kind: 'run-started', repo: 'web', plan: 'd', text: 'never show' },
+      {
+        kind: 'run-blocked',
+        project: 'tasks',
+        repo: 'web',
+        plan: 'e',
+        text: 'Build it',
+        extra: 'Thiếu quyền',
+      },
     ];
-    expect(notifier.notify(events)).toBe(3);
+    expect(notifier.notify(events)).toBe(4);
+    expect(show.mock.calls[3]?.[0].body).toBe(
+      'Agent bị chặn · e\nBuild it\nThiếu quyền',
+    );
     expect(show.mock.calls[0]?.[0]).toEqual({
       title: 'Agent Ops',
       body: 'Bị chặn · a\n"; $(calc) <unsafe> “quotes”',

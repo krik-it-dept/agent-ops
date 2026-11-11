@@ -21,6 +21,7 @@ import {
   type Repo,
 } from './overview';
 import { parseMarkdown } from './parse';
+import { attachRuns } from '../runs/read';
 
 export interface Project {
   id: string;
@@ -32,6 +33,8 @@ export interface Project {
 export interface CollectConfig {
   projects?: readonly Project[];
   tasksDir?: string;
+  /** The folder of agent run reports; their runs are attached to the plans. */
+  runsDir?: string;
 }
 export interface CollectOptions {
   signal?: AbortSignal;
@@ -354,5 +357,7 @@ export async function collectOverview(
       plan.gh = matches[0]!.gh;
     }
   }
-  return buildOverview(out, (options.now ?? (() => new Date()))());
+  const now = (options.now ?? (() => new Date()))();
+  if (config.runsDir) await attachRuns(out, config.runsDir, now, signal);
+  return buildOverview(out, now);
 }

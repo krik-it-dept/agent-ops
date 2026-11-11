@@ -355,6 +355,36 @@ describe('Windows commands through fakes', () => {
       { timeoutMs: 5000 },
     );
   });
+  it('keeps the report command pointer separate from the Tasks pointer and refuses other names', async () => {
+    const values: Record<string, string> = {
+      AGENT_OPS_TASKS: root,
+    };
+    const run = vi.fn<CommandRunner>(async (_exe, args) => {
+      if (args[0] === 'query')
+        return {
+          code: 0,
+          stdout: Object.entries(values)
+            .map(([k, v]) => `    ${k}    REG_SZ    ${v}\r\n`)
+            .join(''),
+        };
+      if (args[0] === 'add') values[args[3]!] = args[args.indexOf('/d') + 1]!;
+      return { stdout: '', code: 0 };
+    });
+    const service = new UserEnvironmentService(run, policy);
+    const exe = `${root}\\agent-ops.exe`;
+    expect(await service.setUserEnv('AGENT_OPS_REPORT', exe)).toEqual({
+      managed: true,
+      changed: true,
+    });
+    expect(values).toEqual({ AGENT_OPS_TASKS: root, AGENT_OPS_REPORT: exe });
+    expect(await service.setUserEnv('AGENT_OPS_REPORT', exe)).toEqual({
+      managed: true,
+      changed: false,
+    });
+    await expect(
+      service.setUserEnv('PATH' as 'AGENT_OPS_TASKS', exe),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' });
+  });
   it('serializes pointer changes and does not swallow registry/broadcast errors', async () => {
     const calls: string[] = [];
     const run: CommandRunner = async (_exe, args) => {

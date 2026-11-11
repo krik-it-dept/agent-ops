@@ -26,6 +26,9 @@ const kinds = new Set([
   'milestone',
   'waiting',
   'stale',
+  'run-started',
+  'run-finished',
+  'run-blocked',
 ]);
 const knownActivity = (event: ActivityEvent): event is Activity =>
   kinds.has(event.kind);
@@ -59,6 +62,13 @@ function snapshotPlan(p: Plan): ActivityPlan {
     source: p.source,
     file: p.file,
     workspace: p.workspace,
+    runs: (p.runs ?? []).map((r) => ({
+      runId: r.runId,
+      event: r.event,
+      agent: r.agent,
+      step: r.step?.text ?? '',
+      result: r.result,
+    })),
   };
 }
 export function activityAdapter(

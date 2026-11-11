@@ -21,6 +21,7 @@ const labels: Readonly<Record<string, string>> = {
   waiting: 'Cần bạn xử lý',
   blocked: 'Bị chặn',
   question: 'Câu hỏi mới',
+  'run-blocked': 'Agent bị chặn',
 };
 export function notificationText(text: string): string {
   return Array.from(text)
@@ -70,7 +71,7 @@ export function createNotifier(options: {
             {
               title: APP_NAME,
               body: notificationText(
-                `${label} · ${event.plan}\n${event.kind === 'waiting' ? (event.extra ?? '') : event.text}`,
+                `${label} · ${event.plan}\n${event.kind === 'waiting' ? (event.extra ?? '') : event.text}${event.kind === 'run-blocked' && event.extra ? `\n${event.extra}` : ''}`,
               ),
               icon: options.icon,
             },

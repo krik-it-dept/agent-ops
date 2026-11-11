@@ -65,6 +65,10 @@ $sent = [AgentOpsEnvironment]::SendMessageTimeout([IntPtr]0xffff, 0x1a, [UIntPtr
 if ($sent -eq [IntPtr]::Zero) { exit 1 }
 `;
 
+/** The only user environment values the app writes: pointers for agents. */
+export const USER_ENV_NAMES = ['AGENT_OPS_TASKS', 'AGENT_OPS_REPORT'] as const;
+export type UserEnvName = (typeof USER_ENV_NAMES)[number];
+
 export class UserEnvironmentService {
   readonly managed: boolean;
   private pending: Promise<unknown> = Promise.resolve();
@@ -75,17 +79,17 @@ export class UserEnvironmentService {
     this.managed = registrationAllowed(policy);
   }
   setUserEnv(
-    name: 'AGENT_OPS_TASKS',
+    name: UserEnvName,
     value: string | null,
   ): Promise<{ managed: boolean; changed: boolean }> {
     if (
-      name !== 'AGENT_OPS_TASKS' ||
+      !USER_ENV_NAMES.includes(name) ||
       (value !== null && (value.includes('\0') || value.length > 32_000))
     )
       return Promise.reject(
         new PlatformError(
           'INVALID_REQUEST',
-          'Invalid Tasks environment pointer.',
+          'Invalid Agent Ops environment pointer.',
         ),
       );
     if (!this.managed)
@@ -99,10 +103,11 @@ export class UserEnvironmentService {
         );
         if (query.code !== 0)
           throw new Error('Environment key is unavailable.');
-        const match =
-          /^[ \t]*AGENT_OPS_TASKS[ \t]+REG_(?:EXPAND_)?SZ[ \t]+(.*)$/im.exec(
-            query.stdout,
-          );
+        // name is one of the fixed names above, so it is safe in the pattern.
+        const match = new RegExp(
+          `^[ \\t]*${name}[ \\t]+REG_(?:EXPAND_)?SZ[ \\t]+(.*)$`,
+          'im',
+        ).exec(query.stdout);
         const current = match?.[1]?.replace(/\r$/, '') ?? null;
         const desired = value || null;
         if (current === desired) return { managed: true, changed: false };
@@ -141,7 +146,9 @@ export class UserEnvironmentService {
       } catch {
         throw new PlatformError(
           'IO_ERROR',
-          'The Tasks environment pointer could not be updated.',
+          name === 'AGENT_OPS_REPORT'
+            ? 'The report command environment pointer could not be updated.'
+            : 'The Tasks environment pointer could not be updated.',
           true,
         );
       }

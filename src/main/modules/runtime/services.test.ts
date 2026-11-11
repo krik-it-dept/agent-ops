@@ -243,3 +243,105 @@ describe('composition adapters with real libraries and isolated files', () => {
     expect(after.futureFeature).toEqual(old.futureFeature);
   });
 });
+
+describe('agent runs in the runtime', () => {
+  it('prunes old runs at start, reads new reports with the plans and logs them as activity', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'agent-ops-runs-'));
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const data = join(root, 'data');
+    const tasks = join(root, 'tasks');
+    const plan = join(tasks, 'ws', 'plan.md');
+    await mkdir(join(tasks, 'ws'), { recursive: true });
+    await mkdir(join(data, 'runs'), { recursive: true });
+    await writeFile(
+      plan,
+      'Agent: Claude\nStatus: Implementing\n## M1: A\n- [doing] Build it <!-- Executors: Codex -->\n',
+    );
+    await writeFile(
+      join(data, 'config.json'),
+      JSON.stringify({
+        version: 1,
+        setupComplete: true,
+        tasksDir: tasks,
+        projects: [],
+      }),
+    );
+    const old = '00000000-0000-4000-8000-000000000009';
+    const ended = '2020-01-01T00:00:00.000Z';
+    const line = (event: string) =>
+      JSON.stringify({
+        v: 1,
+        runId: old,
+        at: ended,
+        event,
+        agent: 'Codex',
+        coordinator: '',
+        role: 'coordinator',
+        file: 'C:/gone.md',
+        revision: '',
+        step: null,
+        result: event === 'done' ? 'x' : '',
+      }) + '\n';
+    await writeFile(
+      join(data, 'runs', `${old}.jsonl`),
+      line('start') + line('done'),
+    );
+    const runtime = createRuntime({
+      dataDir: data,
+      profileDir: join(root, 'profile'),
+      version: 'v1.0.0',
+      worker: () => {
+        throw new Error('Injected collector should be used.');
+      },
+      collector: (c, signal) => collectOverview(c, { signal }),
+      changed: () => {},
+      reportCommand: join(root, 'Programs', 'agent-ops.exe'),
+    });
+    cleanup.push(() => runtime.stop());
+    await runtime.start();
+    expect(await readFile(join(data, 'report-command.txt'), 'utf8')).toBe(
+      join(root, 'Programs', 'agent-ops.exe') + '\n',
+    );
+    await expect(
+      readFile(join(data, 'runs', `${old}.jsonl`)),
+    ).rejects.toThrow();
+    const first = runtime.ledger.getState().state.plans[0]!;
+    expect(first.agent).toBe('Claude');
+    expect(first.steps[0]!.executors).toEqual(['Codex']);
+    expect(first.runs).toBeUndefined();
+    const { runReport } = await import('../runs');
+    const started = await runReport(
+      [
+        '--agent',
+        'Codex',
+        '--plan-file',
+        plan,
+        '--step-line',
+        '4',
+        '--event',
+        'start',
+      ],
+      { dataDir: data },
+    );
+    expect(started.stderr).toBe('');
+    await runtime.ledger.refresh();
+    const state = runtime.ledger.getState();
+    expect(state.state.plans[0]!.runs).toMatchObject([
+      {
+        runId: started.stdout.trim(),
+        agent: 'Codex',
+        coordinator: 'Claude',
+        role: 'executor',
+        event: 'start',
+        active: true,
+        step: { line: 4, text: 'Build it', milestone: 'M1' },
+      },
+    ]);
+    expect(state.activity[0]).toMatchObject({
+      kind: 'run-started',
+      actor: 'Codex',
+      text: 'Build it',
+      plan: 'plan',
+    });
+  });
+});

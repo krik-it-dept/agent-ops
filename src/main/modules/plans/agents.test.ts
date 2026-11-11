@@ -114,11 +114,10 @@ describe('plan agent fields', () => {
     );
     // The revision is the file's hash, so any byte change already changes it.
     expect(b.revision).not.toBe(a.revision);
-    const asActivity = (p: typeof a): ActivityPlan => ({
-      ...p,
-      decisions: [],
-      questions: [],
-    });
+    const asActivity = ({ runs, ...p }: typeof a): ActivityPlan => {
+      expect(runs).toBeUndefined();
+      return { ...p, decisions: [], questions: [] };
+    };
     expect(planKey(asActivity(a))).toBe(planKey(asActivity(b)));
     expect(
       diff(

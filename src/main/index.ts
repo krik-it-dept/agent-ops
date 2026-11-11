@@ -53,9 +53,56 @@ import {
 } from './modules/runtime/test-ports';
 import { checkHealth } from './modules/runtime/health';
 import { prepareDataFolder } from './modules/runtime/startup';
+import { REPORT_FLAG, runReport } from './modules/runs';
+
+/**
+ * Command mode for agents: record one report and exit. It takes no
+ * single-instance lock, opens no window and registers nothing, so it works
+ * while the app runs. Chromium profile folders go to a temporary folder.
+ */
+async function reportMode(): Promise<void> {
+  const profile = mkdtempSync(join(tmpdir(), 'agent-ops-report-'));
+  app.setPath('appData', profile);
+  app.setPath('userData', profile);
+  app.setPath('sessionData', join(profile, 'chromium'));
+  app.setAppLogsPath(join(profile, 'logs'));
+  let outcome;
+  try {
+    outcome = await runReport(
+      process.argv.slice(process.argv.indexOf(REPORT_FLAG) + 1),
+      {
+        dataDir: resolveDataDir({
+          env: process.env,
+          development: !app.isPackaged,
+          repoDir: resolve(__dirname, '../..'),
+        }),
+      },
+    );
+  } catch {
+    outcome = {
+      code: 1,
+      stdout: '',
+      stderr:
+        'Agent Ops report: the Agent Ops data folder could not be found.\n',
+    };
+  }
+  try {
+    rmSync(profile, { recursive: true, force: true });
+  } catch {
+    /* A temporary folder left behind is harmless. */
+  }
+  const write = (stream: NodeJS.WriteStream, text: string) =>
+    new Promise<void>((done) =>
+      text ? stream.write(text, () => done()) : done(),
+    );
+  await write(process.stdout, outcome.stdout);
+  await write(process.stderr, outcome.stderr);
+  app.exit(outcome.code);
+}
 
 // Resolve once, before Chromium starts or single-instance locking touches a profile.
 async function entry(): Promise<void> {
+  if (process.argv.includes(REPORT_FLAG)) return reportMode();
   const dataDir = resolveDataDir({
     env: process.env,
     development: !app.isPackaged,
@@ -360,6 +407,8 @@ async function entry(): Promise<void> {
             ...(installedRuntime(scope)
               ? { environment: environmentAdapter(platform) }
               : {}),
+            // A development build runs as electron.exe plus the app folder, which is not one command.
+            ...(app.isPackaged ? { reportCommand: process.execPath } : {}),
             trash: (file) => platform.folders.trash(file),
             notify: (events) => {
               desktop?.notify(events);
