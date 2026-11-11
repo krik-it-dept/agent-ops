@@ -237,6 +237,22 @@ export class ActivityLog {
     return { fresh, quiet, staleAnnounce: stale };
   }
 
+  /**
+   * record logs an event the app itself caused, such as the owner marking a
+   * plan Done. When status is given, the last board takes it as the plan's
+   * status too, so the next refresh does not log the same change again.
+   */
+  async record(
+    event: ActivityEvent,
+    status?: { key: string; value: string },
+  ): Promise<void> {
+    this.remember([event]);
+    const before = status ? this.prev?.[status.key] : undefined;
+    if (before && status)
+      this.prev![status.key] = { ...before, status: status.value };
+    await this.persist([event], null);
+  }
+
   /** checkStale logs plans that went stale since the last check and returns the ones to announce. */
   checkStale(knownProjects: string[] | null): Promise<ActivityEvent[]> {
     return this.recordStale(new Set(), knownProjects, this.now());

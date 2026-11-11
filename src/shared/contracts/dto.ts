@@ -454,3 +454,21 @@ export interface EventMap {
     route: 'overview' | 'plan' | 'settings';
   };
 }
+
+/** The plan after Mark as Done or its Undo. */
+export interface MarkedPlan {
+  key: PlanKey;
+  /** The Status value now in the file. */
+  status: string;
+  revision: Revision;
+}
+export interface MarkDoneResponse {
+  plan: MarkedPlan;
+  /** False when the plan was already Done and nothing was written. */
+  changed: boolean;
+  /** Present when the file was changed; valid for 2 minutes. */
+  undo: { token: string; expiresAt: ISOTime } | null;
+}
+export interface UndoMarkDoneResponse {
+  plan: MarkedPlan;
+}

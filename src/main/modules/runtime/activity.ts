@@ -105,6 +105,7 @@ export function activityAdapter(
       notify?.(events);
       return before !== log.events.length || events.length > 0;
     },
+    record: (event, status) => log.record(event, status),
     snapshot: () => ({
       activity: log.events
         .filter(knownActivity)

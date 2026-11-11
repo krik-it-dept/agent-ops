@@ -81,6 +81,14 @@ function skills(value: unknown): boolean {
     typeof value.readOnly === 'string'
   );
 }
+function markedPlan(value: unknown): boolean {
+  return (
+    record(value) &&
+    typeof value.key === 'string' &&
+    typeof value.status === 'string' &&
+    typeof value.revision === 'string'
+  );
+}
 function response(channel: keyof RequestMap, value: unknown): boolean {
   if (!record(value)) return false;
   if (channel === 'app:renderer-ready') return value.ready === true;
@@ -136,6 +144,16 @@ function response(channel: keyof RequestMap, value: unknown): boolean {
     return typeof value.cancelled === 'boolean';
   if (channel.startsWith('shell:open-')) return value.opened === true;
   if (channel === 'plans:recycle') return value.recycled === true;
+  if (channel === 'plans:mark-done')
+    return (
+      markedPlan(value.plan) &&
+      typeof value.changed === 'boolean' &&
+      (value.undo === null ||
+        (record(value.undo) &&
+          typeof value.undo.token === 'string' &&
+          typeof value.undo.expiresAt === 'string'))
+    );
+  if (channel === 'plans:undo-mark-done') return markedPlan(value.plan);
   if (channel === 'diagnostics:get') return typeof value.text === 'string';
   if (channel === 'diagnostics:copy') return value.copied === true;
   if (channel === 'diagnostics:dismiss-crash') return value.dismissed === true;

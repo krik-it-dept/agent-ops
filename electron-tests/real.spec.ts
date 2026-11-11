@@ -156,6 +156,104 @@ test('initial protocol activation waits for the real reader and the renderer lis
     await f.close();
   }
 });
+test('Board refuses a revision refreshed during a drag and preserves the agent save', async () => {
+  const source = 'Status: Testing\nNext: Owner saw this\nGoal: Ship\n';
+  const f = await start(async (root) => {
+    const tasks = join(root, 'Tasks');
+    await mkdir(join(tasks, 'web'), { recursive: true });
+    await writeFile(join(tasks, 'web', 'ship.md'), source);
+    await writeFile(
+      join(root, 'data', 'config.json'),
+      JSON.stringify({
+        version: 1,
+        setupComplete: true,
+        projects: [],
+        tasksDir: tasks,
+        autoArchiveDone: true,
+      }),
+    );
+  });
+  try {
+    const { page, root } = f;
+    await navigate(page, '/board');
+    const card = page.locator('.work-card[data-plan-key="tasks/web/ship"]');
+    await expect(card).toContainText('Owner saw this');
+    const transfer = await page.evaluateHandle(() => new DataTransfer());
+    await card.dispatchEvent('dragstart', { dataTransfer: transfer });
+    await expect(page.locator('.board-column.drop-target')).toHaveCount(1);
+    const changed = source.replace(
+      'Owner saw this',
+      'Agent changed this while dragging',
+    );
+    const file = join(root, 'Tasks', 'web', 'ship.md');
+    await writeFile(file, changed);
+    await page.evaluate(() => window.agentOps.state.refresh({}));
+    await expect(card).toContainText('Agent changed this while dragging');
+    await page
+      .getByRole('region', { name: 'Done', exact: true })
+      .dispatchEvent('drop', { dataTransfer: transfer });
+    await expect(page.getByRole('alert')).toContainText(
+      'This plan changed. Look again before marking it Done.',
+    );
+    expect(await readFile(file, 'utf8')).toBe(changed);
+    await page.getByRole('button', { name: 'Dismiss', exact: true }).click();
+    await card.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await card.getByRole('button', { name: 'Mark as Done' }).focus();
+    await page.keyboard.press('Enter');
+    const undo = page.locator('.toast').getByRole('button', { name: 'Undo' });
+    await expect(card).toHaveCount(0);
+    await expect(undo).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(card).toContainText('Agent changed this while dragging');
+    await expect(card.locator('summary')).toBeFocused();
+    expect(await readFile(file, 'utf8')).toBe(changed);
+    // A same-column drop is ignored; a double drop consumes one drag only.
+    const sameColumn = page.getByRole('region', {
+      name: 'Review & test',
+      exact: true,
+    });
+    const sameTransfer = await page.evaluateHandle(() => new DataTransfer());
+    await card.dispatchEvent('dragstart', { dataTransfer: sameTransfer });
+    await sameColumn.dispatchEvent('drop', { dataTransfer: sameTransfer });
+    await card.dispatchEvent('dragend', { dataTransfer: sameTransfer });
+    expect(await readFile(file, 'utf8')).toBe(changed);
+    const doubleTransfer = await page.evaluateHandle(() => new DataTransfer());
+    await card.dispatchEvent('dragstart', { dataTransfer: doubleTransfer });
+    await page
+      .getByRole('region', { name: 'Done', exact: true })
+      .evaluate((target, transfer) => {
+        target.dispatchEvent(
+          new DragEvent('drop', {
+            bubbles: true,
+            cancelable: true,
+            dataTransfer: transfer,
+          }),
+        );
+        target.dispatchEvent(
+          new DragEvent('drop', {
+            bubbles: true,
+            cancelable: true,
+            dataTransfer: transfer,
+          }),
+        );
+      }, doubleTransfer);
+    await expect(page.locator('.toast')).toContainText('Marked ship Done');
+    const backups = await readdir(join(root, 'data', 'backups', 'plan-edits'));
+    expect(backups).toHaveLength(2);
+    const result = await page.evaluate(() => window.agentOps.state.get({}));
+    expect(
+      result.ok &&
+        result.value.activity.filter(
+          (e) => e.text === 'Marked Done in Agent Ops',
+        ),
+    ).toHaveLength(2);
+    expect(f.errors).toEqual([]);
+  } finally {
+    await f.close();
+  }
+});
+
 test('real first-run setup, native picker port, Skills install, Tasks move, live ledger, archive and recoverable delete', async () => {
   const f = await start(async (root) => {
     await mkdir(join(root, 'workspace', '.tasks'), { recursive: true });
@@ -273,6 +371,44 @@ test('real first-run setup, native picker port, Skills install, Tasks move, live
     await expect(
       actions.getByRole('button', { name: 'Archive', exact: true }),
     ).toBeVisible();
+    // Mark as Done changes only the Status value, byte for byte, and Undo
+    // puts the original bytes back.
+    const crlf = (text: string) =>
+      String.fromCharCode(0xfeff) + text.replace(/\n/g, '\r\n');
+    const original = Buffer.from(crlf(changed));
+    await writeFile(moved, original);
+    const revision = createHash('sha256').update(original).digest('hex');
+    await expect
+      .poll(() =>
+        page.evaluate(async () => {
+          const result = await window.agentOps.state.get({});
+          return result.ok
+            ? result.value.state.plans.find((p) => p.name === 'real-plan')
+                ?.revision
+            : '';
+        }),
+      )
+      .toBe(revision);
+    await actions
+      .getByRole('button', { name: 'Mark as Done', exact: true })
+      .click();
+    const toast = page.locator('.toast');
+    await expect(toast).toContainText('Marked real-plan Done');
+    expect(await readFile(moved)).toEqual(
+      Buffer.from(crlf(changed.replace('Status: Testing', 'Status: Done'))),
+    );
+    const edits = join(root, 'data', 'backups', 'plan-edits');
+    const [backup] = await readdir(edits);
+    expect(
+      await readFile(join(edits, backup!, 'workspace', 'real-plan.md')),
+    ).toEqual(original);
+    await expect(
+      page.locator('.plan-header').getByText('Done', { exact: true }),
+    ).toBeVisible();
+    await toast.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(toast).toContainText('real-plan is back to Testing');
+    expect(await readFile(moved)).toEqual(original);
+    await actions.locator('summary').click();
     await actions.getByRole('button', { name: /Delete/ }).click();
     const dialog = page.getByRole('dialog', {
       name: 'Move this plan to the Recycle Bin?',
@@ -288,7 +424,7 @@ test('real first-run setup, native picker port, Skills install, Tasks move, live
     ).toBeVisible();
     const result = await controls(app);
     expect(result.trashed).toHaveLength(1);
-    expect(await readFile(result.trashed[0]!, 'utf8')).toBe(changed);
+    expect(await readFile(result.trashed[0]!)).toEqual(original);
     await expect(readFile(moved)).rejects.toMatchObject({ code: 'ENOENT' });
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -344,7 +480,7 @@ test('real Skills update and explicit replace keep backups in a temporary profil
     );
     await expect(card).toContainText('Update available');
     await card.getByRole('button', { name: 'Update', exact: true }).click();
-    await expect(card).toContainText('Installed v4');
+    await expect(card).toContainText('Installed v5');
     expect(await readFile(file, 'utf8')).toBe(canonical);
     const changed = canonical + '\nOwner changes to preserve\n';
     await writeFile(file, changed);
@@ -354,7 +490,7 @@ test('real Skills update and explicit replace keep backups in a temporary profil
     await card.getByRole('button', { name: 'Replace', exact: true }).click();
     expect(await readFile(file, 'utf8')).toBe(changed);
     await card.getByRole('button', { name: 'Click again to replace' }).click();
-    await expect(card).toContainText('Installed v4');
+    await expect(card).toContainText('Installed v5');
     expect(await readFile(file, 'utf8')).toBe(canonical);
     const backupFiles = await readdir(join(f.root, 'data', 'backups'), {
       recursive: true,

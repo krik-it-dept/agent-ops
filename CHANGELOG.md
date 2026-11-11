@@ -3,6 +3,20 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## v1.2.0 - Mark a plan Done from the Board
+
+- **Mark a plan Done from the Board.** Drag a card into the Done column and
+  Agent Ops writes `Status: Done` into the plan file. Only the Status line
+  changes; the rest of the file stays byte for byte. A toast offers Undo for
+  2 minutes. The card menu (`⋯`) and the plan page also have Mark as Done,
+  for the keyboard and screen readers. If the plan changed since you looked at
+  it, or it has no Status line, nothing is written and the reason is shown.
+  A copy of the original is kept in `backups\plan-edits` in the data folder
+  (the newest 50), and the change shows in the plan's activity as "Marked Done
+  in Agent Ops". This is the only plan content the app changes.
+- **Skill v5.** The task-plan skill notes that the owner may mark a plan Done
+  from Agent Ops, which only changes its Status line.
+
 ## v1.1.1 - Smaller fixes
 
 Fixes for Start with Windows and the work views, and Settings and Help move to

@@ -13,6 +13,8 @@ async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'agent-ops-composition-'));
   cleanup.push(() => rm(root, { recursive: true, force: true }));
   const changed = vi.fn();
+  const notify = vi.fn();
+  const collector = vi.fn((c, signal) => collectOverview(c, { signal }));
   const runtime = createRuntime({
     dataDir: join(root, 'data'),
     profileDir: join(root, 'profile'),
@@ -20,13 +22,14 @@ async function fixture() {
     worker: () => {
       throw new Error('Injected collector should be used.');
     },
-    collector: (c, signal) => collectOverview(c, { signal }),
+    collector,
     changed,
+    notify,
     settingsChanged: changed,
   });
   cleanup.push(() => runtime.stop());
   await runtime.start();
-  return { root, runtime, changed };
+  return { root, runtime, changed, collector, notify };
 }
 describe('composition adapters with real libraries and isolated files', () => {
   it('passes the scoped first-release folder migration to the shared settings owner', async () => {
@@ -80,7 +83,7 @@ describe('composition adapters with real libraries and isolated files', () => {
     await runtime.handlers['skills:install']!({ id: target });
     expect(
       await readFile(join(input, 'task-plan', 'SKILL.md'), 'utf8'),
-    ).toContain('agent-ops-skill: 4');
+    ).toContain('agent-ops-skill: 5');
     // Regression: a preferences save after Skills installed must keep its recorded hashes.
     await runtime.handlers['settings:set']!({ theme: 'light' });
     const saved = JSON.parse(
@@ -89,7 +92,7 @@ describe('composition adapters with real libraries and isolated files', () => {
     expect(saved.theme).toBe('light');
     expect(saved.integrations[0]).toMatchObject({
       id: target,
-      version: 4,
+      version: 5,
       sha256: expect.any(String),
     });
   });
@@ -133,6 +136,87 @@ describe('composition adapters with real libraries and isolated files', () => {
     expect(await readFile(join(tasks, 'workspace', 'move.md'), 'utf8')).toBe(
       source,
     );
+  });
+  it('marks a Tasks plan Done through the handler, records it once, refreshes and undoes it', async () => {
+    const { root, runtime, collector, notify } = await fixture();
+    const tasks = join(root, 'Tasks');
+    const file = join(tasks, 'web', 'ship.md');
+    const source = 'Status: Testing\r\nGoal: Ship\r\n- [doing] Verify\r\n';
+    await mkdir(join(tasks, 'web'), { recursive: true });
+    await writeFile(file, source);
+    await runtime.handlers['settings:set']!({ tasksDir: tasks });
+    // The refresh started by the settings change must finish before counting.
+    await runtime.ledger.settled();
+    const plan = runtime.ledger.findPlan('tasks/web/ship')!;
+    expect(plan.status).toBe('Testing');
+    collector.mockClear();
+    notify.mockClear();
+    const done = await runtime.handlers['plans:mark-done']!({
+      key: 'tasks/web/ship',
+      revision: plan.revision,
+    });
+    expect(done).toMatchObject({
+      plan: { key: 'tasks/web/ship', status: 'Done' },
+      changed: true,
+    });
+    expect(await readFile(file, 'utf8')).toBe(
+      'Status: Done\r\nGoal: Ship\r\n- [doing] Verify\r\n',
+    );
+    const state = runtime.ledger.getState();
+    // The edit refreshes the ledger; the real file watcher may add one more
+    // read for the same write (on an 8.3 temp path its event arrives after the
+    // action). The activity entry below must still be recorded once.
+    expect(collector.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(collector.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(notify.mock.calls.flatMap(([events]) => events)).toEqual([]);
+    expect(state.state.plans[0]?.status).toBe('Done');
+    expect(state.state.plans[0]?.revision).toBe(done.plan.revision);
+    const stages = state.activity.filter((e) => e.kind === 'status');
+    expect(stages).toHaveLength(1);
+    expect(stages[0]).toMatchObject({
+      text: 'Marked Done in Agent Ops',
+      extra: 'Testing → Done',
+      actor: 'Agent Ops',
+      plan: 'ship',
+    });
+    // A stale revision is refused plainly.
+    await expect(
+      runtime.handlers['plans:mark-done']!({
+        key: 'tasks/web/ship',
+        revision: plan.revision,
+      }),
+    ).rejects.toMatchObject({
+      code: 'REVISION_CHANGED',
+      message: 'This plan changed. Look again before marking it Done.',
+    });
+    const undone = await runtime.handlers['plans:undo-mark-done']!({
+      key: 'tasks/web/ship',
+      token: done.undo!.token,
+    });
+    expect(undone.plan).toEqual({
+      key: 'tasks/web/ship',
+      status: 'Testing',
+      revision: plan.revision,
+    });
+    expect(await readFile(file, 'utf8')).toBe(source);
+    expect(runtime.ledger.findPlan('tasks/web/ship')?.status).toBe('Testing');
+    expect(
+      runtime.ledger.getState().activity.filter((e) => e.kind === 'status'),
+    ).toHaveLength(2);
+    await runtime.prepareForInstall();
+    await expect(
+      runtime.handlers['plans:mark-done']!({
+        key: 'tasks/web/ship',
+        revision: plan.revision,
+      }),
+    ).rejects.toMatchObject({ code: 'UNAVAILABLE' });
+    await expect(
+      runtime.handlers['plans:undo-mark-done']!({
+        key: 'tasks/web/ship',
+        token: done.undo!.token,
+      }),
+    ).rejects.toMatchObject({ code: 'UNAVAILABLE' });
+    expect(await readFile(file, 'utf8')).toBe(source);
   });
   it('keeps platform mutations unavailable until injected and respects newer config', async () => {
     const { root, runtime } = await fixture();
@@ -196,6 +280,12 @@ describe('composition adapters with real libraries and isolated files', () => {
     try {
       await expect(
         runtime.handlers['tasks:move-all']!({ from: join(root, 'Old') }),
+      ).rejects.toMatchObject({ code: 'BUSY' });
+      await expect(
+        runtime.handlers['plans:mark-done']!({
+          key: 'tasks/web/plan',
+          revision: 'a'.repeat(64),
+        }),
       ).rejects.toMatchObject({ code: 'BUSY' });
     } finally {
       release!();

@@ -43,7 +43,12 @@ export function createBridge(
       moveLegacy: call('tasks:move-legacy'),
       moveAll: call('tasks:move-all'),
     },
-    plans: { archive: call('plans:archive'), recycle: call('plans:recycle') },
+    plans: {
+      archive: call('plans:archive'),
+      recycle: call('plans:recycle'),
+      markDone: call('plans:mark-done'),
+      undoMarkDone: call('plans:undo-mark-done'),
+    },
     skills: {
       list: call('skills:list'),
       add: call('skills:add'),

@@ -11,7 +11,10 @@ Use Overview, List, Needs attention and Archive to find work. Search with Ctrl+K
 F5 and open Settings with Ctrl+,. Plan pages show recorded stages, questions, decisions and recent
 changes. Light/dark appearance, private stars, recent plans and open tabs survive launches.
 
-Agent Ops edits no plan content and never assigns work. Archive/Unarchive changes app settings.
+Agent Ops never assigns work. The only plan content it changes is the Status line, when you mark a
+plan Done: drag its card into the Done column on the Board, or choose Mark as Done in the card menu
+(`⋯`) or on the plan page. It keeps a backup, refuses if the file changed since you looked at it,
+and offers Undo for 2 minutes. Archive/Unarchive changes app settings.
 Delete asks for confirmation and moves the file to the Windows Recycle Bin. Closing the window
 hides it in the notification area; choose Quit there to exit.
 
