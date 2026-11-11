@@ -39,6 +39,8 @@ export function WorkViews({
   const [page, setPage] = useState({ signature: '', limit: 100 });
   const signature = view + query + agent;
   const limit = page.signature === signature ? page.limit : 100;
+  // A stable slice keeps Timeline's memoised activity from re-running on every render.
+  const shown = useMemo(() => plans.slice(0, limit), [plans, limit]);
   if (!snapshot) return null;
   return (
     <div className={`work-${view}`}>
@@ -84,7 +86,7 @@ export function WorkViews({
         </div>
       ) : (
         <>
-          <Timeline plans={plans.slice(0, limit)} />
+          <Timeline plans={shown} />
           {plans.length > limit && (
             <button onClick={() => setPage({ signature, limit: limit + 100 })}>
               Show more plans
