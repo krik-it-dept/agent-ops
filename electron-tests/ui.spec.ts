@@ -645,10 +645,18 @@ test('history, deep links, unavailable plans, shortcut sheet and narrow reduced-
       .getByRole('navigation', { name: 'Views' })
       .getByRole('link', { name: 'List', exact: true })
       .click();
+    // Each view must be shown before the next step, or Back can run before the
+    // history entry exists on a slow machine.
+    await expect(
+      page.getByRole('heading', { name: 'List', exact: true }),
+    ).toBeVisible();
     await page
       .getByRole('navigation', { name: 'Views' })
       .getByRole('link', { name: 'Summary', exact: true })
       .click();
+    await expect(
+      page.getByRole('heading', { name: 'Summary', exact: true }),
+    ).toBeVisible();
     await page.goBack();
     await expect(
       page.getByRole('heading', { name: 'List', exact: true }),
