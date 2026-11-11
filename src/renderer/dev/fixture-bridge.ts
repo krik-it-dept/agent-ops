@@ -163,6 +163,62 @@ export function fixtureData(mode: FixtureMode = 'demo'): {
       questions: [],
       steps: samplePlan().steps.slice(0, 4),
     });
+  const agents = [
+    'Claude',
+    'Codex',
+    'Gemini',
+    'Antigravity',
+    'Cursor',
+    'Copilot',
+  ];
+  for (const [index, plan] of plans.entries()) {
+    if (index === 4 || index === 8) continue;
+    if (index === 3) {
+      plan.steps = plan.steps.map((step) => ({ ...step, status: 'done' }));
+      plan.next = 'Bản mẫu đã hoàn tất và được kiểm tra';
+    }
+    plan.agent = index === 1 ? '' : agents[index % agents.length]!;
+    const executor = agents[(index + 1) % agents.length]!;
+    plan.steps = plan.steps.map((step, i) => ({
+      ...step,
+      ...(i === 3 ? {} : { executors: [i === 0 ? 'Claude' : executor] }),
+    }));
+    plan.milestones = plan.milestones.map((m) => ({
+      ...m,
+      ...(index === 3 ? { state: 'done' as const } : {}),
+      progress: {
+        done: plan.steps.filter(
+          (s) => s.milestone === m.id && s.status === 'done',
+        ).length,
+        total: plan.steps.filter((s) => s.milestone === m.id).length,
+      },
+      steps: plan.steps.filter((step) => step.milestone === m.id),
+    }));
+    plan.runs = plan.steps
+      .filter((step) => step.status !== 'todo')
+      .map((step, i) => ({
+        runId: `sample-${index}-${i}`,
+        agent: step.executors?.[0] || executor,
+        coordinator: plan.agent || 'Claude',
+        role: 'executor',
+        event:
+          step.status === 'blocked'
+            ? 'blocked'
+            : step.status === 'done'
+              ? 'done'
+              : 'progress',
+        active: step.status === 'doing' && index !== 3,
+        startedAt: '2026-11-10T08:00:00.000Z',
+        updatedAt: i === 0 ? '2026-11-10T08:30:00.000Z' : now,
+        step: { line: step.line, text: step.text, milestone: step.milestone },
+        result:
+          step.status === 'blocked'
+            ? 'Chờ chủ sở hữu cung cấp dữ liệu mẫu'
+            : step.status === 'done'
+              ? 'Đã kiểm tra tiếng Việt và đối chiếu kết quả'
+              : 'Đang kiểm tra tìm kiếm trên dữ liệu mẫu',
+      }));
+  }
   const empty = ['empty', 'hidden', 'setup'].includes(mode);
   const settings: Settings = {
     setupRequired: mode === 'setup',

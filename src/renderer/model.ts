@@ -1,3 +1,4 @@
+import { execution } from './agents';
 import type {
   Activity,
   Milestone,
@@ -79,11 +80,30 @@ export function archived(plan: Plan, settings: Settings) {
     ? choices[planKey(plan)] === true
     : settings.autoArchiveDone && stage(plan.status) === 'Done';
 }
+/**
+ * A blocking report needs attention while it is still the latest word: the
+ * latest report on a step that is not done, or the latest whole-plan report.
+ * A Done plan or a step checked off since then no longer waits on it.
+ */
+function reportedBlocker(plan: Plan) {
+  if (!plan.runs?.length || stage(plan.status) === 'Done') return false;
+  return (
+    plan.steps.some(
+      (s) =>
+        s.status !== 'done' && execution(plan, s).latest?.event === 'blocked',
+    ) ||
+    [...plan.runs]
+      .filter((r) => !r.step)
+      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0]
+      ?.event === 'blocked'
+  );
+}
 export function needsAttention(plan: Plan, state: StateResponse) {
   return (
     /^waiting for owner/i.test(plan.status) ||
     stage(plan.status) === 'Blocked' ||
     plan.steps.some((s) => s.status === 'blocked') ||
+    reportedBlocker(plan) ||
     state.stale[planKey(plan)] === true ||
     plan.questions.some((q) => q.open)
   );
@@ -231,6 +251,8 @@ export function acceptSnapshot(
                 return content;
               })(before),
             )) &&
+        JSON.stringify(before.runs) === JSON.stringify(input.runs) &&
+        before.agent === input.agent &&
         before.source === input.source &&
         before.root === input.root &&
         before.projectName === input.projectName &&
@@ -303,6 +325,11 @@ export function planSearchText(p: Plan) {
         p.next,
         p.status,
         p.owner,
+        p.agent || '',
+        ...(p.runs || []).map((r) =>
+          [r.agent, r.coordinator, r.result].join(' '),
+        ),
+        ...p.steps.flatMap((s) => s.executors || []),
         ...p.steps.map((s) => s.text),
         ...p.decisions.map((d) => d.text),
         ...p.questions.map((q) => q.ask + ' ' + q.answer),
@@ -321,6 +348,8 @@ function taskSearchText({ plan: p, step: s }: TaskRow) {
       all: fold(
         [
           s.text,
+          ...execution(p, s).agents,
+          execution(p, s).latest?.result || '',
           stepLabels[s.status],
           p.name,
           p.repo,
@@ -413,7 +442,10 @@ export const timeLabel = (value: string) =>
         minute: '2-digit',
       })
     : '';
-export function activityFor(state: Snapshot, plan?: Plan): Activity[] {
+export type DisplayActivity = Omit<Activity, 'kind'> & {
+  kind: Activity['kind'] | 'reported-run';
+};
+export function activityFor(state: Snapshot, plan?: Plan): DisplayActivity[] {
   const events = state.activity.filter(
     (e) =>
       !plan ||
@@ -424,8 +456,45 @@ export function activityFor(state: Snapshot, plan?: Plan): Activity[] {
   const known = new Set(
     events.map((e) => [e.project, e.repo, e.plan, e.kind, e.text].join('|')),
   );
-  const historical: Activity[] = [];
+  // A run the collector already announced (run-started, run-finished,
+  // run-blocked, stamped when it noticed the report) or an event recorded at
+  // the report's own time must not be listed twice. Older collectors without
+  // run events still get one entry per reported run.
+  const exact = new Set<string>();
+  const announced = new Map<string, number>();
+  for (const e of events) {
+    const key = [e.project || '', e.repo, e.plan, e.actor || ''].join('|');
+    exact.add(key + '|' + e.ts);
+    if (String(e.kind).startsWith('run-')) {
+      const at = Date.parse(e.ts);
+      if (at > (announced.get(key) ?? -Infinity)) announced.set(key, at);
+    }
+  }
+  const historical: DisplayActivity[] = [];
   for (const p of plan ? [plan] : state.state.plans) {
+    for (const run of p.runs || []) {
+      const keys = [p.project, ''].map((project) =>
+        [project, p.repo, p.name, run.agent].join('|'),
+      );
+      if (
+        keys.some(
+          (key) =>
+            exact.has(key + '|' + run.updatedAt) ||
+            (announced.get(key) ?? -Infinity) >= Date.parse(run.startedAt),
+        )
+      )
+        continue;
+      historical.push({
+        ts: run.updatedAt,
+        project: p.project,
+        repo: p.repo,
+        plan: p.name,
+        kind: 'reported-run',
+        text: run.result || (run.active ? 'Working now' : 'No result reported'),
+        extra: run.step?.text || '',
+        actor: run.agent,
+      });
+    }
     for (const entry of [
       ...p.decisions.map((d) => ({
         ...d,

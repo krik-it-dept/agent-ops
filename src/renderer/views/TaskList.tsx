@@ -13,9 +13,11 @@ import {
   placeLabel,
 } from '../model';
 import { useLedger } from '../store';
+import { execution, stepAgentMatches } from '../agents';
+import { StepAgents, StepResult } from '../components/Agents';
+import { whenLabel } from '../model';
 import {
   Empty,
-  Glyph,
   PlanLink,
   Progress,
   SourceLabel,
@@ -56,7 +58,12 @@ export function restoreListPreferences(client: AgentOpsClient, value: unknown) {
 
 // Plan and step objects are kept while the plan revision is unchanged, so a
 // memoised row re-renders only when its own plan changed.
-const TaskRowView = memo(function TaskRowView({ plan, step, index }: TaskRow) {
+const TaskRowView = memo(function TaskRowView({
+  plan,
+  step,
+  index,
+  now,
+}: TaskRow & { now: string }) {
   return (
     <tr>
       <td>
@@ -64,32 +71,32 @@ const TaskRowView = memo(function TaskRowView({ plan, step, index }: TaskRow) {
           className="work-link"
           to={`${planRoute(planKey(plan))}?${new URLSearchParams({ step: `L${step.line}`, revision: plan.revision, index: String(index), text: step.text, milestone: step.milestone }).toString()}`}
         >
-          <Glyph
-            value={
-              {
-                doing: 'Implementing',
-                todo: 'Planning',
-                done: 'Done',
-                partial: 'Waiting for owner',
-                blocked: 'Blocked',
-              }[step.status]
-            }
-          />
           {step.text}
         </Link>
-        <small className="muted">{step.milestone}</small>
       </td>
       <td>
         <PlanLink plan={plan} />
         <small className="muted">
-          {plan.repo} · Plan status: {plan.status}
+          {[placeLabel(plan), step.milestone].filter(Boolean).join(' · ')}
         </small>
-        <SourceLabel plan={plan} />
+      </td>
+      <td>
+        <StepAgents plan={plan} step={step} />
       </td>
       <td>
         <span className={`pill step-${step.status}`}>
           {stepLabels[step.status]}
         </span>
+      </td>
+      <td>
+        <StepResult plan={plan} step={step} />
+      </td>
+      <td>
+        <time dateTime={execution(plan, step).latest?.updatedAt}>
+          {execution(plan, step).latest
+            ? whenLabel(execution(plan, step).latest!.updatedAt, now)
+            : 'Not reported'}
+        </time>
       </td>
     </tr>
   );
@@ -105,6 +112,7 @@ interface Draft {
   query: string;
 }
 export function TaskList({
+  agent = '',
   query,
   status,
   setStatus,
@@ -113,6 +121,7 @@ export function TaskList({
   setNavigation,
 }: {
   query: string;
+  agent?: string;
   status: ListFilters['status'];
   setStatus(status: ListFilters['status']): void;
   clearQuery(): void;
@@ -160,7 +169,11 @@ export function TaskList({
         : [],
     [snapshot, settings],
   );
-  const allRows = useMemo(() => taskRows(allPlans), [allPlans]);
+  const allRows = useMemo(
+    () =>
+      taskRows(allPlans).filter((r) => stepAgentMatches(r.plan, r.step, agent)),
+    [allPlans, agent],
+  );
   const rows = filterTasks(allRows, {
     query,
     status,
@@ -389,6 +402,7 @@ export function TaskList({
       plan={r.plan}
       step={r.step}
       index={r.index}
+      now={snapshot?.now || ''}
     />
   );
   const groups = new Map<string, TaskRow[]>();
@@ -400,6 +414,7 @@ export function TaskList({
   }
   let ordered = [...groups];
   const signature = JSON.stringify([
+    agent,
     query,
     status,
     work,
@@ -520,7 +535,7 @@ export function TaskList({
         <small className="muted">
           {sort && navigation.group === 'plan'
             ? 'Sorting within each plan'
-            : 'Read-only checklist tasks'}
+            : 'Checklist tasks'}
         </small>
       </div>
       <div className="table-scroll">
@@ -529,7 +544,10 @@ export function TaskList({
             <tr>
               {header('work', 'Work')}
               {header('plan', 'Plan')}
+              <th scope="col">Agent</th>
               {header('status', 'Status')}
+              <th scope="col">Latest result</th>
+              <th scope="col">Updated</th>
             </tr>
           </thead>
           {navigation.group === 'none' ? (
@@ -541,9 +559,10 @@ export function TaskList({
               return (
                 <Fragment key={key}>
                   <tbody className="task-group">
+                    {/* Plan group cells line up with the task columns, as in the beta List. */}
                     <tr>
-                      <th colSpan={3}>
-                        <div className="row">
+                      <th colSpan={3} scope="rowgroup">
+                        <div className="task-group-name">
                           <button
                             aria-expanded={!closed}
                             aria-controls={`group-${encodeURIComponent(key)}`}
@@ -554,19 +573,29 @@ export function TaskList({
                               }))
                             }
                           >
-                            {closed ? '›' : '⌄'} {placeLabel(p)} · {p.name}
+                            <span aria-hidden="true">{closed ? '›' : '⌄'}</span>
+                            {p.name}
                           </button>
-                          <PlanLink plan={p}>Open plan</PlanLink>
-                          <Status value={p.status} />
-                          <Progress
-                            {...progress(p.steps)}
-                            label={`Whole-plan progress for ${p.name}`}
-                          />
+                          <small>
+                            {placeLabel(p)} · {list.length} of {p.steps.length}{' '}
+                            tasks matched
+                          </small>
+                          <SourceLabel plan={p} />
                         </div>
-                        <small>
-                          {list.length} of {p.steps.length} tasks matched
-                        </small>
                       </th>
+                      <td>
+                        <Status value={p.status} />
+                      </td>
+                      <td>
+                        <small>Plan progress</small>
+                        <Progress
+                          {...progress(p.steps)}
+                          label={`Plan progress for ${p.name}`}
+                        />
+                      </td>
+                      <td>
+                        <PlanLink plan={p}>Open plan ↗</PlanLink>
+                      </td>
                     </tr>
                   </tbody>
                   <tbody

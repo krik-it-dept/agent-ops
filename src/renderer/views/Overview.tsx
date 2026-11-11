@@ -1,20 +1,21 @@
 import { memo, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   archived,
   fold,
   milestoneOpen,
   needsAttention,
+  placeLabel,
   planSearchText,
   planKey,
   progress,
-  reason,
+  stage,
   type DisplayPlan,
 } from '../model';
+import { agentMatches, agentWorkload, participation } from '../agents';
 import { useLedger } from '../store';
 import {
   Empty,
-  Glyph,
   PlanActions,
   PlanLink,
   Progress,
@@ -22,92 +23,153 @@ import {
   Status,
   Warning,
 } from '../components/ui';
+import { AgentBadge, AgentChain } from '../components/Agents';
+import { ActivityFeed } from './PlanPage';
 
-const PlanRow = memo(function PlanRow({
+export const COLUMNS = [
+  'To do',
+  'In progress',
+  'Review & test',
+  'Waiting',
+  'Done',
+];
+export function columnOf(plan: DisplayPlan) {
+  const status = stage(plan.status).toLowerCase();
+  if (status === 'done') return 4;
+  if (status.startsWith('waiting') || status === 'blocked') return 3;
+  if (/^(reviewing|fixing review|testing)$/.test(status)) return 2;
+  if (/^(implementing|shipping|in progress|partly done|dry run)$/.test(status))
+    return 1;
+  return 0;
+}
+export const PlanCard = memo(function PlanCard({
   plan,
-  attention,
+  attention = false,
 }: {
   plan: DisplayPlan;
-  attention: boolean;
+  attention?: boolean;
 }) {
   const current = plan.milestones.find(milestoneOpen);
-  const count = progress(plan.steps);
   return (
-    <article className="plan-row" data-plan-key={planKey(plan)} role="row">
-      <div role="cell">
-        <div className="row">
-          <Glyph value={plan.status} />
-          <PlanLink plan={plan} />
-          <SourceLabel plan={plan} />
-        </div>
-        <p className="muted">
-          {attention
-            ? reason(plan.status) ||
-              plan.questions.find((q) => q.open)?.ask ||
-              (plan.steps.some((s) => s.status === 'blocked')
-                ? 'A step is blocked'
-                : 'No recent progress')
-            : plan.next || 'No next action recorded'}
-        </p>
-        <Warning plan={plan} />
-      </div>
-      <div className="row" role="cell">
+    <article
+      className={`work-card${attention ? ' needs-attention' : ''}`}
+      data-plan-key={planKey(plan)}
+    >
+      <div className="card-heading">
+        <PlanLink plan={plan} />
         <Status value={plan.status} />
         <PlanActions plan={plan} />
       </div>
-      <div className="muted" role="cell">
+      <div className="card-place">
+        <span>{placeLabel(plan)}</span>
+        <SourceLabel plan={plan} />
+      </div>
+      <p className="card-next">{plan.next || 'No next action recorded'}</p>
+      <small className="muted">
         {current ? `${current.id} · ${current.title}` : 'No open milestone'}
+      </small>
+      <div className="card-footer">
+        <AgentChain plan={plan} />
+        <Progress
+          {...progress(plan.steps)}
+          label={`Plan progress for ${plan.name}`}
+        />
       </div>
-      <div role="cell">
-        <Progress {...count} label={`Plan progress for ${plan.name}`} />
-      </div>
+      <Warning plan={plan} />
     </article>
   );
 });
+function StatusOverview({ plans }: { plans: DisplayPlan[] }) {
+  const counts = COLUMNS.map(
+    (_, i) => plans.filter((p) => columnOf(p) === i).length,
+  );
+  let end = 0;
+  const colors = [
+    'var(--st-todo)',
+    'var(--info)',
+    'var(--review)',
+    'var(--warning)',
+    'var(--success)',
+  ];
+  const gradient = counts
+    .map((count, i) => {
+      const start = end;
+      end += plans.length ? (count / plans.length) * 100 : 0;
+      return `${colors[i]} ${start}% ${end}%`;
+    })
+    .join(', ');
+  return (
+    <div className="status-overview">
+      <div
+        className="status-donut"
+        role="img"
+        aria-label={COLUMNS.map((label, i) => `${label}: ${counts[i]}`).join(
+          ', ',
+        )}
+        style={{
+          background: plans.length
+            ? `conic-gradient(${gradient})`
+            : 'var(--border)',
+        }}
+      >
+        <span>
+          <strong>{plans.length}</strong>
+          <small>plans</small>
+        </span>
+      </div>
+      <ul className="status-legend">
+        {COLUMNS.map((label, i) => (
+          <li key={label}>
+            <i style={{ background: colors[i] }} />
+            {label}
+            <strong>{counts[i]}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 export function Overview({
   query,
   view = 'overview',
   clear,
+  agent = '',
 }: {
   query: string;
   view?: 'overview' | 'attention' | 'archive';
   clear(): void;
+  agent?: string;
 }) {
   const { snapshot, settings } = useLedger();
+  const [search, setSearch] = useSearchParams();
   const all = useMemo(
     () =>
       snapshot && settings
-        ? snapshot.state.plans
-            .filter((p) => archived(p, settings) === (view === 'archive'))
-            .sort(
-              (a, b) =>
-                Number(a.status === 'Done') - Number(b.status === 'Done') ||
-                b.mtime.localeCompare(a.mtime),
-            )
+        ? snapshot.state.plans.filter(
+            (p) => archived(p, settings) === (view === 'archive'),
+          )
         : [],
     [snapshot, settings, view],
   );
-  const plans = all.filter(
-    (p) =>
-      (view !== 'attention' || (snapshot && needsAttention(p, snapshot))) &&
-      planSearchText(p).includes(fold(query)),
+  const plans = useMemo(
+    () =>
+      all
+        .filter(
+          (p) =>
+            (view !== 'attention' ||
+              (snapshot && needsAttention(p, snapshot))) &&
+            planSearchText(p).includes(fold(query)) &&
+            agentMatches(p, agent),
+        )
+        .sort(
+          (a, b) =>
+            Number(needsAttention(b, snapshot!)) -
+              Number(needsAttention(a, snapshot!)) ||
+            Date.parse(participation(b).updated) -
+              Date.parse(participation(a).updated),
+        ),
+    [all, view, snapshot, query, agent],
   );
-  const groups = new Map<
-    string,
-    { name: string; flat: boolean; workspaces: Map<string, DisplayPlan[]> }
-  >();
-  for (const plan of plans) {
-    const id = plan.project;
-    const group = groups.get(id) ?? {
-      name: plan.projectName || plan.project || 'Workspace',
-      flat: plan.source === 'tasks',
-      workspaces: new Map(),
-    };
-    groups.set(id, group);
-    const list = group.workspaces.get(plan.repo) ?? [];
-    list.push(plan);
-    group.workspaces.set(plan.repo, list);
-  }
   if (!snapshot || !settings) return null;
   if (
     !all.length &&
@@ -133,58 +195,32 @@ export function Overview({
         <Link to="/settings/general">Open settings</Link>
       </Empty>
     );
+  const done = plans.filter((p) => stage(p.status) === 'Done').length;
+  const attention = plans.filter((p) => needsAttention(p, snapshot)).length;
+  const updated = plans.filter((p) => {
+    const age = Date.parse(snapshot.now) - Date.parse(participation(p).updated);
+    return age >= 0 && age <= 7 * 86400000;
+  }).length;
+  const steps = progress(plans.flatMap((p) => p.steps));
+  const agents = [
+    ...new Set(plans.flatMap((p) => participation(p).agents)),
+  ].sort();
+  const active = plans.filter((p) => stage(p.status) !== 'Done');
   return (
-    <div className="overview">
-      {view === 'archive' && (
-        <p className="muted">Archived plans, kept for reference.</p>
+    <div className="work-summary">
+      {/* The plan count sits under the view title; this only offers the reset. */}
+      {(query || agent) && (
+        <div className="filter-notice" role="status">
+          Filtered{' '}
+          <button className="link-button" onClick={clear}>
+            Clear filters
+          </button>
+        </div>
       )}
-      <div className="filter-notice" role="status">
-        {view === 'attention' && <span>Needs attention · </span>}
-        {plans.length} of {all.length} plans
-        {query && (
-          <>
-            {' '}
-            · Search: {query}{' '}
-            <button className="link-button" onClick={clear}>
-              Clear filters
-            </button>
-          </>
-        )}
-      </div>
-      {plans.length ? (
-        [...groups].map(([id, group]) => (
-          <section className="project-group" key={id}>
-            {!group.flat && <h2>{group.name}</h2>}
-            {[...group.workspaces].map(([workspace, rows]) => (
-              <section key={workspace} className="workspace-group">
-                <h3>{workspace}</h3>
-                <div
-                  role="table"
-                  aria-label={`${workspace} plans`}
-                  className="ledger-table"
-                >
-                  <div className="plan-row table-head" role="row">
-                    <span role="columnheader">Plan</span>
-                    <span role="columnheader">Stage</span>
-                    <span role="columnheader">Milestone</span>
-                    <span role="columnheader">Progress</span>
-                  </div>
-                  {rows.map((p) => (
-                    <PlanRow
-                      key={planKey(p)}
-                      plan={p}
-                      attention={view === 'attention'}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </section>
-        ))
-      ) : (
+      {!plans.length ? (
         <Empty
           title={
-            query
+            query || agent
               ? 'No matching work'
               : view === 'archive'
                 ? 'No archived plans'
@@ -193,12 +229,136 @@ export function Overview({
         >
           <p>
             {view === 'archive'
-              ? settings.autoArchiveDone
-                ? 'Plans appear here when their status is Done.'
-                : 'Archive a plan from its actions menu to keep it here.'
+              ? 'Archive a plan from its actions menu to keep it here.'
               : 'Plans appear here when an AI tool saves one to your Tasks folder.'}
           </p>
         </Empty>
+      ) : view !== 'overview' ? (
+        <>
+          <p className="muted">
+            {view === 'archive'
+              ? 'Archived plans, kept for reference.'
+              : 'Plans needing your attention'}
+          </p>
+          <div className="plan-card-grid">
+            {plans.map((p) => (
+              <PlanCard
+                key={planKey(p)}
+                plan={p}
+                attention={view === 'attention'}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="summary-stats">
+            {[
+              ['Active plans', plans.length - done, 'Current'],
+              ['Done', done, 'Current'],
+              ['Updated', updated, 'Last 7 days'],
+              ['Needs attention', attention, 'Current'],
+            ].map(([label, value, hint]) => (
+              <div className="summary-stat" key={label}>
+                <span>{label}</span>
+                <strong>{value}</strong>
+                <small className="muted">{hint}</small>
+              </div>
+            ))}
+          </div>
+          <div className="summary-grid">
+            <section className="summary-panel summary-focus">
+              <div className="panel-heading">
+                <h2>Current work</h2>
+                <Link
+                  to={`/list?${new URLSearchParams({ ...Object.fromEntries(search), status: 'all' })}`}
+                >
+                  View tasks →
+                </Link>
+              </div>
+              <p className="muted">
+                Active plans, with items needing attention first
+              </p>
+              {active.length ? (
+                active
+                  .slice(0, 6)
+                  .map((p) => (
+                    <PlanCard
+                      key={planKey(p)}
+                      plan={p}
+                      attention={needsAttention(p, snapshot)}
+                    />
+                  ))
+              ) : (
+                <p>All plans are complete</p>
+              )}
+              {active.length > 6 && (
+                <Link to={`/board?${search}`}>View all plans →</Link>
+              )}
+            </section>
+            <section className="summary-panel">
+              <h2>Status overview</h2>
+              <p className="muted">Current state of your plans</p>
+              <StatusOverview plans={plans} />
+              <div className="summary-step-progress">
+                <h2>Step progress</h2>
+                <strong>
+                  {steps.done} <span className="muted">/ {steps.total}</span>
+                </strong>
+                <Progress {...steps} label="Step progress" />
+              </div>
+              {attention > 0 && (
+                <>
+                  <h3>Needs attention</h3>
+                  {plans
+                    .filter((p) => needsAttention(p, snapshot))
+                    .slice(0, 3)
+                    .map((p) => (
+                      <div className="attention-row" key={planKey(p)}>
+                        <PlanLink plan={p} />
+                        <small className="muted">{placeLabel(p)}</small>
+                      </div>
+                    ))}
+                </>
+              )}
+            </section>
+            <section className="summary-panel">
+              <h2>Agent workload</h2>
+              <p className="muted">
+                Reported participation · select an agent to view work
+              </p>
+              <div className="agent-workload">
+                {agents.map((name) => {
+                  const workload = agentWorkload(plans, name);
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => {
+                        const next = new URLSearchParams(search);
+                        next.set('agent', name);
+                        setSearch(next);
+                      }}
+                    >
+                      <AgentBadge name={name} />
+                      <span>
+                        {workload.plans} plans · {workload.tasks} tasks
+                      </span>
+                      <small>
+                        {workload.coordinating} coordinating · {workload.active}{' '}
+                        active tasks
+                      </small>
+                    </button>
+                  );
+                })}
+                {!agents.length && <p className="muted">Not reported</p>}
+              </div>
+            </section>
+            <section className="summary-panel">
+              <h2>Recent activity</h2>
+              <ActivityFeed plans={plans} limit={8} />
+            </section>
+          </div>
+        </>
       )}
     </div>
   );

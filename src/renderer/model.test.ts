@@ -206,8 +206,8 @@ describe('task filters and natural sorting', () => {
     sort: null,
   };
   it('lists real checklist tasks independent of parent stage and combines all filters', () => {
-    const p = plans.find((p) => p.status === 'Done')!;
-    const result = filterTasks(rows, {
+    const p = { ...plans[0]!, status: 'Done' };
+    const result = filterTasks(taskRows([p]), {
       ...base,
       status: 'doing',
       plans: [planKey(p)],
@@ -255,7 +255,8 @@ describe('private navigation and history', () => {
     expect(openingHash('', { route: '/list?status=done&q=old' })).toBe(
       '#/list',
     );
-    expect(openingHash('', { route: '/attention' })).toBe('#/');
+    for (const route of ['/attention', '/board', '/timeline'])
+      expect(openingHash('', { route })).toBe('#' + route);
     expect(openingHash('', { layout: 'list' })).toBe('#/list');
     expect(openingHash('#/plan/explicit/summary', { route: '/list' })).toBe(
       '#/plan/explicit/summary',

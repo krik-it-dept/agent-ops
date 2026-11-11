@@ -1,3 +1,11 @@
+/* Geist and neutral semantic surfaces follow Orca and the beta work views. */
+@font-face {
+  font-family: Geist;
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
   color-scheme: light;
   --bg: #fafafa;
@@ -41,7 +49,8 @@
   --hover: color-mix(in srgb, var(--fg) 4%, transparent);
   --selected: color-mix(in srgb, var(--fg) 8%, transparent);
   --font-ui:
-    'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    Geist, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system,
+    sans-serif;
   --font-mono:
     'Cascadia Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
   --text-3xs: 10px;

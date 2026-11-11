@@ -9,7 +9,7 @@ export const shortcuts = [
   ['R', 'Refresh plans'],
   ['?', 'Keyboard shortcuts'],
   ['Ctrl K', 'Plans and commands'],
-  ['Ctrl 1 / 2', 'Overview / List'],
+  ['Ctrl 1 / 2', 'Summary / List'],
   ['Ctrl B', 'Toggle sidebar'],
   ['Alt ↑ / ↓', 'Previous / next plan'],
   ['Ctrl F', 'Search Settings'],
@@ -32,7 +32,9 @@ export function CommandSearch({
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const actions = [
-    { label: 'Overview', detail: 'View', run: () => navigate('/') },
+    { label: 'Summary', detail: 'View', run: () => navigate('/') },
+    { label: 'Board', detail: 'View', run: () => navigate('/board') },
+    { label: 'Timeline', detail: 'View', run: () => navigate('/timeline') },
     { label: 'List', detail: 'View', run: () => navigate('/list') },
     {
       label: 'Needs attention',

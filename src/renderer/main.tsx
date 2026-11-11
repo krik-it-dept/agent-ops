@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import './styles/tokens.css';
 import './styles/app.css';
+import './styles/work.css';
 import { openingHash } from './routes';
 import { loadPreference } from './preferences';
 import { allowFixtureMode } from './client';

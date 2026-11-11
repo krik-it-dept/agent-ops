@@ -222,7 +222,7 @@ test('real first-run setup, native picker port, Skills install, Tasks move, live
       .getByRole('button', { name: 'Open ledger', exact: true })
       .click();
     await expect(
-      page.getByRole('heading', { name: 'Overview', exact: true }),
+      page.getByRole('heading', { name: 'Summary', exact: true }),
     ).toBeVisible();
     await expect(
       page.getByText('Sample workspace', { exact: true }),
@@ -470,7 +470,7 @@ test('sample hash and stored fixture preference cannot replace real data without
       );
     });
     await expect(
-      f.page.getByRole('heading', { name: 'Overview', exact: true }),
+      f.page.getByRole('heading', { name: 'Summary', exact: true }),
     ).toBeVisible();
     await expect(
       f.page.getByText('Sample workspace', { exact: true }),
