@@ -37,7 +37,7 @@ import { CommandSearch, ShortcutSheet } from './components/Commands';
 import { Sidebar, sidebarPlans } from './components/Sidebar';
 import { Overview } from './views/Overview';
 import { WorkViews } from './views/WorkViews';
-import { agentMatches, participation } from './agents';
+import { agentMatches, agentName, participation } from './agents';
 import { TaskList, restoreListPreferences } from './views/TaskList';
 import { PlanPage } from './views/PlanPage';
 import { SettingsPage } from './settings/Settings';
@@ -98,13 +98,20 @@ function Shell() {
     () => (settings ? plans.filter((p) => !archived(p, settings)) : []),
     [plans, settings],
   );
-  const agent = search.get('agent') || '';
+  // Links may name an agent in any case, or one no plan mentions any more.
+  const agent =
+    search.get('agent') === 'unreported'
+      ? 'unreported'
+      : agentName(search.get('agent') || '');
   const filterPlans =
     location.pathname === '/archive'
       ? plans.filter((p) => settings && archived(p, settings))
       : activePlans;
   const agentNames = [
-    ...new Set(filterPlans.flatMap((p) => participation(p).agents)),
+    ...new Set([
+      ...filterPlans.flatMap((p) => participation(p).agents),
+      ...(agent && agent !== 'unreported' ? [agent] : []),
+    ]),
   ].sort();
   function clearFilters() {
     const next = new URLSearchParams(searchRef.current);

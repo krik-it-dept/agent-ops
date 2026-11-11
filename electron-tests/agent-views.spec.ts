@@ -54,6 +54,18 @@ for (const theme of ['light', 'dark'] as const) {
       for (const row of await rows.all())
         await expect(row.locator('td').nth(2)).toContainText('Not reported');
       await filter.selectOption('');
+      // Deep links keep their agent even in another case or with no plans left.
+      await navigate(page, '/list?agent=codex');
+      await expect(filter).toHaveValue('Codex');
+      await expect(rows.first()).toContainText('Codex');
+      await navigate(page, '/?agent=Nobody');
+      await expect(filter).toHaveValue('Nobody');
+      await expect(filter.locator('option:checked')).toHaveText('Nobody (0)');
+      await expect(
+        page.getByRole('heading', { name: 'No matching work' }),
+      ).toBeVisible();
+      await navigate(page, '/list');
+      await expect(filter).toHaveValue('');
       await expect(
         page.getByRole('columnheader', { name: 'Latest result', exact: true }),
       ).toBeVisible();
