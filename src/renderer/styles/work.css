@@ -628,3 +628,160 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* Title, List spacing and type follow the beta work views (v0.2.x): the count
+   sits beside the title, cells breathe, status reads as a filled tag and plan
+   group rows line up with the task columns. */
+.view-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.view-title > small {
+  border-left: 1px solid var(--border);
+  padding-left: 10px;
+  font-size: var(--text-2xs);
+}
+.task-table {
+  font-size: var(--text-sm);
+  line-height: 21px;
+  background: var(--card);
+  border-radius: 9px;
+}
+.task-table th,
+.task-table td {
+  padding: 12px 16px;
+  vertical-align: middle;
+  border-bottom-color: color-mix(in srgb, var(--border) 65%, transparent);
+}
+.task-table thead th {
+  font-size: var(--text-xs);
+  color: var(--muted-fg);
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.task-table thead .column-trigger {
+  font-size: var(--text-xs);
+}
+.task-table td .work-link {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--fg);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  line-height: 21px;
+}
+.task-table td:nth-child(2) .work-link,
+.task-table td:nth-child(2) a {
+  color: color-mix(in srgb, var(--fg) 68%, var(--muted-fg));
+  font-weight: 400;
+}
+.task-table td small {
+  font-size: var(--text-2xs);
+  margin-top: 2px;
+}
+.task-table .agent-chip,
+.task-table .role-none,
+.task-table .latest-result {
+  font-size: var(--text-xs);
+}
+.task-table .latest-result {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 18px;
+  color: var(--muted-fg);
+}
+.task-table td time {
+  font-size: var(--text-xs);
+}
+.task-table .pill {
+  border: 0;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+}
+.task-table .pill.step-doing,
+.task-table .pill.status-doing {
+  background: var(--info-bg);
+  color: var(--info);
+}
+.task-table .pill.step-done,
+.task-table .pill.status-done {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.task-table .pill.step-blocked,
+.task-table .pill.status-blocked {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.task-table .pill.step-partial,
+.task-table .pill.status-waiting {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+.task-table .pill.status-review {
+  background: var(--review-bg);
+  color: var(--review);
+}
+.task-table .pill.step-todo,
+.task-table .pill.status-todo {
+  background: var(--muted);
+  color: var(--muted-fg);
+}
+.task-group th,
+.task-group td {
+  background: var(--muted);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.task-group-name {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.task-group-name > button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg);
+  text-align: left;
+}
+.task-group-name > button > span {
+  width: 12px;
+  color: var(--muted-fg);
+}
+.task-group-name > small,
+.task-group-name > .source-label {
+  display: inline;
+  margin: 0;
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  color: var(--muted-fg);
+}
+.task-group td > small {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--muted-fg);
+}
+.task-group td .work-link,
+.task-group td a {
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+.task-group td:last-child .work-link {
+  color: var(--info);
+  font-weight: 500;
+}

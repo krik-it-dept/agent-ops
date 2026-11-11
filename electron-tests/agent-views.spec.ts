@@ -54,6 +54,18 @@ for (const theme of ['light', 'dark'] as const) {
       for (const row of await rows.all())
         await expect(row.locator('td').nth(2)).toContainText('Not reported');
       await filter.selectOption('');
+      // Plan group rows line up with the task columns, as in the beta List.
+      const group = page.locator('.task-table tbody.task-group tr').first();
+      await expect(group.locator('th, td')).toHaveCount(4);
+      const statusHeader = await page
+        .getByRole('columnheader', { name: /^Status/ })
+        .boundingBox();
+      const groupStatus = await group.locator('td').nth(0).boundingBox();
+      expect(Math.abs(groupStatus!.x - statusHeader!.x)).toBeLessThan(2);
+      await expect(group.locator('td').nth(0).locator('.pill')).toBeVisible();
+      await expect(group.locator('td').nth(1)).toContainText('Plan progress');
+      await expect(group.locator('td').nth(2)).toContainText('Open plan');
+      await expect(page.locator('.task-table tbody .glyph')).toHaveCount(0);
       // Deep links keep their agent even in another case or with no plans left.
       await navigate(page, '/list?agent=codex');
       await expect(filter).toHaveValue('Codex');

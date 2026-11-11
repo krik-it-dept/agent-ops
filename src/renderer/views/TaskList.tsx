@@ -18,7 +18,6 @@ import { StepAgents, StepResult } from '../components/Agents';
 import { whenLabel } from '../model';
 import {
   Empty,
-  Glyph,
   PlanLink,
   Progress,
   SourceLabel,
@@ -72,25 +71,14 @@ const TaskRowView = memo(function TaskRowView({
           className="work-link"
           to={`${planRoute(planKey(plan))}?${new URLSearchParams({ step: `L${step.line}`, revision: plan.revision, index: String(index), text: step.text, milestone: step.milestone }).toString()}`}
         >
-          <Glyph
-            value={
-              {
-                doing: 'Implementing',
-                todo: 'Planning',
-                done: 'Done',
-                partial: 'Waiting for owner',
-                blocked: 'Blocked',
-              }[step.status]
-            }
-          />
           {step.text}
         </Link>
-        <small className="muted">{step.milestone}</small>
       </td>
       <td>
         <PlanLink plan={plan} />
-        <small className="muted">{placeLabel(plan)}</small>
-        <SourceLabel plan={plan} />
+        <small className="muted">
+          {[placeLabel(plan), step.milestone].filter(Boolean).join(' · ')}
+        </small>
       </td>
       <td>
         <StepAgents plan={plan} step={step} />
@@ -571,9 +559,10 @@ export function TaskList({
               return (
                 <Fragment key={key}>
                   <tbody className="task-group">
+                    {/* Plan group cells line up with the task columns, as in the beta List. */}
                     <tr>
-                      <th colSpan={6}>
-                        <div className="row">
+                      <th colSpan={3} scope="rowgroup">
+                        <div className="task-group-name">
                           <button
                             aria-expanded={!closed}
                             aria-controls={`group-${encodeURIComponent(key)}`}
@@ -584,19 +573,29 @@ export function TaskList({
                               }))
                             }
                           >
-                            {closed ? '›' : '⌄'} {placeLabel(p)} · {p.name}
+                            <span aria-hidden="true">{closed ? '›' : '⌄'}</span>
+                            {p.name}
                           </button>
-                          <PlanLink plan={p}>Open plan</PlanLink>
-                          <Status value={p.status} />
-                          <Progress
-                            {...progress(p.steps)}
-                            label={`Plan progress for ${p.name}`}
-                          />
+                          <small>
+                            {placeLabel(p)} · {list.length} of {p.steps.length}{' '}
+                            tasks matched
+                          </small>
+                          <SourceLabel plan={p} />
                         </div>
-                        <small>
-                          {list.length} of {p.steps.length} tasks matched
-                        </small>
                       </th>
+                      <td>
+                        <Status value={p.status} />
+                      </td>
+                      <td>
+                        <small>Plan progress</small>
+                        <Progress
+                          {...progress(p.steps)}
+                          label={`Plan progress for ${p.name}`}
+                        />
+                      </td>
+                      <td>
+                        <PlanLink plan={p}>Open plan ↗</PlanLink>
+                      </td>
                     </tr>
                   </tbody>
                   <tbody
