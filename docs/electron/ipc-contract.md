@@ -89,6 +89,20 @@ interface Step {
   line: number;
   milestone: string;
   index: number;
+  executors?: string[]; // canonical names from a trailing <!-- Executors: A, B --> comment; absent when none
+}
+type RunEvent = 'start' | 'progress' | 'done' | 'blocked' | 'stopped';
+interface AgentRun {
+  runId: string; // lowercase UUID printed by the start report
+  agent: string; // canonical (Claude, Codex, Gemini, Antigravity, Cursor, Copilot) or the reported plain name
+  coordinator: string; // '' when not reported
+  role: 'coordinator' | 'executor';
+  event: RunEvent; // the latest event
+  active: boolean; // latest event start/progress within the last 12 hours, as of collection
+  startedAt: ISOTime;
+  updatedAt: ISOTime;
+  step: { line: number; text: string; milestone: string } | null; // mapped onto the plan as it is now
+  result: string; // latest non-empty result or blocking reason
 }
 interface Decision {
   key: string;
@@ -133,6 +147,8 @@ interface Plan {
   source: 'tasks' | 'legacy';
   workspace: string;
   file: string;
+  agent?: string; // canonical name from the Agent: header; absent when none
+  runs?: AgentRun[]; // reported runs, newest first, at most 50; absent when none
 }
 interface ProjectResult {
   id: string;
@@ -198,7 +214,10 @@ type ActivityKind =
   | 'answer'
   | 'milestone'
   | 'waiting'
-  | 'stale';
+  | 'stale'
+  | 'run-started' // actor: the agent; text: the step or 'Cả plan'; extra: the result
+  | 'run-finished' // done or stopped
+  | 'run-blocked';
 interface Activity {
   ts: ISOTime;
   project?: string;
@@ -244,7 +263,17 @@ interface StateResponse {
 
 Normal collector arrays are always arrays and normal overview strings are always present, even
 when empty. Retained old snapshots may lack newly added fields; normalize them without inventing
-progress. `Activity.actor` is preserved file-owner/display context, never inferred agent attribution.
+progress. `Activity.actor` is preserved file-owner/display context, never inferred agent attribution;
+for the run kinds it is the agent that reported the run.
+
+Agent fields come from the plan file (`Agent:`, `<!-- Executors: ... -->`) and from run reports the
+agents write with `agent-ops.exe --report` (`<data folder>/runs/<runId>.jsonl`, one JSON object per
+line, append-only). Runs match a plan by its `file`, case-insensitively, so a moved plan does not take
+its runs along. `executors` and the Executors comment never change step text, plan keys or activity.
+Unreadable run lines are skipped and listed as an `unreadable` plan diagnostic; a run file that names
+no readable plan is one diagnostic without a plan. A report changes `runs` without changing the plan's
+`revision`, so a renderer that reuses plans by revision must also compare `runs`. The app never assigns
+work and never derives a step's status from runs.
 Plan `status` and milestone `state` are recorded/derived under baseline parser rules; completion
 does not replace an explicit stage. The renderer never uses `file`, `root` or Git metadata as a
 native command authority. `generation` is transport metadata, not written into legacy overview files.
