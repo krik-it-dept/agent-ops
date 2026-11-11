@@ -2,6 +2,7 @@ import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   archived,
+  dayKey,
   filterTasks,
   fold,
   planKey,
@@ -56,14 +57,25 @@ export function restoreListPreferences(client: AgentOpsClient, value: unknown) {
   });
 }
 
-// Plan and step objects are kept while the plan revision is unchanged, so a
-// memoised row re-renders only when its own plan changed.
+/**
+ * Row props are plain values and unchanged plan objects. The labels only need
+ * the calendar day, so `today` (not the snapshot time, which changes with every
+ * snapshot) is passed and a memoised row re-renders only when its own plan
+ * changed.
+ */
+export type TaskRowProps = TaskRow & { today: string };
+export const taskRowProps = (row: TaskRow, now: string): TaskRowProps => ({
+  plan: row.plan,
+  step: row.step,
+  index: row.index,
+  today: Number.isFinite(Date.parse(now)) ? dayKey(now) : '',
+});
 const TaskRowView = memo(function TaskRowView({
   plan,
   step,
   index,
-  now,
-}: TaskRow & { now: string }) {
+  today,
+}: TaskRowProps) {
   return (
     <tr>
       <td>
@@ -94,7 +106,7 @@ const TaskRowView = memo(function TaskRowView({
       <td>
         <time dateTime={execution(plan, step).latest?.updatedAt}>
           {execution(plan, step).latest
-            ? whenLabel(execution(plan, step).latest!.updatedAt, now)
+            ? whenLabel(execution(plan, step).latest!.updatedAt, today)
             : 'Not reported'}
         </time>
       </td>
@@ -399,10 +411,7 @@ export function TaskList({
   const row = (r: TaskRow) => (
     <TaskRowView
       key={`${planKey(r.plan)}:${r.step.line}:${r.index}`}
-      plan={r.plan}
-      step={r.step}
-      index={r.index}
-      now={snapshot?.now || ''}
+      {...taskRowProps(r, snapshot?.now || '')}
     />
   );
   const groups = new Map<string, TaskRow[]>();
