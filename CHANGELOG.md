@@ -7,8 +7,12 @@ The release workflow takes the section whose heading starts with the pushed tag.
 
 Fixes from the first installs of v1.0.0.
 
-- **Plan title stays in view.** The plan name, status and actions stay at the
-  top of the page while you scroll through milestones and steps.
+- **Plan pages put milestones first.** The plan name, status and actions sit in
+  the top bar beside search, and the Milestones / Decisions / Questions /
+  Activity tabs stay in view while you scroll. Goal and Next sit side by side
+  and take at most a third of the window; "Show full summary" opens the rest.
+- **Settings.** On/off settings are switches, "Saved" disappears after a moment,
+  and a new Text size setting makes the whole interface smaller or larger.
 - **No extra "Tasks" level.** The sidebar and Overview list plans by workspace
   directly; labels show just the workspace name.
 - **Clearer Tasks folder choice.** A folder that holds one of your workspaces is

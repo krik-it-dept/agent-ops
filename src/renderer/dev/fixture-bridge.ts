@@ -169,6 +169,7 @@ export function fixtureData(mode: FixtureMode = 'demo'): {
     setupComplete: mode !== 'setup',
     notifications: true,
     theme: 'system',
+    textSize: 'default',
     shortcuts: true,
     autoArchiveDone: false,
     planArchive: null,
@@ -338,7 +339,7 @@ export function fixtureData(mode: FixtureMode = 'demo'): {
 export function createFixtureBridge(
   mode: FixtureMode = 'demo',
   initial: Partial<
-    Pick<Settings, 'theme' | 'shortcuts' | 'autoArchiveDone'>
+    Pick<Settings, 'theme' | 'textSize' | 'shortcuts' | 'autoArchiveDone'>
   > = {},
 ): AgentOpsBridge {
   const data = fixtureData(mode);

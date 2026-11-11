@@ -22,9 +22,11 @@ import {
   defaultConfig,
   parseConfig,
   serializeConfig,
+  validTextSize,
   validTheme,
   validateConfig,
   type AppConfig,
+  type TextSize,
   type Theme,
 } from './config';
 import { projectDisplayName, projectIdFor } from './identity';
@@ -156,6 +158,7 @@ export interface SettingsPatch {
   notifications?: boolean;
   setupComplete?: boolean;
   theme?: Theme;
+  textSize?: TextSize;
   shortcuts?: boolean;
   autoArchiveDone?: boolean;
 }
@@ -266,6 +269,7 @@ export class SettingsStore {
       for (const key of Object.keys(body)) {
         if (
           key !== 'theme' &&
+          key !== 'textSize' &&
           !(BOOLEAN_FIELDS as readonly string[]).includes(key)
         )
           throw new OwnerError('INVALID_REQUEST', 'Invalid settings request.');
@@ -283,8 +287,19 @@ export class SettingsStore {
           'Theme must be system, light or dark.',
         );
       }
+      if (
+        body.textSize !== undefined &&
+        (body.textSize === '' || !validTextSize(body.textSize))
+      ) {
+        throw new OwnerError(
+          'INVALID_REQUEST',
+          'Text size must be small, default, large or larger.',
+        );
+      }
       for (const key of BOOLEAN_FIELDS)
         if (typeof body[key] === 'boolean') draft[key] = body[key];
+      if (body.textSize !== undefined)
+        draft.textSize = body.textSize as TextSize;
       if (body.theme !== undefined) draft.theme = body.theme as Theme;
     });
   }

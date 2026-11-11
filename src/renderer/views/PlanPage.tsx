@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Link,
   useNavigate,
@@ -117,6 +118,29 @@ export function PlanPage({
   const { snapshot, report, announce, client } = useLedger();
   const plan = snapshot ? findPlan(snapshot.state.plans, key) : undefined;
   const panel = useRef<HTMLElement>(null);
+  // The title row sits in the app's top bar, beside search and Refresh.
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setSlot(document.getElementById('page-title')), []);
+  // Goal and Next take at most a third of the window; the rest is one click away.
+  const summary = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [clipped, setClipped] = useState(false);
+  useEffect(() => {
+    const box = summary.current;
+    if (!box) return;
+    const measure = () =>
+      setClipped(
+        [...box.querySelectorAll<HTMLElement>(':scope > div')].some(
+          (column) => column.scrollHeight > column.clientHeight + 1,
+        ),
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    for (const column of box.querySelectorAll(':scope > div'))
+      observer.observe(column);
+    return () => observer.disconnect();
+  }, [plan?.revision, expanded]);
   const line = Number((search.get('step') || '').replace(/^L/, ''));
   const linkedRevision = search.get('revision');
   const linkedIndex = search.get('index');
@@ -202,93 +226,112 @@ export function PlanPage({
       report(new Error('Copying is not available here.'));
     }
   }
+  const titleRow = (
+    <header className="plan-header">
+      <p className="breadcrumb">{placeLabel(plan)}</p>
+      <div className="row">
+        <Link to="/">← Overview</Link>
+        <h1>{plan.name}</h1>
+        <button
+          aria-pressed={starred}
+          aria-label={`${starred ? 'Unstar' : 'Star'} ${plan.name}`}
+          onClick={() =>
+            setNavigation((nav) => ({
+              ...nav,
+              starred: starred
+                ? nav.starred.filter((k) => k !== planKey(plan))
+                : [...nav.starred, planKey(plan)],
+            }))
+          }
+        >
+          {starred ? '★' : '☆'}
+        </button>
+        <Status value={plan.status} />
+        <SourceLabel plan={plan} />
+        <PlanActions plan={plan} afterDelete={() => navigate('/')} />
+        <button
+          onClick={() => {
+            void copyLink();
+          }}
+        >
+          Copy link
+        </button>
+      </div>
+    </header>
+  );
   return (
     <section className="plan-page" ref={panel} data-plan-key={planKey(plan)}>
-      <header className="plan-header">
-        <p className="breadcrumb">{placeLabel(plan)}</p>
-        <div className="row">
-          <Link to="/">← Overview</Link>
-          <h1>{plan.name}</h1>
-          <button
-            aria-pressed={starred}
-            aria-label={`${starred ? 'Unstar' : 'Star'} ${plan.name}`}
-            onClick={() =>
-              setNavigation((nav) => ({
-                ...nav,
-                starred: starred
-                  ? nav.starred.filter((k) => k !== planKey(plan))
-                  : [...nav.starred, planKey(plan)],
-              }))
-            }
-          >
-            {starred ? '★' : '☆'}
-          </button>
-          <Status value={plan.status} />
-          <SourceLabel plan={plan} />
-          <PlanActions plan={plan} afterDelete={() => navigate('/')} />
-          <button
-            onClick={() => {
-              void copyLink();
-            }}
-          >
-            Copy link
-          </button>
+      {slot ? createPortal(titleRow, slot) : titleRow}
+      <div
+        className={`plan-summary${expanded ? ' expanded' : clipped ? ' clipped' : ''}`}
+        ref={summary}
+      >
+        <div className="plan-summary-main">
+          <p className="muted">
+            {whenLabel(plan.mtime, snapshot!.now) &&
+              `Updated ${whenLabel(plan.mtime, snapshot!.now)} · `}
+            <code>{plan.spec || plan.name + '.md'}</code>
+            <button
+              onClick={() => {
+                void client.shell
+                  .openFolder({ target: 'plan', key: planKey(plan) })
+                  .catch(report);
+              }}
+            >
+              Open plan folder
+            </button>
+          </p>
+          <Progress {...progress(plan.steps)} label="Plan progress" />
+          {plan.goal && (
+            <div className="goal">
+              <strong>Goal</strong>
+              <p>
+                <RichText text={plan.goal} plan={plan} />
+              </p>
+            </div>
+          )}
         </div>
-      </header>
-      <div className="plan-summary">
-        <p className="muted">
-          {whenLabel(plan.mtime, snapshot!.now) &&
-            `Updated ${whenLabel(plan.mtime, snapshot!.now)} · `}
-          <code>{plan.spec || plan.name + '.md'}</code>
+        <div className="plan-summary-side">
+          {(stage(plan.status) === 'Blocked' ||
+            /^waiting for owner/i.test(plan.status)) && (
+            <div className="callout warning">
+              <strong>{stage(plan.status)}</strong>
+              <p>
+                <RichText
+                  text={reason(plan.status) || 'No reason recorded'}
+                  plan={plan}
+                />
+              </p>
+            </div>
+          )}
+          {openQuestions.length > 0 && (
+            <div className="callout">
+              <strong>Open questions ({openQuestions.length})</strong>
+              <p>{openQuestions[0]!.ask}</p>
+              <Link to={planRoute(planKey(plan), 'questions')}>
+                View all questions
+              </Link>
+            </div>
+          )}
+          {plan.next && (
+            <div className="callout">
+              <strong>Next</strong>
+              <p>
+                <RichText text={plan.next} plan={plan} />
+              </p>
+            </div>
+          )}
+          <Warning plan={plan} />
+        </div>
+        {(clipped || expanded) && (
           <button
-            onClick={() => {
-              void client.shell
-                .openFolder({ target: 'plan', key: planKey(plan) })
-                .catch(report);
-            }}
+            className="summary-toggle"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
           >
-            Open plan folder
+            {expanded ? 'Show less' : 'Show full summary'}
           </button>
-        </p>
-        <Progress {...progress(plan.steps)} label="Plan progress" />
-        {plan.goal && (
-          <div className="goal">
-            <strong>Goal</strong>
-            <p>
-              <RichText text={plan.goal} plan={plan} />
-            </p>
-          </div>
         )}
-        {(stage(plan.status) === 'Blocked' ||
-          /^waiting for owner/i.test(plan.status)) && (
-          <div className="callout warning">
-            <strong>{stage(plan.status)}</strong>
-            <p>
-              <RichText
-                text={reason(plan.status) || 'No reason recorded'}
-                plan={plan}
-              />
-            </p>
-          </div>
-        )}
-        {openQuestions.length > 0 && (
-          <div className="callout">
-            <strong>Open questions ({openQuestions.length})</strong>
-            <p>{openQuestions[0]!.ask}</p>
-            <Link to={planRoute(planKey(plan), 'questions')}>
-              View all questions
-            </Link>
-          </div>
-        )}
-        {plan.next && (
-          <div className="callout">
-            <strong>Next</strong>
-            <p>
-              <RichText text={plan.next} plan={plan} />
-            </p>
-          </div>
-        )}
-        <Warning plan={plan} />
         {linkedRevision && linkedRevision !== plan.revision && (
           <p role="status">
             This task changed. Refresh the list and open it again.

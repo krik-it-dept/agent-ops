@@ -10,6 +10,22 @@ body,
   height: 100%;
   margin: 0;
 }
+/* Text size scales the whole interface; viewport units are divided back so the window still fits. */
+:root {
+  --zoom: 1;
+}
+:root[data-text-size='small'] {
+  --zoom: 0.9;
+}
+:root[data-text-size='large'] {
+  --zoom: 1.12;
+}
+:root[data-text-size='larger'] {
+  --zoom: 1.25;
+}
+body {
+  zoom: var(--zoom);
+}
 body {
   background: var(--bg);
   color: var(--fg);
@@ -170,8 +186,8 @@ kbd {
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh / var(--zoom));
+  height: calc(100dvh / var(--zoom));
   overflow: hidden;
 }
 .appbar {
@@ -785,32 +801,68 @@ progress::-webkit-progress-value {
 .plan-page {
   max-width: 1200px;
 }
-/* The plan's name, status and actions stay in view while its content scrolls. */
-.plan-header {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: var(--bg);
-  padding: 0 8px 4px;
+/* The plan's title row lives in the top bar, so it stays in view while the plan scrolls. */
+.top-title {
+  flex: 1;
+  min-width: 0;
+}
+.top:has(.top-title) {
+  align-items: flex-end;
+}
+.plan-header > .row {
+  flex-wrap: wrap;
+  align-items: center;
 }
 .plan-summary {
-  padding: 0 8px 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 24px;
+  padding: 0 8px 12px;
+}
+.plan-summary-main,
+.plan-summary-side {
+  min-width: 0;
+}
+.plan-summary:not(.expanded) > .plan-summary-main,
+.plan-summary:not(.expanded) > .plan-summary-side {
+  max-height: calc(33dvh / var(--zoom));
+  overflow: hidden;
+}
+.plan-summary.clipped > .plan-summary-main,
+.plan-summary.clipped > .plan-summary-side {
+  mask-image: linear-gradient(to bottom, #000 80%, transparent);
+}
+.plan-summary > :not(.plan-summary-main, .plan-summary-side) {
+  grid-column: 1 / -1;
+}
+.summary-toggle {
+  justify-self: start;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.plan-summary-side > .callout:first-child {
+  margin-top: 0;
+}
+@container (max-width: 760px) {
+  .plan-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .plan-header > .row h1 {
-  margin: 3px 0 8px;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 .breadcrumb {
   font-size: 11px;
 }
-.plan-summary > .ledger-progress {
+.plan-summary-main > .ledger-progress {
   margin: 18px 0;
 }
-.plan-summary > .ledger-progress progress {
+.plan-summary-main > .ledger-progress progress {
   width: 160px;
 }
 .goal {
-  margin: 18px 0;
+  margin: 12px 0;
   font-size: 14px;
 }
 .goal > strong {
@@ -834,7 +886,12 @@ progress::-webkit-progress-value {
   background: var(--warning-bg);
   border-color: var(--warning-border);
 }
+/* The section tabs stay at the top while milestones scroll. */
 .plan-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
   display: flex;
   gap: 16px;
   border-bottom: 1px solid var(--border);
@@ -978,8 +1035,8 @@ progress::-webkit-progress-value {
   position: fixed;
   right: 16px;
   bottom: 37px;
-  width: min(360px, calc(100vw - 32px));
-  max-height: calc(100dvh - 96px);
+  width: min(360px, calc(100vw / var(--zoom) - 32px));
+  max-height: calc(100dvh / var(--zoom) - 96px);
   overflow: auto;
   z-index: 15;
   border: 1px solid var(--border);
@@ -1252,8 +1309,8 @@ progress::-webkit-progress-value {
   margin: 0;
 }
 dialog {
-  width: min(580px, calc(100vw - 32px));
-  max-height: calc(100dvh - 80px);
+  width: min(580px, calc(100vw / var(--zoom) - 32px));
+  max-height: calc(100dvh / var(--zoom) - 80px);
   padding: 24px;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -1488,4 +1545,46 @@ dialog > .actions {
 h1[tabindex='-1']:focus,
 h2[tabindex='-1']:focus {
   outline: none;
+}
+
+/* On/off settings are switches, not tick boxes. */
+input[type='checkbox'][role='switch'] {
+  appearance: none;
+  flex-shrink: 0;
+  position: relative;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+input[type='checkbox'][role='switch']::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted-fg);
+  transition: transform 0.15s ease;
+}
+input[type='checkbox'][role='switch']:checked {
+  background: var(--fg);
+  border-color: var(--fg);
+}
+input[type='checkbox'][role='switch']:checked::after {
+  transform: translateX(14px);
+  background: var(--bg);
+}
+input[type='checkbox'][role='switch']:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+input[type='checkbox'][role='switch']:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }

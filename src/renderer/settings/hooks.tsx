@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PickPurpose } from '../../shared/contracts';
 import { useLedger } from '../store';
 
@@ -7,6 +7,12 @@ export function useAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  // A confirmation such as "Saved" fades on its own; errors stay until the next action.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), 2500);
+    return () => clearTimeout(timer);
+  }, [notice]);
   async function run(work: () => Promise<void>) {
     if (pending.current) return false;
     pending.current = true;

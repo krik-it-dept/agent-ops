@@ -87,6 +87,26 @@ export function Preferences({ setup = false }: { setup?: boolean }) {
             <option value="dark">Dark</option>
           </select>
         </label>
+        <label className="setting-row" htmlFor="text-size">
+          <span>
+            <strong>Text size</strong>
+            <small>Make text and controls smaller or larger.</small>
+          </span>
+          <select
+            id="text-size"
+            aria-label="Text size"
+            value={settings.textSize}
+            disabled={locked}
+            onChange={(e) =>
+              change({ textSize: e.target.value as typeof settings.textSize })
+            }
+          >
+            <option value="small">Small</option>
+            <option value="default">Default</option>
+            <option value="large">Large</option>
+            <option value="larger">Larger</option>
+          </select>
+        </label>
         {!setup && (
           <label className="setting-row">
             <span>
