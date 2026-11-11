@@ -79,6 +79,9 @@ test('report command records a run while the app runs, prints to pipes and the w
   };
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.ELECTRON_RENDERER_URL;
+  // Playwright's forced color can conflict with the caller's NO_COLOR and pollute stderr.
+  delete env.FORCE_COLOR;
+  delete env.NO_COLOR;
   const originalConfig = await readFile(join(data, 'config.json'));
   const standalone = await report(env, [
     '--agent',
