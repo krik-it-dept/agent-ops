@@ -21,6 +21,8 @@ import { acceptSnapshot, type Snapshot } from './model';
 export interface Toast {
   message: string;
   action?: { label: string; run(): void };
+  /** Keep a keyboard action reachable when its source card is removed. */
+  focusAction?: boolean;
   /** How long the toast stays, in milliseconds. */
   timeout?: number;
 }

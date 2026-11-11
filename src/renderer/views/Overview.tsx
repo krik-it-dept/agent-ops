@@ -58,7 +58,7 @@ export const PlanCard = memo(function PlanCard({
   plan: DisplayPlan;
   attention?: boolean;
   /** On the Board, a card that can be dragged to Done. */
-  drag?: { start(key: string): void; end(): void } | undefined;
+  drag?: { start(plan: DisplayPlan): void; end(): void } | undefined;
 }) {
   const current = plan.milestones.find(milestoneOpen);
   const key = planKey(plan);
@@ -72,7 +72,7 @@ export const PlanCard = memo(function PlanCard({
             onDragStart: (event: DragEvent) => {
               event.dataTransfer.setData(PLAN_DRAG_TYPE, key);
               event.dataTransfer.effectAllowed = 'move';
-              drag.start(key);
+              drag.start(plan);
             },
             onDragEnd: () => drag.end(),
           }

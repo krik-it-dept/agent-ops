@@ -201,6 +201,11 @@ export function useMarkDone() {
     async (plan: Plan): Promise<boolean> => {
       if (readOnly) return false;
       const key = planKey(plan);
+      const origin =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      const focusUndo = !!origin?.closest('.plan-actions');
       try {
         const result = await client.plans.markDone({
           key,
@@ -215,6 +220,7 @@ export function useMarkDone() {
         showToast({
           message: `Marked ${plan.name} Done`,
           timeout: UNDO_FOR_MS,
+          focusAction: focusUndo,
           action: {
             label: 'Undo',
             run: () => {
@@ -226,6 +232,15 @@ export function useMarkDone() {
                   showToast({
                     message: `${plan.name} is back to ${stage(undone.plan.status) || 'its previous stage'}`,
                   });
+                  if (focusUndo)
+                    requestAnimationFrame(() => {
+                      const target = origin?.isConnected
+                        ? origin
+                        : document.querySelector<HTMLElement>(
+                            `.work-card[data-plan-key="${CSS.escape(key)}"] .plan-actions summary`,
+                          );
+                      target?.focus({ preventScroll: true });
+                    });
                 })
                 .catch(report);
             },
@@ -244,6 +259,10 @@ export function useMarkDone() {
 export function ToastHost() {
   const { toast } = useLedgerStatus();
   const { showToast } = useLedger();
+  const action = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (toast?.focusAction) action.current?.focus({ preventScroll: true });
+  }, [toast]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => showToast(null), toast.timeout ?? 6000);
@@ -255,7 +274,9 @@ export function ToastHost() {
         <div className="toast" key={toast.id}>
           <span>{toast.message}</span>
           {toast.action && (
-            <button onClick={toast.action.run}>{toast.action.label}</button>
+            <button ref={action} onClick={toast.action.run}>
+              {toast.action.label}
+            </button>
           )}
           <button
             className="toast-close"

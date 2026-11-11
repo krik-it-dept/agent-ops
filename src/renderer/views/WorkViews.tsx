@@ -1,5 +1,11 @@
-import { useMemo, useState, type DragEvent } from 'react';
-import { archived, fold, planKey, planSearchText } from '../model';
+import { useMemo, useRef, useState, type DragEvent } from 'react';
+import {
+  archived,
+  fold,
+  planKey,
+  planSearchText,
+  type DisplayPlan,
+} from '../model';
 import { agentMatches, participation } from '../agents';
 import { useLedger } from '../store';
 import { Empty, isDone, useMarkDone } from '../components/ui';
@@ -45,13 +51,18 @@ export function WorkViews({
   const shown = useMemo(() => plans.slice(0, limit), [plans, limit]);
   // Cards are dragged to the Done column only; no other column is a target.
   const [dragging, setDragging] = useState('');
+  const draggedPlan = useRef<DisplayPlan | null>(null);
   const [over, setOver] = useState(false);
   const [marking, setMarking] = useState(false);
   const markDone = useMarkDone();
   const drag = useMemo(
     () => ({
-      start: (key: string) => setDragging(key),
+      start: (plan: DisplayPlan) => {
+        draggedPlan.current = plan;
+        setDragging(planKey(plan));
+      },
       end: () => {
+        draggedPlan.current = null;
         setDragging('');
         setOver(false);
       },
@@ -60,7 +71,9 @@ export function WorkViews({
   );
   const canDrag = !settings?.readOnly && !marking;
   const accepts = (event: DragEvent) =>
-    dragging !== '' && event.dataTransfer.types.includes(PLAN_DRAG_TYPE);
+    canDrag &&
+    draggedPlan.current !== null &&
+    event.dataTransfer.types.includes(PLAN_DRAG_TYPE);
   const doneTarget = {
     onDragEnter: (event: DragEvent) => {
       if (!accepts(event)) return;
@@ -80,9 +93,9 @@ export function WorkViews({
       if (!accepts(event)) return;
       event.preventDefault();
       const key = event.dataTransfer.getData(PLAN_DRAG_TYPE) || dragging;
+      const plan = draggedPlan.current;
       drag.end();
-      const plan = plans.find((p) => planKey(p) === key);
-      if (!plan || isDone(plan)) return;
+      if (!plan || planKey(plan) !== key || isDone(plan)) return;
       setMarking(true);
       void markDone(plan).finally(() => setMarking(false));
     },
