@@ -10,6 +10,7 @@ import {
 import { createClient } from './client';
 import { LedgerProvider } from './store';
 import { Overview } from './views/Overview';
+import { WorkViews } from './views/WorkViews';
 import { LIST_PAGE, TaskList } from './views/TaskList';
 import { defaultNavigation } from './preferences';
 import { acceptSnapshot, filterTasks, taskRows } from './model';
@@ -62,6 +63,24 @@ const list = (group: 'plan' | 'none') =>
   });
 
 describe('large ledgers', () => {
+  it('bounds Board and Timeline work while retaining access to the remaining plans', () => {
+    const data = largeLedger();
+    for (const view of ['board', 'timeline'] as const) {
+      const started = performance.now();
+      const html = render(
+        data,
+        createElement(WorkViews, { view, query: '', agent: '' }),
+      );
+      expect(html).toContain('400 plans');
+      expect(html).toContain('Show more plans');
+      expect(
+        view === 'board'
+          ? html.match(/class="work-card/g)
+          : html.match(/<tr>/g),
+      ).toHaveLength(view === 'board' ? 100 : 101);
+      expect(performance.now() - started).toBeLessThan(2000);
+    }
+  });
   it('renders one page of the List and offers the rest on request', () => {
     const data = largeLedger();
     for (const group of ['plan', 'none'] as const) {
