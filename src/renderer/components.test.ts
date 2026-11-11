@@ -298,4 +298,46 @@ describe('React screen components', () => {
       expect(many).toMatch(/class="sr-only">: [^<]*Cursor/);
     });
   });
+  describe('agent workload', () => {
+    const summary = (agent: string) => {
+      const data = fixtureData();
+      return renderToStaticMarkup(
+        createElement(LedgerProvider, {
+          source: {
+            client: createClient(createFixtureBridge()),
+            fixture: true,
+          },
+          initial: data,
+          children: createElement(
+            MemoryRouter,
+            { initialEntries: ['/'] },
+            createElement(
+              Routes,
+              null,
+              createElement(Route, {
+                path: '/',
+                element: createElement(Overview, {
+                  query: '',
+                  agent,
+                  clear: () => undefined,
+                }),
+              }),
+            ),
+          ),
+        }),
+      );
+    };
+    it('uses plural forms, a workload bar and marks the filtered agent as pressed', () => {
+      const html = summary('Codex');
+      const rows = html.match(/<button class="workload-row"[^>]*>/g) ?? [];
+      expect(rows.length).toBeGreaterThan(0);
+      expect(html).toMatch(/class="workload-bar"/);
+      expect(html).toMatch(/\d+ plans? · \d+ tasks?/);
+      expect(html).not.toMatch(/(?<!d)1 (plans|tasks|active tasks)/);
+      expect(
+        rows.filter((r) => r.includes('aria-pressed="true"')),
+      ).toHaveLength(1);
+      expect(summary('').match(/aria-pressed="true"/)).toBeNull();
+    });
+  });
 });

@@ -26,6 +26,9 @@ import {
 import { AgentBadge, AgentChain } from '../components/Agents';
 import { ActivityFeed } from './PlanPage';
 
+/** "1 plan", "3 plans". */
+export const plural = (count: number, noun: string) =>
+  `${count} ${noun}${count === 1 ? '' : 's'}`;
 export const COLUMNS = [
   'To do',
   'In progress',
@@ -330,9 +333,13 @@ export function Overview({
               <div className="agent-workload">
                 {agents.map((name) => {
                   const workload = agentWorkload(plans, name);
+                  const counts = `${plural(workload.plans, 'plan')} · ${plural(workload.tasks, 'task')}`;
                   return (
                     <button
                       key={name}
+                      className="workload-row"
+                      aria-pressed={agent === name}
+                      disabled={!workload.plans}
                       onClick={() => {
                         const next = new URLSearchParams(search);
                         next.set('agent', name);
@@ -340,13 +347,23 @@ export function Overview({
                       }}
                     >
                       <AgentBadge name={name} />
-                      <span>
-                        {workload.plans} plans · {workload.tasks} tasks
+                      <span
+                        className="workload-bar"
+                        title={`${plural(workload.plans, 'plan')} of ${plans.length} matching`}
+                      >
+                        <i
+                          style={{
+                            width: `${plans.length ? (workload.plans / plans.length) * 100 : 0}%`,
+                          }}
+                        />
                       </span>
-                      <small>
-                        {workload.coordinating} coordinating · {workload.active}{' '}
-                        active tasks
-                      </small>
+                      <span className="workload-counts">
+                        <strong>{counts}</strong>
+                        <small>
+                          {workload.coordinating} coordinating ·{' '}
+                          {plural(workload.active, 'active task')}
+                        </small>
+                      </span>
                     </button>
                   );
                 })}
