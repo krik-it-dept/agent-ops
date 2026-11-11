@@ -14,6 +14,12 @@ The release workflow takes the section whose heading starts with the pushed tag.
   A copy of the original is kept in `backups\plan-edits` in the data folder
   (the newest 50), and the change shows in the plan's activity as "Marked Done
   in Agent Ops". This is the only plan content the app changes.
+- **One-colour window top.** On Windows the app bar is now the title bar: the
+  white strip is gone, the minimise, maximise and close buttons sit in the app
+  bar in the app's light or dark colours, and the bar moves the window.
+- **Showing the window keeps your page.** Clicking the tray icon or starting
+  Agent Ops again only brings the window forward; it no longer jumps back to
+  Summary. Links to a plan still open that plan.
 - **Skill v5.** The task-plan skill notes that the owner may mark a plan Done
   from Agent Ops, which only changes its Status line.
 

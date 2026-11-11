@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   ipcMain,
+  nativeTheme,
   session,
   shell,
   protocol,
@@ -17,7 +18,7 @@ import { registerApplicationIpc } from './ipc/registry';
 import { activationEvent, publishEvent } from './ipc/events';
 import { createRuntime } from './modules/runtime/services';
 import createCollectorWorker from './modules/ledger/collector.worker?nodeWorker';
-import { createWindow } from './window';
+import { applyWindowTheme, createWindow } from './window';
 import { guardWebContents } from './modules/runtime/security';
 import { APP_DOCUMENT, assetHandler } from './modules/runtime/assets';
 import {
@@ -425,6 +426,7 @@ async function entry(): Promise<void> {
               publishEvent(currentWindow.webContents, 'state:changed', event);
             },
             settingsChanged: (settings) => {
+              applyWindowTheme(currentWindow, settings.theme);
               publishEvent(
                 currentWindow.webContents,
                 'settings:changed',
@@ -486,6 +488,22 @@ async function entry(): Promise<void> {
             window = null;
           });
           await currentRuntime.initialize();
+          const followTheme = async () =>
+            applyWindowTheme(
+              currentWindow,
+              (await currentRuntime.core.settings()).theme,
+            );
+          await followTheme().catch(() => undefined);
+          // With the System theme, Windows switching light/dark recolours the buttons.
+          nativeTheme.on('updated', () => {
+            if (!currentWindow.isDestroyed())
+              applyWindowTheme(
+                currentWindow,
+                nativeTheme.themeSource === 'system'
+                  ? 'system'
+                  : nativeTheme.themeSource,
+              );
+          });
           if (installedRuntime(scope)) platform.protocol.register();
           await currentWindow.loadURL(rendererURL);
           await currentRuntime.start();
