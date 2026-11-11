@@ -95,6 +95,72 @@ describe('ledger publication, cancellation and filesystem reconciliation', () =>
     expect(collect).toHaveBeenCalledOnce();
     expect(changed).toHaveBeenCalledTimes(2);
   });
+  it('keeps a run working until the 12 hour window passes, then drops it once, and stops after stop()', async () => {
+    const root = await fixture();
+    const start = new Date('2026-11-11T00:00:00Z');
+    let now = start;
+    const collect = vi.fn<Collector>(async () => {
+      const out = await collectOverview({ tasksDir: root });
+      out.plans = [
+        {
+          ...parsePlan('- [doing] work\n', {
+            project: 'tasks',
+            repo: 'team',
+            name: 'p',
+            mtime: start,
+          }),
+          runs: ['a', 'b'].map((id, n) => ({
+            runId: `00000000-0000-4000-8000-00000000000${n}`,
+            agent: 'Codex',
+            coordinator: '',
+            role: 'executor' as const,
+            event: 'progress' as const,
+            active: true,
+            // The second run reports an hour later, so it expires an hour later.
+            startedAt: new Date(start.getTime() + n * 3_600_000).toISOString(),
+            updatedAt: new Date(start.getTime() + n * 3_600_000).toISOString(),
+            step: null,
+            result: id,
+          })),
+        },
+      ];
+      return out;
+    });
+    const changed = vi.fn();
+    const ledger = service(
+      async () => ({ projects: [], tasksDir: root }),
+      collect,
+      memoryCache(),
+      { now: () => now, changed },
+    );
+    await ledger.start();
+    const active = () =>
+      ledger.getState().state.plans[0]!.runs!.map((r) => r.active);
+    const published = () => ledger.getState().generation;
+    const before = published();
+    // Exactly at the window edge a run is still working.
+    now = new Date(start.getTime() + 12 * 3_600_000);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(active()).toEqual([true, true]);
+    expect(published()).toBe(before);
+    // One millisecond later the first run expires, with no file change or refresh.
+    now = new Date(start.getTime() + 12 * 3_600_000 + 1);
+    await vi.waitFor(() => expect(active()).toEqual([false, true]));
+    expect(published()).toBe(before + 1);
+    // The next expiry is an hour later; nothing is published in between.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(published()).toBe(before + 1);
+    now = new Date(start.getTime() + 13 * 3_600_000 + 1);
+    await vi.waitFor(() => expect(active()).toEqual([false, false]));
+    expect(published()).toBe(before + 2);
+    expect(collect).toHaveBeenCalledOnce();
+    // After stop the check no longer runs.
+    await ledger.stop();
+    const count = changed.mock.calls.length;
+    now = new Date(start.getTime() + 48 * 3_600_000);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(changed).toHaveBeenCalledTimes(count);
+  });
   it('starts empty without polling/collecting and never mutates sources', async () => {
     const collect = vi.fn<Collector>();
     const ledger = service(async () => ({ projects: [] }), collect);
