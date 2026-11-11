@@ -376,13 +376,17 @@ export class MarkDone {
         `The plan was not changed because its backup could not be saved. ${errorText(err)}`,
       );
     }
-    await pruneBackups(root, this.opts.keepBackups ?? KEEP_BACKUPS);
+    await pruneBackups(root, this.opts.keepBackups ?? KEEP_BACKUPS, folder);
     return file;
   }
 }
 
 /** pruneBackups removes the oldest backup folders beyond keep; other entries are left alone. */
-export async function pruneBackups(root: string, keep: number): Promise<void> {
+export async function pruneBackups(
+  root: string,
+  keep: number,
+  current?: string,
+): Promise<void> {
   let names: string[];
   try {
     names = (await fs.readdir(root, { withFileTypes: true }))
@@ -394,7 +398,10 @@ export async function pruneBackups(root: string, keep: number): Promise<void> {
   } catch {
     return;
   }
-  for (const name of names.slice(0, Math.max(0, names.length - keep)))
+  // The backup for the pending edit must survive even after a clock rollback.
+  for (const name of names
+    .filter((name) => name !== current)
+    .slice(0, Math.max(0, names.length - keep)))
     await fs
       .rm(path.join(root, name), { recursive: true, force: true })
       .catch(() => undefined);

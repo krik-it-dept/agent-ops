@@ -549,6 +549,24 @@ describe('mark a plan Done', () => {
     expect(kept[0]).toBe('20261110-000001-000bbbbbbbb');
     expect(kept[49]).toMatch(/^20261111-080000-/);
   });
+
+  it('keeps the current original even when the system clock moved backwards', async () => {
+    const f = await tasksFixture();
+    const before = readFileSync(f.file);
+    for (let i = 0; i < 50; i++)
+      mkdirSync(
+        path.join(
+          f.data,
+          PLAN_EDITS_DIR,
+          `20261112-0000${String(i).padStart(2, '0')}-000aaaaaaaa`,
+        ),
+        { recursive: true },
+      );
+    const result = await f.marker.markDone(body(f));
+    if (!result.ok) throw new Error(result.error.message);
+    expect(readFileSync(result.value.backup!)).toEqual(before);
+    expect(backups(f)).toHaveLength(50);
+  });
 });
 
 describe('undo Mark as Done', () => {
