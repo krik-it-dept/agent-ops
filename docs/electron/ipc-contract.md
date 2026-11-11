@@ -373,6 +373,8 @@ interface WorkspaceAddResponse {
 | `tasks:move-all`    | `{ from: string }`                                    | `MoveResponse`             | INVALID_REQUEST unless `from` is previousTasksDir; BUSY, READ_ONLY, UNAVAILABLE, CONFLICT on overlap/unreadable old folder, IO_ERROR for backup. File failures stay in report.                                                                 | POST `/api/tasks/move-all`, `tasks.go:479`             |
 | `plans:archive`     | `{ key: PlanKey; archived: boolean }`                 | `Settings`                 | NOT_FOUND, READ_ONLY, IO_ERROR, UNAVAILABLE; archive true/false is an explicit config override.                                                                                                                                                | POST `/api/plan-actions/archive`, `plan_actions.go:26` |
 | `plans:recycle`     | `{ key: PlanKey; revision: Revision; confirm: true }` | `{ recycled: true }`       | NOT_FOUND for missing plan/file, REVISION_CHANGED for changed bytes/identity, CONFLICT for locked/redirected/unsafe/non-recyclable file, UNAVAILABLE during restart. Main resolves from configuration and accepted plan; never accepts a path. | POST `/api/plan-actions/recycle`, `plan_actions.go:26` |
+| `plans:mark-done` | `{ key: PlanKey; revision: Revision }` | `MarkDoneResponse` | READ_ONLY, BUSY, UNAVAILABLE; NOT_FOUND for a missing plan/file; REVISION_CHANGED ("This plan changed. Look again before marking it Done.") when the board revision or the file bytes differ, also when re-checked just before the rename; CONFLICT for no top `Status:` line, a locked/redirected/unsafe file; IO_ERROR when the backup cannot be saved. Already Done: `changed: false`, `undo: null`, no write. Main resolves from configuration and the accepted plan; never accepts a path. | none (owner decision 2026-11-11) |
+| `plans:undo-mark-done` | `{ key: PlanKey; token: string }` | `UndoMarkDoneResponse` | READ_ONLY, BUSY, UNAVAILABLE; CONFLICT when the token is unknown, used, for another plan or older than 2 minutes; REVISION_CHANGED when the file no longer holds exactly what Mark as Done wrote. Restores the original bytes only. | none (owner decision 2026-11-11) |
 
 `settings:set` is not a distributed transaction: baseline applies Tasks and optional move before
 other fields. A valid new Tasks folder remains saved if its move cannot begin (`moveError`) or
@@ -386,6 +388,30 @@ mtime and checks source again before removal. A changed/failed source stays in p
 copy is removed; the backup stays. No overwrite, source-path injection, links outside the root,
 or arbitrary `from` folder is allowed. Choosing a new folder without move stops reading the old
 folder. Clear previousTasksDir only when it has no remaining plans.
+
+Mark as Done is the one plan edit (owner decision 2026-11-11). Main finds the top Status line as the
+reader does (the first `Status:` header line before the first level-2 to level-4 heading, outside fenced
+code; `Trạng thái:` only without one) and replaces its value with `Done` on the raw bytes, so the BOM,
+line endings, spacing and every other byte stay. Before writing it copies the original to
+`<dataDir>\backups\plan-edits\<UTC time>-<id>\<workspace>\<plan>.md` and keeps the newest 50 such
+folders; the write is atomic. It records one `status` activity entry, "Marked Done in Agent Ops", with
+actor `Agent Ops`, and refreshes the ledger before replying. Undo tokens live in memory only.
+
+```ts
+interface MarkedPlan {
+  key: PlanKey;
+  status: string; // the Status value now in the file
+  revision: Revision;
+}
+interface MarkDoneResponse {
+  plan: MarkedPlan;
+  changed: boolean; // false when already Done; nothing written
+  undo: { token: string; expiresAt: ISOTime } | null; // token: 32 hex characters, valid 2 minutes
+}
+interface UndoMarkDoneResponse {
+  plan: MarkedPlan;
+}
+```
 
 ## Skills/integrations DTOs and channels
 

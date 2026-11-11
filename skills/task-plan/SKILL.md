@@ -1,7 +1,7 @@
 ---
 name: task-plan
 description: Create, update, reorganise or close the owner's task plan files in the Agent Ops Tasks folder. Use when the owner says "/task-plan", "update tiến độ", "cập nhật plan", when substantial work starts (several PRs or sessions, over about an hour, or owner decisions along the way), when its stage, steps, decisions, questions or milestones change, or to convert an old-format plan. Arguments: none (bring the plan up to date), `migrate` (rewrite an old plan into the current format), `close` (finish a plan).
-agent-ops-skill: 4
+agent-ops-skill: 5
 ---
 
 # Task plan
@@ -92,7 +92,8 @@ Summary: <1-2 lines: what it delivered, PR/commit, evidence>
 - Stage is exactly one of: `Planning`, `Implementing`, `Reviewing`, `Fixing review`, `Testing` (local gates and
   dry runs), `Waiting for CI`, `Waiting for owner` (a decision or "apply" is needed; Agent Ops lists it as
   waiting for the owner), `Shipping`, `Blocked`, `Done`. Update it the moment the work moves on: a plan left in
-  an active stage for over 2 hours is flagged stale.
+  an active stage for over 2 hours is flagged stale. The owner may mark a plan Done from Agent Ops, which
+  changes only the value of its `Status:` line to `Done`; read the file again before saving it.
 - Steps are real work only (code, data, production, a deliverable). An owner question goes in Questions, a
   settled rule in Decisions; agent housekeeping (worktree claims, run ids, ledgers) is never a step. A step is
   `[done]` only with evidence (commit, PR, test or dry-run output).

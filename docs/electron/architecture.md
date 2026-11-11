@@ -24,10 +24,12 @@ are retained; add baseline launch compatibility with explicit flags taking prece
 ## Fixed scope
 
 Windows x64; Electron main/preload/renderer; React, TypeScript and Vite; no Go runtime,
-Edge dependency or local HTTP server. The app remains a reader of Markdown plans.
+Edge dependency or local HTTP server. The app remains a reader of Markdown plans, with one
+owner edit: Mark as Done sets the value of the top `Status:` line to `Done` (owner decision
+2026-11-11, guards in AGENTS.md).
 It records file-derived activity and reads the runs agents report through the report command
 (`--report`, owner decision 2026-11-11); it never assigns work or records acceptance results.
-Owner actions may archive in configuration, recycle a confirmed plan, or move plans to Tasks
+Owner actions may mark a plan Done, archive in configuration, recycle a confirmed plan, or move plans to Tasks
 with backups and a report. The business hierarchy and problem/impact migration remain separate.
 
 Keep `%LOCALAPPDATA%\AgentOps` and config version 1. Preserve English storage keys including
