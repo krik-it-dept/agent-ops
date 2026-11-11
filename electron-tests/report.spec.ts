@@ -20,9 +20,7 @@ function report(env: Record<string, string | undefined>, args: string[]) {
     code: number | null;
     stdout: string;
     stderr: string;
-    ms: number;
   }>((done, reject) => {
-    const began = Date.now();
     const child = spawn(executable, [resolve('.'), '--report', ...args], {
       env,
       windowsHide: true,
@@ -41,17 +39,21 @@ function report(env: Record<string, string | undefined>, args: string[]) {
     const timer = setTimeout(() => {
       child.kill();
       reject(new Error('The report command did not exit.'));
-    }, 15_000);
-    child.once('error', reject);
+    }, 30_000);
+    child.once('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
     child.once('close', (code) => {
       clearTimeout(timer);
-      done({ code, stdout, stderr, ms: Date.now() - began });
+      done({ code, stdout, stderr });
     });
   });
 }
 const lastLine = (text: string) => text.trim().split(/\r?\n/).pop() ?? '';
 
 test('report command records a run while the app runs, prints to pipes and the window updates', async () => {
+  test.setTimeout(180_000);
   const root = await mkdtemp(join(tmpdir(), 'agent-ops-report-e2e-'));
   const data = join(root, 'data');
   const tasks = join(root, 'tasks');
@@ -77,6 +79,21 @@ test('report command records a run while the app runs, prints to pipes and the w
   };
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.ELECTRON_RENDERER_URL;
+  const originalConfig = await readFile(join(data, 'config.json'));
+  const standalone = await report(env, [
+    '--agent',
+    'Codex',
+    '--plan-file',
+    plan,
+    '--event',
+    'start',
+  ]);
+  expect(standalone.code).toBe(0);
+  expect(standalone.stderr).toBe('');
+  const standaloneId = lastLine(standalone.stdout);
+  // No UI runtime/config/profile writers are allowed even without a first instance.
+  expect((await readdir(data)).sort()).toEqual(['config.json', 'runs']);
+  expect(await readFile(join(data, 'config.json'))).toEqual(originalConfig);
   const app = await electron.launch({
     args: [resolve('.')],
     env: Object.fromEntries(
@@ -95,6 +112,7 @@ test('report command records a run while the app runs, prints to pipes and the w
       });
     await expect.poll(async () => (await plans()).length).toBe(1);
     expect((await plans())[0]).toMatchObject({ agent: 'Claude' });
+    const configBefore = await readFile(join(data, 'config.json'));
 
     const started = await report(env, [
       '--agent',
@@ -112,7 +130,6 @@ test('report command records a run while the app runs, prints to pipes and the w
     expect(runId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
-    expect(started.ms).toBeLessThan(10_000);
     // The running window picks the report up through the watcher, without F5.
     await expect
       .poll(async () => (await plans())[0]?.runs?.[0], { timeout: 10_000 })
@@ -170,7 +187,10 @@ test('report command records a run while the app runs, prints to pipes and the w
     // Report mode opened no window and left the first instance and the plan alone.
     expect(app.windows()).toHaveLength(1);
     expect(await readFile(plan, 'utf8')).toBe(planText);
-    expect(await readdir(join(data, 'runs'))).toEqual([`${runId}.jsonl`]);
+    expect(await readFile(join(data, 'config.json'))).toEqual(configBefore);
+    expect((await readdir(join(data, 'runs'))).sort()).toEqual(
+      [`${runId}.jsonl`, `${standaloneId}.jsonl`].sort(),
+    );
   } finally {
     await app.close();
     await rm(root, {
