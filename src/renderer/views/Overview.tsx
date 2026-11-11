@@ -43,6 +43,9 @@ export function columnOf(plan: DisplayPlan) {
   if (/^(reviewing|fixing review|testing)$/.test(status)) return 2;
   if (/^(implementing|shipping|in progress|partly done|dry run)$/.test(status))
     return 1;
+  // A stage the app does not recognise but with blocked steps is waiting on something.
+  if (status !== 'planning' && plan.steps.some((s) => s.status === 'blocked'))
+    return 3;
   return 0;
 }
 export const PlanCard = memo(function PlanCard({

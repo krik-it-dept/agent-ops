@@ -13,7 +13,7 @@ import { createClient } from './client';
 import { LedgerProvider } from './store';
 import { Sidebar } from './components/Sidebar';
 import { acceptSnapshot } from './model';
-import { Overview } from './views/Overview';
+import { Overview, COLUMNS, columnOf } from './views/Overview';
 import { PlanPage } from './views/PlanPage';
 import { defaultNavigation } from './preferences';
 import { SettingsPage } from './settings/Settings';
@@ -338,6 +338,26 @@ describe('React screen components', () => {
         rows.filter((r) => r.includes('aria-pressed="true"')),
       ).toHaveLength(1);
       expect(summary('').match(/aria-pressed="true"/)).toBeNull();
+    });
+  });
+  describe('board and chart columns', () => {
+    const plan = (status: string, blocked: boolean) => ({
+      ...samplePlan(),
+      status,
+      steps: samplePlan().steps.map((s) => ({
+        ...s,
+        status: blocked ? ('blocked' as const) : ('todo' as const),
+      })),
+      diagnostics: [],
+    });
+    it('puts an unrecognised stage with blocked steps in Waiting, as the beta did', () => {
+      expect(COLUMNS[3]).toBe('Waiting');
+      expect(columnOf(plan('Parked', true))).toBe(3);
+      expect(columnOf(plan('Parked', false))).toBe(0);
+      expect(columnOf(plan('Planning', true))).toBe(0);
+      expect(columnOf(plan('Blocked', false))).toBe(3);
+      expect(columnOf(plan('Implementing', true))).toBe(1);
+      expect(columnOf(plan('Done', true))).toBe(4);
     });
   });
 });
