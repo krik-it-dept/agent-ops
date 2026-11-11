@@ -3,7 +3,7 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
-## Unreleased - Plan pages focus on goals and milestones
+## v1.2.2 - Plan pages focus on goals and milestones
 
 - **Agents beside the task.** On a plan page each task shows its agents and
   "Working now" on the task's own line, wrapping below it in a narrow window.
