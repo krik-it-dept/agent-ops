@@ -333,7 +333,7 @@ describe('React screen components', () => {
       expect(rows.length).toBeGreaterThan(0);
       expect(html).toMatch(/class="workload-bar"/);
       expect(html).toMatch(/\d+ plans? · \d+ tasks?/);
-      expect(html).not.toMatch(/(?<!d)1 (plans|tasks|active tasks)/);
+      expect(html).not.toMatch(/(?<![\d])1 (plans|tasks|active tasks)/);
       expect(
         rows.filter((r) => r.includes('aria-pressed="true"')),
       ).toHaveLength(1);
