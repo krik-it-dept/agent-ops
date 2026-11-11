@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+  promises as fs,
+} from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { put, tempDir } from '../../lib/safe-io/test-helpers';
@@ -14,6 +22,7 @@ import {
 } from './mark-done';
 import { planKey, type PlanRef } from './plan-actions';
 import { findStatus, isDone, replaceStatus } from './plan-edit';
+import { MAX_PLAN_BYTES } from './move';
 
 const sha = (bytes: Uint8Array) =>
   createHash('sha256').update(bytes).digest('hex');
@@ -60,10 +69,8 @@ describe('Status line replacement', () => {
     expect(markText('Status:\nGoal: x\n')!.toString()).toBe(
       'Status: Done\nGoal: x\n',
     );
-    expect(markText('Trạng thái: Đang làm\nGoal: x\n')!.toString()).toBe(
-      'Trạng thái: Done\nGoal: x\n',
-    );
-    // Status wins over the Vietnamese label, like the reader.
+    expect(markText('Trạng thái: Đang làm\nGoal: x\n')).toBeNull();
+    // Only the English header is writable.
     expect(
       markText('Trạng thái: Đang làm\nStatus: Testing\n')!.toString(),
     ).toBe('Trạng thái: Đang làm\nStatus: Done\n');
@@ -108,6 +115,22 @@ describe('Status line replacement', () => {
     expect(isDone('Done - shipped v1')).toBe(true);
     expect(isDone('Doneish')).toBe(false);
     expect(isDone('Implementing - almost done')).toBe(false);
+  });
+
+  it('requires an English Status header and preserves Unicode whitespace', () => {
+    expect(markText('Trạng thái: Testing\n')).toBeNull();
+    expect(markText('Status:\u00a0Testing\u2003\n')!.toString()).toBe(
+      'Status:\u00a0Done\u2003\n',
+    );
+  });
+
+  it('preserves mixed endings and a missing final newline', () => {
+    expect(
+      markText(
+        '\ufeffGoal: Việt Nam  \r\nStatus:\tTesting \nNext: x\r\nTail',
+      )!.toString(),
+    ).toBe('\ufeffGoal: Việt Nam  \r\nStatus:\tDone \nNext: x\r\nTail');
+    expect(markText('Status: Testing')!.toString()).toBe('Status: Done');
   });
 });
 
@@ -232,6 +255,101 @@ function backups(f: Fixture): string[] {
 }
 
 describe('mark a plan Done', () => {
+  it('revalidates containment after the workspace is redirected during backup', async () => {
+    const f = await tasksFixture();
+    const original = readFileSync(f.file);
+    const outside = path.join(f.dir, 'outside');
+    const workspace = path.dirname(f.file);
+    let redirected = false;
+    const marker = new MarkDone({
+      store: f.store,
+      lookup: (key) => f.board.get(key),
+      io: {
+        ops: {
+          rename: async (source, target) => {
+            await fs.rename(source, target);
+            if (!redirected) {
+              redirected = true;
+              renameSync(workspace, outside);
+              symlinkSync(outside, workspace, 'junction');
+            }
+          },
+        },
+      },
+    });
+    const result = await marker.markDone(body(f));
+    expect(code(result)).toBe('CONFLICT');
+    expect(readFileSync(path.join(outside, path.basename(f.file)))).toEqual(
+      original,
+    );
+  });
+
+  it('does not change a plan when its backup fails', async () => {
+    const f = await tasksFixture();
+    const before = readFileSync(f.file);
+    const marker = new MarkDone({
+      store: f.store,
+      lookup: (key) => f.board.get(key),
+      io: {
+        ops: {
+          rename: async () => {
+            throw new Error('Disk full');
+          },
+        },
+      },
+    });
+    expect(code(await marker.markDone(body(f)))).toBe('IO_ERROR');
+    expect(readFileSync(f.file)).toEqual(before);
+  });
+
+  it('rechecks the agent revision on every sharing-violation retry', async () => {
+    const f = await tasksFixture();
+    let attempts = 0;
+    const marker = new MarkDone({
+      store: f.store,
+      lookup: (key) => f.board.get(key),
+      io: {
+        ops: {
+          rename: async (source, target) => {
+            if (target === f.file && ++attempts === 1) {
+              writeFileSync(
+                f.file,
+                'Status: Blocked\nGoal: Agent saved this\n',
+              );
+              throw Object.assign(new Error('File held'), { code: 'EBUSY' });
+            }
+            await fs.rename(source, target);
+          },
+        },
+      },
+    });
+    expect(code(await marker.markDone(body(f)))).toBe('REVISION_CHANGED');
+    expect(readFileSync(f.file, 'utf8')).toBe(
+      'Status: Blocked\nGoal: Agent saved this\n',
+    );
+    expect(attempts).toBe(1);
+  });
+
+  it('keeps an 8 MiB plan exact and refuses an oversized plan', async () => {
+    const prefix = Buffer.from('Status: Testing\r\n');
+    const bytes = Buffer.concat([
+      prefix,
+      Buffer.alloc(MAX_PLAN_BYTES - prefix.length, 0x61),
+    ]);
+    const f = await tasksFixture(bytes);
+    expect(code(await f.marker.markDone(body(f)))).toBe('ok');
+    expect(readFileSync(f.file)).toEqual(
+      Buffer.concat([
+        Buffer.from('Status: Done\r\n'),
+        bytes.subarray(prefix.length),
+      ]),
+    );
+    const large = await tasksFixture(Buffer.concat([bytes, Buffer.from('x')]));
+    expect(code(await large.marker.markDone(body(large)))).toBe(
+      'REVISION_CHANGED',
+    );
+    expect(backups(large)).toEqual([]);
+  });
   it('writes only the Status value of a Tasks plan, keeps a backup and records it', async () => {
     const f = await tasksFixture();
     const before = readFileSync(f.file);
@@ -415,6 +533,62 @@ describe('mark a plan Done', () => {
 });
 
 describe('undo Mark as Done', () => {
+  it('refuses when the plan is no longer in the ledger', async () => {
+    const f = await tasksFixture();
+    const r = await f.marker.markDone(body(f));
+    if (!r.ok) throw new Error(r.error.message);
+    const after = readFileSync(f.file);
+    f.board.clear();
+    const u = await f.marker.undo({
+      key: planKey(f.plan),
+      token: r.value.undo!.token,
+    });
+    expect(code(u)).toBe('NOT_FOUND');
+    expect(readFileSync(f.file)).toEqual(after);
+  });
+
+  it('refuses an in-memory token after restart', async () => {
+    const f = await tasksFixture();
+    const r = await f.marker.markDone(body(f));
+    if (!r.ok) throw new Error(r.error.message);
+    const marker = new MarkDone({
+      store: f.store,
+      lookup: (key) => f.board.get(key),
+    });
+    expect(
+      code(
+        await marker.undo({ key: planKey(f.plan), token: r.value.undo!.token }),
+      ),
+    ).toBe('CONFLICT');
+    expect(readFileSync(f.file, 'utf8')).toContain('Status: Done');
+  });
+
+  it('checks token expiry again immediately before replacing the file', async () => {
+    const f = await tasksFixture();
+    let expireDuringWrite = false;
+    const marker = new MarkDone({
+      store: f.store,
+      lookup: (key) => f.board.get(key),
+      now: () => new Date(f.clock.now),
+      io: {
+        ops: {
+          writeAll: async (handle, data) => {
+            await handle.writeFile(data);
+            if (expireDuringWrite) f.clock.now += 120_001;
+          },
+        },
+      },
+    });
+    const r = await marker.markDone(body(f));
+    if (!r.ok) throw new Error(r.error.message);
+    expireDuringWrite = true;
+    expect(
+      code(
+        await marker.undo({ key: planKey(f.plan), token: r.value.undo!.token }),
+      ),
+    ).toBe('CONFLICT');
+    expect(readFileSync(f.file, 'utf8')).toContain('Status: Done');
+  });
   it('puts the original bytes back within 2 minutes', async () => {
     const f = await tasksFixture();
     const before = readFileSync(f.file);

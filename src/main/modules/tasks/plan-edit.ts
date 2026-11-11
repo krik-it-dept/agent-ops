@@ -6,10 +6,10 @@
 // The top Status line is the one the plan reader uses as the plan's stage
 // (src/main/modules/plans/parse.ts): the first `Status:` header line, matched
 // case-insensitively after trimming, before the first level-2 to level-4
-// heading, outside fenced code. Like the reader, `Trạng thái:` is used only
-// when there is no `Status:` line.
+// heading, outside fenced code. Unlike the reader, editing requires the
+// English `Status:` label; a legacy `Trạng thái:` line is never changed.
 
-const LABELS = ['Status', 'Trạng thái'] as const;
+const LABELS = ['Status'] as const;
 
 /** StatusSpan is the byte range of the Status value inside the file. */
 export interface StatusSpan {
@@ -22,10 +22,6 @@ export interface StatusSpan {
 }
 
 const BOM = [0xef, 0xbb, 0xbf];
-
-function isBlank(c: number): boolean {
-  return c === 0x20 || c === 0x09;
-}
 
 interface Line {
   /** Offset of the first byte of the line content. */
@@ -88,14 +84,13 @@ export function findStatus(bytes: Uint8Array): StatusSpan | null {
       if (found.has(label)) continue;
       if (!l.toLowerCase().startsWith(`${label.toLowerCase()}:`)) continue;
       const lead = text.length - text.trimStart().length;
-      let start =
-        line.start + Buffer.byteLength(text.slice(0, lead + label.length + 1));
-      let end = line.end;
-      while (start < end && isBlank(bytes[start]!)) start++;
-      while (end > start && isBlank(bytes[end - 1]!)) end--;
-      const value = Buffer.from(bytes.subarray(start, end))
-        .toString('utf8')
-        .trim();
+      const afterColon = text.slice(lead + label.length + 1);
+      const leading = afterColon.length - afterColon.trimStart().length;
+      const value = afterColon.trim();
+      const start =
+        line.start +
+        Buffer.byteLength(text.slice(0, lead + label.length + 1 + leading));
+      const end = start + Buffer.byteLength(value);
       found.set(label, { start, end, value });
     }
   }

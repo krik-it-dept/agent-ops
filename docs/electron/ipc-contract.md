@@ -74,7 +74,7 @@ are bounded by collector/store/diff limits rather than a small generic request c
 Only the following method-specific bridge is exposed conceptually (no generic channel access):
 `agentOps.state.get/refresh/onChanged`, `settings.get/set`, `workspaces.add/edit/remove`,
 `tasks.moveLegacy/moveAll`, `skills.list/add/edit/removeTarget/diff/install/update/replace/keep/
-removeSkill/instructionsOn/instructionsOff`, `plans.archive/recycle`, `shell.pick/cancelPick/
+removeSkill/instructionsOn/instructionsOff`, `plans.archive/recycle/markDone/undoMarkDone`, `shell.pick/cancelPick/
 openFolder/openExternal`, `updates.get/check/apply/skip/onChanged`,
 `diagnostics.get/copy/dismissCrash`, `app.getInfo/getInstance/open/onActivate`.
 Every event method returns an idempotent unsubscribe function and forwards only validated data.
@@ -391,11 +391,14 @@ folder. Clear previousTasksDir only when it has no remaining plans.
 
 Mark as Done is the one plan edit (owner decision 2026-11-11). Main finds the top Status line as the
 reader does (the first `Status:` header line before the first level-2 to level-4 heading, outside fenced
-code; `Trạng thái:` only without one) and replaces its value with `Done` on the raw bytes, so the BOM,
+code; a legacy `Trạng thái:` label alone does not permit editing) and replaces its value with `Done` on the raw bytes, so the BOM,
 line endings, spacing and every other byte stay. Before writing it copies the original to
 `<dataDir>\backups\plan-edits\<UTC time>-<id>\<workspace>\<plan>.md` and keeps the newest 50 such
 folders; the write is atomic. It records one `status` activity entry, "Marked Done in Agent Ops", with
-actor `Agent Ops`, and refreshes the ledger before replying. Undo tokens live in memory only.
+actor `Agent Ops`, and refreshes the ledger before replying. Undo tokens live in memory only and
+do not survive an app restart. Both actions re-resolve the current plan and its containment before
+replacement; Undo also checks expiry at that point. As with Delete, a change in the small interval
+between the final check and rename can still be overwritten; there is no cross-process write lock.
 
 ```ts
 interface MarkedPlan {

@@ -163,9 +163,11 @@ async function replaceChecked(
   expected: string,
   bytes: Uint8Array,
   changed: string,
+  validate: () => Promise<void>,
   io?: SafeIoOptions,
 ): Promise<void> {
   const rename = io?.ops?.rename ?? ((a: string, b: string) => fs.rename(a, b));
+  await validate();
   await writeFileAtomic(file, bytes, {
     ...io,
     ops: {
@@ -180,6 +182,7 @@ async function replaceChecked(
           sha(now.bytes) !== expected
         )
           throw new OwnerError('REVISION_CHANGED', changed);
+        await validate();
         await rename(tmp, target);
       },
     },
@@ -198,7 +201,25 @@ export class MarkDone {
   private prune(): void {
     const now = this.now().getTime();
     for (const [token, entry] of this.undos)
-      if (entry.expires < now) this.undos.delete(token);
+      if (entry.expires <= now) this.undos.delete(token);
+  }
+
+  /** Re-resolve authority at commit time, including removed plans and redirected folders. */
+  private async validatePath(key: string, expected: string): Promise<void> {
+    if (this.opts.store.readOnly)
+      throw new OwnerError('READ_ONLY', this.opts.store.readOnly);
+    const plan = this.opts.lookup(key);
+    if (!plan)
+      throw new OwnerError(
+        'NOT_FOUND',
+        'This plan is no longer available. Refresh the list.',
+      );
+    const current = await planActionPath(plan, this.opts.store.get(), VERB);
+    if (pathKey(current) !== pathKey(expected))
+      throw new OwnerError(
+        'CONFLICT',
+        'The plan location changed. Refresh the list.',
+      );
   }
 
   /** markDone writes `Done` as the plan's Status value. */
@@ -245,6 +266,7 @@ export class MarkDone {
           req.revision,
           next,
           CHANGED,
+          () => this.validatePath(req.key, file),
           this.opts.io,
         );
       } catch (err) {
@@ -299,19 +321,7 @@ export class MarkDone {
     const entry = this.undos.get(req.token);
     if (!entry || entry.key !== req.key) return fail('CONFLICT', UNDO_GONE);
     const result = await settle(async () => {
-      // The plan is resolved again when the board has it, so a workspace
-      // removed or a folder redirected since then is refused.
-      const p = this.opts.lookup(req.key);
-      if (p) {
-        let file: string;
-        try {
-          file = await planActionPath(p, this.opts.store.get(), VERB);
-        } catch (err) {
-          throw unavailable(err);
-        }
-        if (pathKey(file) !== pathKey(entry.file))
-          throw new OwnerError('CONFLICT', UNDO_CHANGED);
-      }
+      await this.validatePath(req.key, entry.file);
       const read = await readPlan(entry.file, UNDO_CHANGED);
       if (sha(read.bytes) !== entry.written)
         throw new OwnerError('REVISION_CHANGED', UNDO_CHANGED);
@@ -322,6 +332,14 @@ export class MarkDone {
           entry.written,
           entry.original,
           UNDO_CHANGED,
+          async () => {
+            await this.validatePath(req.key, entry.file);
+            if (
+              entry.expires <= this.now().getTime() ||
+              this.undos.get(req.token) !== entry
+            )
+              throw new OwnerError('CONFLICT', UNDO_GONE);
+          },
           this.opts.io,
         );
       } catch (err) {
