@@ -45,7 +45,10 @@ export function createNotifier(options: {
   icon: string;
   openPlan(key: string): void;
   onError?: () => void;
+  now?: () => number;
 }) {
+  let runWindow = Number.NEGATIVE_INFINITY;
+  const runPlans = new Set<string>();
   return {
     notify(events: readonly NotificationEvent[]): number {
       if (!options.managed || !options.enabled() || !options.port.supported())
@@ -66,6 +69,16 @@ export function createNotifier(options: {
           .filter((v) => v !== undefined && v !== '')
           .join('/');
         if (!validPlanKey(key)) continue;
+        if (event.kind === 'run-blocked') {
+          const now = options.now?.() ?? Date.now();
+          if (now - runWindow >= 60_000) {
+            runWindow = now;
+            runPlans.clear();
+          }
+          // Keep every activity entry, but limit run toasts across watcher batches.
+          if (runPlans.has(key) || runPlans.size >= 3) continue;
+          runPlans.add(key);
+        }
         try {
           options.port.show(
             {

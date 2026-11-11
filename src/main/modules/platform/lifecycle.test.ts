@@ -427,4 +427,29 @@ describe('tray and notifications through fakes', () => {
     expect(notificationText('a\0b\ufffd')).toBe('ab');
     clicks = [];
   });
+  it('limits blocked-run notifications across large and repeated watcher batches', () => {
+    let now = 0;
+    const show = vi.fn();
+    const notifier = createNotifier({
+      port: { supported: () => true, show },
+      enabled: () => true,
+      managed: true,
+      icon: 'app.png',
+      openPlan: () => {},
+      now: () => now,
+    });
+    const events = Array.from({ length: 100 }, (_, i) => ({
+      kind: 'run-blocked',
+      repo: 'ws',
+      plan: `plan-${i}`,
+      text: 'Build',
+      extra: 'Permission denied',
+    }));
+    expect(notifier.notify(Array(100).fill(events[0]!))).toBe(1);
+    expect(notifier.notify(events)).toBe(2);
+    expect(notifier.notify(events)).toBe(0);
+    expect(show).toHaveBeenCalledTimes(3);
+    now = 60_000;
+    expect(notifier.notify(events)).toBe(3);
+  });
 });
