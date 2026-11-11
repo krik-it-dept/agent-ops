@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, type DragEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   archived,
@@ -48,18 +48,35 @@ export function columnOf(plan: DisplayPlan) {
     return 3;
   return 0;
 }
+/** The drag data type of a Board card: its plan key. */
+export const PLAN_DRAG_TYPE = 'application/x-agent-ops-plan';
 export const PlanCard = memo(function PlanCard({
   plan,
   attention = false,
+  drag,
 }: {
   plan: DisplayPlan;
   attention?: boolean;
+  /** On the Board, a card that can be dragged to Done. */
+  drag?: { start(key: string): void; end(): void } | undefined;
 }) {
   const current = plan.milestones.find(milestoneOpen);
+  const key = planKey(plan);
   return (
     <article
       className={`work-card${attention ? ' needs-attention' : ''}`}
-      data-plan-key={planKey(plan)}
+      data-plan-key={key}
+      {...(drag
+        ? {
+            draggable: true,
+            onDragStart: (event: DragEvent) => {
+              event.dataTransfer.setData(PLAN_DRAG_TYPE, key);
+              event.dataTransfer.effectAllowed = 'move';
+              drag.start(key);
+            },
+            onDragEnd: () => drag.end(),
+          }
+        : {})}
     >
       <div className="card-heading">
         <PlanLink plan={plan} />

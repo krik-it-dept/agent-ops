@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Link } from 'react-router-dom';
 import type { Plan } from '../../shared/contracts';
 import {
@@ -8,7 +15,7 @@ import {
   statusTone,
   type DisplayPlan,
 } from '../model';
-import { useLedger } from '../store';
+import { useLedger, useLedgerStatus } from '../store';
 
 export const planRoute = (key: string, tab = 'summary') =>
   `/plan/${encodeURIComponent(key)}/${tab}`;
@@ -176,6 +183,92 @@ export function Modal({
     </dialog>
   );
 }
+/** isDone reports a plan whose stage is Done; it has no Mark as Done. */
+export function isDone(plan: Pick<Plan, 'status'>): boolean {
+  return stage(plan.status).trim().toLowerCase() === 'done';
+}
+/** Undo lasts as long as main accepts it. */
+const UNDO_FOR_MS = 2 * 60 * 1000;
+/**
+ * useMarkDone returns the owner's Mark as Done: main writes Done into the
+ * plan's Status line, a toast offers Undo for 2 minutes, and a refusal is
+ * shown plainly while the plan stays where it was.
+ */
+export function useMarkDone() {
+  const { client, reload, report, showToast, settings } = useLedger();
+  const readOnly = !!settings?.readOnly;
+  return useCallback(
+    async (plan: Plan): Promise<boolean> => {
+      if (readOnly) return false;
+      const key = planKey(plan);
+      try {
+        const result = await client.plans.markDone({
+          key,
+          revision: plan.revision,
+        });
+        await reload();
+        const token = result.undo?.token;
+        if (!result.changed || !token) {
+          showToast({ message: `${plan.name} is already Done` });
+          return true;
+        }
+        showToast({
+          message: `Marked ${plan.name} Done`,
+          timeout: UNDO_FOR_MS,
+          action: {
+            label: 'Undo',
+            run: () => {
+              showToast(null);
+              void client.plans
+                .undoMarkDone({ key, token })
+                .then(async (undone) => {
+                  await reload();
+                  showToast({
+                    message: `${plan.name} is back to ${stage(undone.plan.status) || 'its previous stage'}`,
+                  });
+                })
+                .catch(report);
+            },
+          },
+        });
+        return true;
+      } catch (failure) {
+        report(failure);
+        return false;
+      }
+    },
+    [client, reload, report, showToast, readOnly],
+  );
+}
+/** ToastHost shows the latest toast at the bottom of the window. */
+export function ToastHost() {
+  const { toast } = useLedgerStatus();
+  const { showToast } = useLedger();
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => showToast(null), toast.timeout ?? 6000);
+    return () => clearTimeout(timer);
+  }, [toast, showToast]);
+  return (
+    <div className="toast-region" role="status" aria-live="polite">
+      {toast && (
+        <div className="toast" key={toast.id}>
+          <span>{toast.message}</span>
+          {toast.action && (
+            <button onClick={toast.action.run}>{toast.action.label}</button>
+          )}
+          <button
+            className="toast-close"
+            aria-label="Dismiss"
+            onClick={() => showToast(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 export function PlanActions({
   plan,
   afterDelete,
@@ -190,6 +283,7 @@ export function PlanActions({
   const [error, setError] = useState('');
   const isArchived = settings ? archived(plan, settings) : false;
   const locked = busy || !!settings?.readOnly;
+  const markDone = useMarkDone();
   async function archive() {
     if (locked) return;
     setBusy(true);
@@ -236,6 +330,20 @@ export function PlanActions({
       <details className="plan-actions">
         <summary aria-label={`Actions for ${plan.name}`}>⋯</summary>
         <div>
+          {!isDone(plan) && (
+            <button
+              disabled={locked}
+              onClick={(event) => {
+                const menu = event.currentTarget.closest('details');
+                menu?.removeAttribute('open');
+                menu?.querySelector('summary')?.focus();
+                setBusy(true);
+                void markDone(plan).finally(() => setBusy(false));
+              }}
+            >
+              Mark as Done
+            </button>
+          )}
           <button
             disabled={locked}
             onClick={() => {

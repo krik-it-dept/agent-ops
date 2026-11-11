@@ -831,3 +831,68 @@
   color: var(--info);
   font-weight: 500;
 }
+.board-column .work-card[draggable='true'] {
+  cursor: grab;
+}
+.board-column .work-card[draggable='true']:active {
+  cursor: grabbing;
+}
+.board-column.drop-target {
+  outline: 2px dashed var(--success);
+  outline-offset: -2px;
+  transition: background-color 120ms ease-out;
+}
+.board-column.drop-over {
+  background: var(--success-bg);
+}
+.drop-hint {
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px dashed var(--success-border);
+  border-radius: var(--r-md);
+  color: var(--success);
+  font-size: var(--text-2xs);
+  text-align: center;
+}
+.toast-region {
+  position: fixed;
+  right: 16px;
+  bottom: 40px;
+  z-index: 30;
+  max-width: min(420px, calc(100vw - 32px));
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--popover);
+  color: var(--fg);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.16);
+  font-size: var(--text-xs);
+  animation: toast-in 160ms ease-out;
+}
+.toast > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.toast-close {
+  padding: 0 6px;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+  .board-column.drop-target {
+    transition: none;
+  }
+}

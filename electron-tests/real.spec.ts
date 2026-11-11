@@ -273,6 +273,44 @@ test('real first-run setup, native picker port, Skills install, Tasks move, live
     await expect(
       actions.getByRole('button', { name: 'Archive', exact: true }),
     ).toBeVisible();
+    // Mark as Done changes only the Status value, byte for byte, and Undo
+    // puts the original bytes back.
+    const crlf = (text: string) =>
+      String.fromCharCode(0xfeff) + text.replace(/\n/g, '\r\n');
+    const original = Buffer.from(crlf(changed));
+    await writeFile(moved, original);
+    const revision = createHash('sha256').update(original).digest('hex');
+    await expect
+      .poll(() =>
+        page.evaluate(async () => {
+          const result = await window.agentOps.state.get({});
+          return result.ok
+            ? result.value.state.plans.find((p) => p.name === 'real-plan')
+                ?.revision
+            : '';
+        }),
+      )
+      .toBe(revision);
+    await actions
+      .getByRole('button', { name: 'Mark as Done', exact: true })
+      .click();
+    const toast = page.locator('.toast');
+    await expect(toast).toContainText('Marked real-plan Done');
+    expect(await readFile(moved)).toEqual(
+      Buffer.from(crlf(changed.replace('Status: Testing', 'Status: Done'))),
+    );
+    const edits = join(root, 'data', 'backups', 'plan-edits');
+    const [backup] = await readdir(edits);
+    expect(
+      await readFile(join(edits, backup!, 'workspace', 'real-plan.md')),
+    ).toEqual(original);
+    await expect(
+      page.locator('.plan-header').getByText('Done', { exact: true }),
+    ).toBeVisible();
+    await toast.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(toast).toContainText('real-plan is back to Testing');
+    expect(await readFile(moved)).toEqual(original);
+    await actions.locator('summary').click();
     await actions.getByRole('button', { name: /Delete/ }).click();
     const dialog = page.getByRole('dialog', {
       name: 'Move this plan to the Recycle Bin?',
@@ -288,7 +326,7 @@ test('real first-run setup, native picker port, Skills install, Tasks move, live
     ).toBeVisible();
     const result = await controls(app);
     expect(result.trashed).toHaveLength(1);
-    expect(await readFile(result.trashed[0]!, 'utf8')).toBe(changed);
+    expect(await readFile(result.trashed[0]!)).toEqual(original);
     await expect(readFile(moved)).rejects.toMatchObject({ code: 'ENOENT' });
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

@@ -423,6 +423,11 @@ export function createFixtureBridge(
   const picks = new Map<string, (value: unknown) => void>();
   let nextId = 0;
   let updateBusy = false;
+  /** Mark as Done undo tokens: token -> plan key, previous status and revision. */
+  const undos = new Map<
+    string,
+    { key: string; status: string; tone: Plan['tone']; revision: string }
+  >();
   const emit = <C extends keyof EventMap>(channel: C, value: EventMap[C]) => {
     listeners
       .get(channel)
@@ -623,6 +628,87 @@ export function createFixtureBridge(
           );
           publish();
           value = { recycled: true };
+          break;
+        }
+        case 'plans:mark-done': {
+          const key = String(input.key);
+          const plan =
+            data.snapshot.state.plans.find(
+              (p) => `${p.project}/${p.repo}/${p.name}` === key,
+            ) ?? fail('NOT_FOUND', 'The plan is no longer available.');
+          if (input.revision !== plan.revision)
+            fail(
+              'REVISION_CHANGED',
+              'This plan changed. Look again before marking it Done.',
+            );
+          // The sample keeps one plan whose file is locked, to show a refusal.
+          if (plan.name === 'Khắc phục đồng bộ')
+            fail(
+              'CONFLICT',
+              'This plan could not be changed. The file may be locked or unavailable.',
+            );
+          if (plan.status.split(' - ')[0]!.trim().toLowerCase() === 'done') {
+            value = {
+              plan: { key, status: plan.status, revision: plan.revision },
+              changed: false,
+              undo: null,
+            };
+            break;
+          }
+          const token = (++nextId).toString(16).padStart(32, '0');
+          undos.set(token, {
+            key,
+            status: plan.status,
+            tone: plan.tone,
+            revision: plan.revision,
+          });
+          plan.status = 'Done';
+          plan.tone = 'ok';
+          plan.revision = token.padStart(64, 'd');
+          data.snapshot.activity.unshift({
+            ts: new Date().toISOString(),
+            project: plan.project,
+            repo: plan.repo,
+            plan: plan.name,
+            kind: 'status',
+            text: 'Marked Done in Agent Ops',
+            extra: `${undos.get(token)!.status.split(' - ')[0]} → Done`,
+            actor: 'Agent Ops',
+          });
+          publish();
+          value = {
+            plan: { key, status: plan.status, revision: plan.revision },
+            changed: true,
+            undo: {
+              token,
+              expiresAt: new Date(Date.now() + 120_000).toISOString(),
+            },
+          };
+          break;
+        }
+        case 'plans:undo-mark-done': {
+          const entry = undos.get(String(input.token));
+          if (!entry || entry.key !== input.key)
+            fail(
+              'CONFLICT',
+              'Undo is no longer available. It works for 2 minutes after marking a plan Done.',
+            );
+          const plan =
+            data.snapshot.state.plans.find(
+              (p) => `${p.project}/${p.repo}/${p.name}` === entry!.key,
+            ) ?? fail('NOT_FOUND', 'The plan is no longer available.');
+          undos.delete(String(input.token));
+          plan.status = entry!.status;
+          plan.tone = entry!.tone;
+          plan.revision = entry!.revision;
+          publish();
+          value = {
+            plan: {
+              key: entry!.key,
+              status: plan.status,
+              revision: plan.revision,
+            },
+          };
           break;
         }
         case 'tasks:move-legacy':

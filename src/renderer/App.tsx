@@ -31,7 +31,7 @@ import {
   type Navigation,
 } from './preferences';
 import { routePlan, viewRoute, VIEW_SHORTCUTS } from './routes';
-import { Empty, planRoute } from './components/ui';
+import { Empty, planRoute, ToastHost } from './components/ui';
 import { UpdatePanel, updating, useUpdateDock } from './components/Updates';
 import { CommandSearch, ShortcutSheet } from './components/Commands';
 import { Sidebar, sidebarPlans } from './components/Sidebar';
@@ -869,6 +869,7 @@ function Shell() {
         />
       )}
       {help && <ShortcutSheet close={() => setHelp(false)} />}
+      {!isSetup && <ToastHost />}
     </div>
   );
 }

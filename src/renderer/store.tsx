@@ -17,6 +17,13 @@ import type {
 import { selectBridge } from './client';
 import { acceptSnapshot, type Snapshot } from './model';
 
+/** Toast is a short result with an optional action, such as Undo. */
+export interface Toast {
+  message: string;
+  action?: { label: string; run(): void };
+  /** How long the toast stays, in milliseconds. */
+  timeout?: number;
+}
 interface LedgerContext {
   client: AgentOpsClient;
   fixture: boolean;
@@ -32,6 +39,7 @@ interface LedgerContext {
   setUpdate(update: UpdateState): void;
   report(error: unknown): void;
   announce(message: string): void;
+  showToast(toast: Toast | null): void;
 }
 // Fast-changing status lives in its own context, so a refresh announcement
 // does not re-render every plan row that only reads ledger data.
@@ -39,6 +47,7 @@ interface LedgerStatus {
   actionError: string;
   refreshing: boolean;
   notice: string;
+  toast: (Toast & { id: number }) | null;
 }
 const Context = createContext<LedgerContext | null>(null);
 const StatusContext = createContext<LedgerStatus | null>(null);
@@ -93,6 +102,11 @@ export function LedgerProvider({
   // Archive or Copy link error is never shown as "Couldn't read plans".
   const [actionError, setActionError] = useState('');
   const [notice, announce] = useState('');
+  const [toast, setToast] = useState<(Toast & { id: number }) | null>(null);
+  const toastId = useRef(0);
+  const showToast = useCallback((next: Toast | null) => {
+    setToast(next ? { ...next, id: ++toastId.current } : null);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const pending = useRef<Promise<void> | null>(null);
@@ -220,6 +234,7 @@ export function LedgerProvider({
       setUpdate,
       report,
       announce,
+      showToast,
     }),
     [
       client,
@@ -234,11 +249,12 @@ export function LedgerProvider({
       refresh,
       setSettings,
       report,
+      showToast,
     ],
   );
   const status = useMemo(
-    () => ({ actionError, refreshing, notice }),
-    [actionError, refreshing, notice],
+    () => ({ actionError, refreshing, notice, toast }),
+    [actionError, refreshing, notice, toast],
   );
   return (
     <Context.Provider value={value}>
