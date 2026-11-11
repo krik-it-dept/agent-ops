@@ -82,6 +82,19 @@ test('report command records a run while the app runs, prints to pipes and the w
   // Playwright's forced color can conflict with the caller's NO_COLOR and pollute stderr.
   delete env.FORCE_COLOR;
   delete env.NO_COLOR;
+  const failed = await report(
+    {
+      ...env,
+      TEMP: join(root, 'missing-temp'),
+      TMP: join(root, 'missing-temp'),
+    },
+    ['--agent', 'Codex', '--plan-file', plan, '--event', 'start'],
+  );
+  expect(failed.code).toBe(1);
+  expect(failed.stdout.trim()).toBe('');
+  expect(failed.stderr).toBe(
+    'Agent Ops report: The report command could not start safely.\n',
+  );
   const originalConfig = await readFile(join(data, 'config.json'));
   const standalone = await report(env, [
     '--agent',

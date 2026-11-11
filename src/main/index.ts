@@ -508,6 +508,13 @@ async function entry(): Promise<void> {
   await launch();
 }
 void entry().catch((error: unknown) => {
+  if (process.argv.includes(REPORT_FLAG)) {
+    process.stderr.write(
+      'Agent Ops report: The report command could not start safely.\n',
+      () => app.exit(1),
+    );
+    return;
+  }
   if (process.argv.includes('--health-check')) {
     process.stdout.write(
       JSON.stringify({
