@@ -3,8 +3,19 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
-## Unreleased
+## v1.1.0 - Work views and agent tracking
 
+The card-style work views from the beta are back, and every AI tool can report
+the work it does on a plan.
+
+- **Summary, List, Board and Timeline.** Summary opens with four tiles (active,
+  done, updated in the last 7 days, needs attention), cards for current work
+  with the agent chain and progress, a status chart, step progress, agent
+  workload and recent activity. List shows each step with its plan, agent,
+  status, latest result and update time, grouped by plan. Board sorts plans into
+  To do, In progress, Review & test, Waiting and Done; Timeline shows plans by
+  day. An agent filter in the top bar works across the views, and the plan page
+  shows the coordinator, the executing agents and each step's latest result.
 - **Agents report their work.** Agents record their own runs with the app's
   report command (`agent-ops.exe --report --agent <name> --plan-file <plan.md>
   --event start|progress|done|blocked|stopped`, with a step line, run ID and
