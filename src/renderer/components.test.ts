@@ -3,7 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { Glyph, Progress, Status } from './components/ui';
-import { createFixtureBridge, fixtureData } from './dev/fixture-bridge';
+import { AgentChain } from './components/Agents';
+import {
+  createFixtureBridge,
+  fixtureData,
+  samplePlan,
+} from './dev/fixture-bridge';
 import { createClient } from './client';
 import { LedgerProvider } from './store';
 import { Sidebar } from './components/Sidebar';
@@ -248,4 +253,49 @@ describe('React screen components', () => {
       );
     },
   );
+  describe('agent chain', () => {
+    const chain = (coordinator: string, executors: string[]) => {
+      const plan = samplePlan();
+      plan.agent = coordinator;
+      plan.runs = executors.map((agent, n) => ({
+        runId: `r${n}`,
+        agent,
+        coordinator,
+        role: 'executor' as const,
+        event: 'done' as const,
+        active: false,
+        startedAt: `2026-11-10T0${n}:00:00.000Z`,
+        updatedAt: `2026-11-10T0${n}:30:00.000Z`,
+        step: null,
+        result: '',
+      }));
+      plan.steps = plan.steps.map((s) => ({ ...s, executors: [] }));
+      return renderToStaticMarkup(createElement(AgentChain, { plan }));
+    };
+    it('shows one badge when the coordinator is the only executor', () => {
+      const html = chain('Claude', ['Claude']);
+      expect(html.match(/class="agent-chip"/g)).toHaveLength(1);
+      expect(html).not.toContain('→');
+      expect(html).toContain(
+        'aria-label="Coordinator: Claude; Executed by: Claude"',
+      );
+    });
+    it('separates two executors and collapses more into Multi with the full list named', () => {
+      const two = chain('Claude', ['Codex', 'Gemini']);
+      expect(two.match(/class="agent-chip"/g)).toHaveLength(3);
+      expect(two).toContain('class="agent-sep"');
+      const many = chain('Claude', ['Codex', 'Gemini', 'Cursor']);
+      expect(many).toContain('<span>Multi</span>');
+      expect(many.match(/class="agent-chip"/g)).toHaveLength(1);
+      // The tooltip and the accessible name both list every executor.
+      const names = many.match(
+        /aria-label="Coordinator: Claude; Executed by: ([^"]*)"/,
+      )?.[1];
+      expect(names?.split(', ').sort()).toEqual(['Codex', 'Cursor', 'Gemini']);
+      expect(many).toContain(
+        `title="Coordinator: Claude; Executed by: ${names}"`,
+      );
+      expect(many).toMatch(/class="sr-only">: [^<]*Cursor/);
+    });
+  });
 });

@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { Plan, Step } from '../../shared/contracts';
 import { agentName, execution, participation } from '../agents';
 import claude from '../assets/icon-claude.svg';
@@ -28,15 +29,43 @@ export function AgentBadge({ name }: { name: string }) {
     </span>
   );
 }
-export function AgentBadges({ names }: { names: string[] }) {
-  return names.length ? (
+/** Beyond this many executors a chain shows one "Multi" badge. */
+export const CHAIN_EXECUTORS = 2;
+/** Names are separated by commas; more than `collapseAfter` become one "Multi" badge naming them all. */
+export function AgentBadges({
+  names,
+  collapseAfter = Infinity,
+}: {
+  names: string[];
+  collapseAfter?: number;
+}) {
+  if (!names.length)
+    return <span className="muted role-none">Not reported</span>;
+  if (names.length > collapseAfter)
+    return (
+      <span className="agent-badges">
+        <span className="agent-chip agent-multi" title={names.join(', ')}>
+          <span className="agent-monogram" aria-hidden="true">
+            {names.length}
+          </span>
+          <span>Multi</span>
+          <span className="sr-only">: {names.join(', ')}</span>
+        </span>
+      </span>
+    );
+  return (
     <span className="agent-badges">
-      {names.map((name) => (
-        <AgentBadge key={name} name={name} />
+      {names.map((name, i) => (
+        <Fragment key={name}>
+          {i > 0 && (
+            <span className="agent-sep" aria-hidden="true">
+              ,
+            </span>
+          )}
+          <AgentBadge name={name} />
+        </Fragment>
       ))}
     </span>
-  ) : (
-    <span className="muted role-none">Not reported</span>
   );
 }
 export function AgentChain({
@@ -47,21 +76,34 @@ export function AgentChain({
   labels?: boolean;
 }) {
   const { coordinator, executors } = participation(plan);
+  const label = `Coordinator: ${coordinator || 'Not reported'}; Executed by: ${executors.join(', ') || 'Not reported'}`;
+  // The coordinator doing all the work is one agent, not a chain.
+  if (coordinator && executors.length === 1 && executors[0] === coordinator)
+    return (
+      <div
+        className="agent-chain"
+        role="group"
+        aria-label={label}
+        title={label}
+      >
+        <span>
+          {labels && <small>Coordinator and executor</small>}
+          <AgentBadges names={[coordinator]} />
+        </span>
+      </div>
+    );
   return (
-    <div
-      className="agent-chain"
-      aria-label={`Coordinator: ${coordinator || 'Not reported'}; Executed by: ${executors.join(', ') || 'Not reported'}`}
-    >
+    <div className="agent-chain" role="group" aria-label={label} title={label}>
       <span>
         {labels && <small>Coordinator</small>}
         <AgentBadges names={coordinator ? [coordinator] : []} />
       </span>
-      <span className="muted" aria-hidden="true">
+      <span className="muted agent-arrow" aria-hidden="true">
         →
       </span>
       <span>
         {labels && <small>Executed by</small>}
-        <AgentBadges names={executors} />
+        <AgentBadges names={executors} collapseAfter={CHAIN_EXECUTORS} />
       </span>
     </div>
   );

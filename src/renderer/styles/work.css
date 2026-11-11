@@ -57,6 +57,22 @@
   gap: 7px;
   font-size: var(--text-2xs);
 }
+.agent-sep {
+  color: var(--muted-fg);
+  margin-left: -4px;
+}
+.agent-multi .agent-monogram {
+  min-width: 18px;
+}
+/* The arrow stays with the executors; the chain never wraps after it. */
+.agent-chain .agent-arrow {
+  flex: none;
+}
+.timeline-table .agent-chain,
+.timeline-table .agent-badges {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
 .agent-chain > span > small {
   display: block;
   color: var(--muted-fg);
@@ -516,8 +532,8 @@
   min-width: 150px;
 }
 .timeline-table .timeline-agent {
-  width: 210px;
-  min-width: 210px;
+  width: 260px;
+  min-width: 260px;
 }
 .timeline-table thead .timeline-work {
   z-index: 4;

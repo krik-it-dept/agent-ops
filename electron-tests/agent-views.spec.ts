@@ -149,6 +149,11 @@ for (const theme of ['light', 'dark'] as const) {
           await expect(
             page.locator('.timeline-table .agent-chain').first(),
           ).toBeVisible();
+          // The chain stays on one line: the arrow never wraps below the coordinator.
+          for (const chain of await page
+            .locator('.timeline-table .agent-chain')
+            .all())
+            expect((await chain.boundingBox())!.height).toBeLessThan(30);
           await page.getByRole('button', { name: 'Previous month' }).click();
           await expect(page.locator('.timeline-toolbar')).toContainText(
             'October 2026',
