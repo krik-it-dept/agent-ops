@@ -169,6 +169,7 @@ export function fixtureData(mode: FixtureMode = 'demo'): {
     setupComplete: mode !== 'setup',
     notifications: true,
     theme: 'system',
+    textSize: 'default',
     shortcuts: true,
     autoArchiveDone: false,
     planArchive: null,
@@ -338,7 +339,7 @@ export function fixtureData(mode: FixtureMode = 'demo'): {
 export function createFixtureBridge(
   mode: FixtureMode = 'demo',
   initial: Partial<
-    Pick<Settings, 'theme' | 'shortcuts' | 'autoArchiveDone'>
+    Pick<Settings, 'theme' | 'textSize' | 'shortcuts' | 'autoArchiveDone'>
   > = {},
 ): AgentOpsBridge {
   const data = fixtureData(mode);
@@ -437,6 +438,11 @@ export function createFixtureBridge(
           break;
         case 'settings:set': {
           const patch = request as SettingsPatch;
+          if (/[\\/]projects[\\/]?$/i.test(patch.tasksDir ?? ''))
+            fail(
+              'CONTAINS_WORKSPACE',
+              'This folder contains the workspace “Studio”, so its files would be read as plans. Use a new folder inside it instead.',
+            );
           if (
             patch.tasksDir?.toLowerCase().includes('inside') &&
             !patch.allowInsideWorkspace

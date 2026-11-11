@@ -105,13 +105,17 @@ describe('Tasks folder rules', () => {
         path.dirname(project) + '\\.',
         'contains the workspace',
       ],
-      ['is a project', project, 'contains the workspace'],
+      ['is a project', project, 'is the workspace'],
     ];
     for (const [name, p, want] of cases) {
       const r = await tasks.setTasksDir({ tasksDir: p });
       expect(r.ok, name).toBe(false);
       if (!r.ok) {
-        expect(r.error.code, name).toBe('INVALID_REQUEST');
+        expect(r.error.code, name).toBe(
+          name === 'contains a project'
+            ? 'CONTAINS_WORKSPACE'
+            : 'INVALID_REQUEST',
+        );
         expect(r.error.message, name).toContain(want);
       }
     }
@@ -155,7 +159,7 @@ describe('Tasks folder rules', () => {
         code(
           await tasks.setTasksDir({ tasksDir: path.join(dir, 'work') + '\\' }),
         ),
-      ).toBe('INVALID_REQUEST');
+      ).toBe('CONTAINS_WORKSPACE');
     },
   );
 

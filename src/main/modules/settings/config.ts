@@ -46,6 +46,8 @@ export interface AppConfig {
   notifications: boolean;
   /** '' means system. */
   theme: Theme;
+  /** Interface scale; '' means default. */
+  textSize: TextSize;
   shortcuts: boolean;
   autoArchiveDone: boolean;
   /** Explicit owner choices by plan key; false overrides automatic archiving. */
@@ -67,6 +69,7 @@ export function defaultConfig(): AppConfig {
     previousTasksDir: '',
     notifications: true,
     theme: '',
+    textSize: '',
     shortcuts: true,
     autoArchiveDone: false,
     planArchive: {},
@@ -77,6 +80,12 @@ export function defaultConfig(): AppConfig {
 
 export function cloneConfig(c: AppConfig): AppConfig {
   return structuredClone(c);
+}
+
+export const TEXT_SIZES = ['small', 'default', 'large', 'larger'] as const;
+export type TextSize = (typeof TEXT_SIZES)[number] | '';
+export function validTextSize(size: unknown): size is TextSize {
+  return size === '' || (TEXT_SIZES as readonly unknown[]).includes(size);
 }
 
 export function validTheme(theme: unknown): theme is Theme {
@@ -111,6 +120,7 @@ const KNOWN_KEYS = new Set([
   'previousTasksDir',
   'notifications',
   'theme',
+  'textSize',
   'shortcuts',
   'autoArchiveDone',
   'planArchive',
@@ -210,6 +220,7 @@ export function parseConfig(text: string): AppConfig {
     previousTasksDir: field(raw, 'previousTasksDir', 'string', ''),
     notifications: field(raw, 'notifications', 'boolean', true),
     theme: field(raw, 'theme', 'string', '' as Theme),
+    textSize: field(raw, 'textSize', 'string', '' as TextSize),
     shortcuts: field(raw, 'shortcuts', 'boolean', true),
     autoArchiveDone: field(raw, 'autoArchiveDone', 'boolean', false),
     planArchive,
@@ -263,6 +274,8 @@ export function validateConfig(c: AppConfig): string {
     }
   }
   if (!validTheme(c.theme)) return 'theme must be system, light or dark';
+  if (!validTextSize(c.textSize))
+    return 'text size must be small, default, large or larger';
   for (const dir of [c.tasksDir, c.previousTasksDir]) {
     if (dir !== '' && (!isAbsolutePath(dir) || isNetworkOrDevicePath(dir))) {
       return 'the Tasks folder must be an absolute path on this computer';
@@ -289,6 +302,7 @@ export function serializeConfig(c: AppConfig): string {
   if (c.previousTasksDir !== '') out.previousTasksDir = c.previousTasksDir;
   out.notifications = c.notifications;
   if (c.theme !== '') out.theme = c.theme;
+  if (c.textSize !== '') out.textSize = c.textSize;
   out.shortcuts = c.shortcuts;
   out.autoArchiveDone = c.autoArchiveDone;
   if (Object.keys(c.planArchive).length > 0) out.planArchive = c.planArchive;

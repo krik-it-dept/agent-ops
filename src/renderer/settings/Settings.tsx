@@ -87,6 +87,26 @@ export function Preferences({ setup = false }: { setup?: boolean }) {
             <option value="dark">Dark</option>
           </select>
         </label>
+        <label className="setting-row" htmlFor="text-size">
+          <span>
+            <strong>Text size</strong>
+            <small>Make text and controls smaller or larger.</small>
+          </span>
+          <select
+            id="text-size"
+            aria-label="Text size"
+            value={settings.textSize}
+            disabled={locked}
+            onChange={(e) =>
+              change({ textSize: e.target.value as typeof settings.textSize })
+            }
+          >
+            <option value="small">Small</option>
+            <option value="default">Default</option>
+            <option value="large">Large</option>
+            <option value="larger">Larger</option>
+          </select>
+        </label>
         {!setup && (
           <label className="setting-row">
             <span>
@@ -442,6 +462,8 @@ export function Tasks({
   const [draft, setDraft] = useState('');
   const [move, setMove] = useState(true);
   const [allow, setAllow] = useState(false);
+  /** A folder inside the chosen one, offered when the chosen folder holds a workspace. */
+  const [inner, setInner] = useState('');
   const [results, setResults] = useState<PlanMove[]>([]);
   const [backup, setBackup] = useState('');
   useEffect(() => {
@@ -454,6 +476,10 @@ export function Tasks({
     setDraft(value.trim());
     setMove(true);
     setAllow(false);
+    setInner('');
+    // Results of an earlier move belong to the previous choice.
+    setResults([]);
+    setBackup('');
     action.setError(value.trim() ? '' : 'Enter a full Tasks folder path.');
   }
   async function change() {
@@ -472,11 +498,11 @@ export function Tasks({
         if (result.moveError) action.setError(result.moveError);
         await reload();
       } catch (failure) {
-        if (
-          failure instanceof BridgeFailure &&
-          failure.detail.code === 'INSIDE_WORKSPACE'
-        )
-          setAllow(true);
+        if (failure instanceof BridgeFailure) {
+          if (failure.detail.code === 'INSIDE_WORKSPACE') setAllow(true);
+          if (failure.detail.code === 'CONTAINS_WORKSPACE')
+            setInner(draft.replace(/[\\/]+$/, '') + '\\Tasks');
+        }
         await reload();
         throw failure;
       }
@@ -571,12 +597,27 @@ export function Tasks({
                 if you want plans there.
               </p>
             )}
+            {inner && (
+              <p>
+                A new folder inside it keeps your plans apart from your
+                workspaces:{' '}
+                <button
+                  className="primary"
+                  disabled={locked}
+                  onClick={() => review(inner)}
+                >
+                  Use {inner}
+                </button>
+              </p>
+            )}
             <div className="actions">
               <button
                 disabled={locked}
                 onClick={() => {
                   setDraft('');
                   setAllow(false);
+                  setInner('');
+                  action.setError('');
                 }}
               >
                 Cancel

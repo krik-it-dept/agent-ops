@@ -188,11 +188,13 @@ export function LedgerProvider({
   useEffect(() => {
     if (settings) {
       document.documentElement.dataset.theme = settings.theme;
+      document.documentElement.dataset.textSize = settings.textSize;
       try {
         localStorage.setItem(
           'wb-prefs',
           JSON.stringify({
             theme: settings.theme,
+            textSize: settings.textSize,
             shortcuts: settings.shortcuts,
             autoArchiveDone: settings.autoArchiveDone,
           }),

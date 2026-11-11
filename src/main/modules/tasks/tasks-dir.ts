@@ -89,17 +89,16 @@ export async function checkTasksDir(
   }
   for (const p of opts.projects) {
     for (const c of [pathKey(p.path), await realKey(p.path)]) {
-      if (
-        c === realK ||
-        c === dirK ||
-        pathWithin(c, realK) ||
-        pathWithin(c, dirK)
-      ) {
+      if (c === realK || c === dirK)
         throw new OwnerError(
           'INVALID_REQUEST',
-          `This folder contains the workspace “${p.name}”. Choose a folder outside your workspaces.`,
+          `This folder is the workspace “${p.name}”. Choose a folder outside your workspaces.`,
         );
-      }
+      if (pathWithin(c, realK) || pathWithin(c, dirK))
+        throw new OwnerError(
+          'CONTAINS_WORKSPACE',
+          `This folder contains the workspace “${p.name}”, so its files would be read as plans. Use a new folder inside it instead.`,
+        );
     }
   }
   if (!opts.allowInside) {

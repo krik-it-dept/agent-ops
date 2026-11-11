@@ -140,6 +140,7 @@ export class CoreServices {
       setupComplete: c.setupComplete,
       notifications: c.notifications,
       theme: themeOrSystem(c.theme),
+      textSize: c.textSize || 'default',
       shortcuts: c.shortcuts,
       autoArchiveDone: c.autoArchiveDone,
       planArchive: c.planArchive,

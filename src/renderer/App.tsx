@@ -562,6 +562,8 @@ function Shell() {
             )}
             <header className="top">
               {title && <h1>{title}</h1>}
+              {/* A plan page places its title row here, level with search and Refresh. */}
+              {activeKey && <div className="top-title" id="page-title" />}
               <label className="sr-only" htmlFor="work-search">
                 {activeKey ? 'Search this plan' : 'Search work'}
               </label>

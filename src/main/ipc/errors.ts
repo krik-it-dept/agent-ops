@@ -13,6 +13,7 @@ const codes = new Set<ErrorCode>([
   'READ_ONLY',
   'BUSY',
   'INSIDE_WORKSPACE',
+  'CONTAINS_WORKSPACE',
   'REVISION_CHANGED',
   'UNAVAILABLE',
   'TIMEOUT',

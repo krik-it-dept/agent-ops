@@ -12,6 +12,7 @@ export type ErrorCode =
   | 'READ_ONLY'
   | 'BUSY'
   | 'INSIDE_WORKSPACE'
+  | 'CONTAINS_WORKSPACE'
   | 'REVISION_CHANGED'
   | 'UNAVAILABLE'
   | 'TIMEOUT'
@@ -186,6 +187,7 @@ export interface StateResponse {
 }
 
 export type Theme = 'system' | 'light' | 'dark';
+export type TextSize = 'small' | 'default' | 'large' | 'larger';
 export interface Project {
   id: ProjectId;
   path: string;
@@ -210,6 +212,7 @@ export interface Settings {
   setupComplete: boolean;
   notifications: boolean;
   theme: Theme;
+  textSize: TextSize;
   shortcuts: boolean;
   autoArchiveDone: boolean;
   planArchive: Record<PlanKey, boolean> | null;
@@ -233,6 +236,7 @@ export interface SettingsPatch {
   setupComplete?: boolean;
   startWithWindows?: boolean;
   theme?: Theme;
+  textSize?: TextSize;
   shortcuts?: boolean;
   autoArchiveDone?: boolean;
   tasksDir?: string;
@@ -287,6 +291,7 @@ export interface AppConfig {
   previousTasksDir?: string;
   notifications: boolean;
   theme?: Theme | '';
+  textSize?: TextSize;
   shortcuts: boolean;
   autoArchiveDone: boolean;
   planArchive?: Record<PlanKey, boolean>;

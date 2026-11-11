@@ -22,6 +22,13 @@ try {
     ['system', 'light', 'dark'].includes(String(prefs.theme))
   )
     document.documentElement.dataset.theme = String(prefs.theme);
+  if (
+    prefs &&
+    typeof prefs === 'object' &&
+    'textSize' in prefs &&
+    ['small', 'default', 'large', 'larger'].includes(String(prefs.textSize))
+  )
+    document.documentElement.dataset.textSize = String(prefs.textSize);
 } catch {
   /* Theme falls back to system when optional browser preferences are unavailable. */
 }

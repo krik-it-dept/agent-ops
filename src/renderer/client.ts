@@ -3,6 +3,7 @@ import type {
   AgentOpsClient,
   AppError,
   Result,
+  Settings,
 } from '../shared/contracts';
 import { createFixtureBridge, type FixtureMode } from './dev/fixture-bridge';
 
@@ -86,6 +87,11 @@ export function selectBridge(): { client: AgentOpsClient; fixture: boolean } {
             return {
               ...(['system', 'light', 'dark'].includes(String(theme))
                 ? { theme: theme as 'system' | 'light' | 'dark' }
+                : {}),
+              ...(['small', 'default', 'large', 'larger'].includes(
+                String(saved.textSize),
+              )
+                ? { textSize: saved.textSize as Settings['textSize'] }
                 : {}),
               ...(typeof saved.shortcuts === 'boolean'
                 ? { shortcuts: saved.shortcuts }

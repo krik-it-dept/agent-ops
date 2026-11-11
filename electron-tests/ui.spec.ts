@@ -208,6 +208,28 @@ test('Settings: preferences, Workspace picker/paste, Tasks confirmation and per-
     ).toBeVisible();
     await page.getByLabel('Theme', { exact: true }).selectOption('dark');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    // "Saved" confirms a change, then goes away on its own.
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Saved' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Saved' }),
+    ).toHaveCount(0, { timeout: 6000 });
+    // Text size scales the interface and the window still fits without scrolling.
+    await page.getByLabel('Text size', { exact: true }).selectOption('larger');
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-text-size',
+      'larger',
+    );
+    expect(
+      await page.evaluate(() => ({
+        zoom: getComputedStyle(document.body).zoom,
+        fits:
+          document.querySelector('.app')!.getBoundingClientRect().bottom <=
+          innerHeight + 1,
+      })),
+    ).toEqual({ zoom: '1.25', fits: true });
+    await page.getByLabel('Text size', { exact: true }).selectOption('default');
     await page.getByRole('switch', { name: /Single-key shortcuts/ }).uncheck();
     await page.getByRole('link', { name: '← Back', exact: true }).click();
     await page.locator('.view').click();
@@ -300,6 +322,23 @@ test('Settings: preferences, Workspace picker/paste, Tasks confirmation and per-
     await expect(
       page.getByRole('region', { name: 'Plan move results' }),
     ).toContainText('left in place');
+    // A folder that holds a workspace is refused with a ready subfolder,
+    // and the earlier move results are cleared for the new choice.
+    await page.getByLabel('Tasks folder', { exact: true }).fill('D:\\Projects');
+    await page.getByRole('button', { name: 'Use folder', exact: true }).click();
+    await expect(
+      page.getByRole('region', { name: 'Plan move results' }),
+    ).toHaveCount(0);
+    await confirm.getByRole('button', { name: 'Change Tasks folder' }).click();
+    await expect(page.getByRole('alert')).toContainText(
+      'contains the workspace',
+    );
+    await confirm
+      .getByRole('button', { name: 'Use D:\\Projects\\Tasks', exact: true })
+      .click();
+    await expect(confirm.locator('code')).toHaveText('D:\\Projects\\Tasks');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page
       .getByRole('navigation', { name: 'Settings sections' })
       .getByRole('link', { name: 'Skills', exact: true })
@@ -483,6 +522,14 @@ test('automatic archive, explicit restore, stars/tabs and refresh preserve navig
         exact: true,
       }),
     ).toBeVisible();
+    // The plan's title row sits in the top bar, level with search and Refresh.
+    const titleBox = await page.locator('.top .plan-header').boundingBox();
+    const searchBox = await page.locator('#work-search').boundingBox();
+    expect(titleBox && searchBox).toBeTruthy();
+    expect(searchBox!.y).toBeGreaterThanOrEqual(titleBox!.y);
+    expect(searchBox!.y + searchBox!.height).toBeLessThanOrEqual(
+      titleBox!.y + titleBox!.height + 1,
+    );
     // The plan's name and actions stay in view when its content is scrolled.
     await page.setViewportSize({ width: 1000, height: 420 });
     const scrolled = await page.locator('.view').evaluate((el) => {
@@ -491,6 +538,25 @@ test('automatic archive, explicit restore, stars/tabs and refresh preserve navig
     });
     expect(scrolled).toBeGreaterThan(0);
     await expect(page.locator('.plan-header h1')).toBeInViewport();
+    await expect(
+      page.getByRole('tablist', { name: 'Plan sections' }),
+    ).toBeInViewport();
+    // Goal and Next stay within a third of the window until expanded.
+    await page.locator('.view').evaluate((el) => el.scrollTo(0, 0));
+    const tallest = () =>
+      page.evaluate(() =>
+        Math.max(
+          ...[
+            ...document.querySelectorAll<HTMLElement>(
+              '.plan-summary > .plan-summary-main, .plan-summary > .plan-summary-side',
+            ),
+          ].map((el) => el.getBoundingClientRect().height / innerHeight),
+        ),
+      );
+    expect(await tallest()).toBeLessThanOrEqual(0.34);
+    await page.getByRole('button', { name: 'Show full summary' }).click();
+    expect(await tallest()).toBeGreaterThan(0.34);
+    await page.getByRole('button', { name: 'Show less' }).click();
     expect(fixture.errors).toEqual([]);
   } finally {
     await fixture.close();

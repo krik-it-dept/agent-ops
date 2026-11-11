@@ -15,6 +15,8 @@ export type ErrorCode =
   | 'BUSY'
   /** A Tasks folder inside a workspace; the owner may confirm and resubmit with allowInsideWorkspace (409). */
   | 'INSIDE_WORKSPACE'
+  /** A Tasks folder that holds a workspace; the owner should pick a folder beside it, such as a new subfolder (400). */
+  | 'CONTAINS_WORKSPACE'
   /** The plan file's bytes or identity changed since the owner reviewed it (409). */
   | 'REVISION_CHANGED'
   /** Saving or another file operation failed (500). */

@@ -123,6 +123,7 @@ export const requestSchemas = {
     setupComplete: optional(bool),
     startWithWindows: optional(bool),
     theme: optional(literal('system', 'light', 'dark')),
+    textSize: optional(literal('small', 'default', 'large', 'larger')),
     shortcuts: optional(bool),
     autoArchiveDone: optional(bool),
     tasksDir: optional(text()),
