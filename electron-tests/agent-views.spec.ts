@@ -9,6 +9,12 @@ for (const theme of ['light', 'dark'] as const) {
     const { page, app } = fixture;
     try {
       await page.getByRole('button', { name: 'Dismiss update' }).click();
+      expect(
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          return document.fonts.check('13px Geist', 'Cải thiện tìm kiếm');
+        }),
+      ).toBe(true);
       const tabs = page.getByRole('navigation', { name: 'Views' });
       await expect(
         tabs.getByRole('link', { name: 'Summary', exact: true }),

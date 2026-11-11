@@ -1,9 +1,13 @@
 .view-title {
   min-width: 110px;
 }
+.work-summary {
+  max-width: 1400px;
+  margin: 0 auto;
+}
 .top > select {
   max-width: 190px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   padding: 5px 8px;
 }
 .agent-chip {
@@ -11,7 +15,7 @@
   align-items: center;
   gap: 5px;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--fg);
 }
 .agent-chip img,
@@ -51,7 +55,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 7px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
 }
 .agent-chain > span > small {
   display: block;
@@ -59,7 +63,7 @@
   margin-bottom: 3px;
 }
 .role-none {
-  font-size: 11px;
+  font-size: var(--text-2xs);
 }
 .step-agents {
   display: flex;
@@ -81,7 +85,7 @@
   border-radius: 50%;
 }
 .latest-result {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   overflow-wrap: anywhere;
 }
 .blocked-result {
@@ -127,7 +131,7 @@
   border-radius: 0 var(--r-lg) var(--r-lg) 0;
 }
 .summary-stat > span {
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .summary-stat > strong {
   grid-column: 2;
@@ -135,7 +139,7 @@
   align-self: center;
   font-size: 27px;
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -1px;
 }
 .summary-grid {
@@ -153,11 +157,11 @@
 }
 .summary-panel h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-base);
 }
 .summary-panel > p {
   margin: 6px 0 18px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
 }
 .summary-focus {
   grid-row: span 2;
@@ -169,7 +173,7 @@
   gap: 12px;
 }
 .panel-heading > a {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -183,7 +187,7 @@
 }
 .summary-focus > .work-card {
   margin: 0;
-  padding: 18px 0;
+  padding: var(--s-4) 0;
   border: 0;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
@@ -193,7 +197,7 @@
 }
 .summary-focus > a {
   display: inline-block;
-  font-size: 12px;
+  font-size: var(--text-xs);
   margin-top: 4px;
 }
 .card-heading {
@@ -205,12 +209,13 @@
 .card-heading > .work-link {
   flex: 1;
   min-width: 110px;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: 500;
   line-height: 1.5;
   text-decoration: none;
 }
 .card-heading .pill {
-  font-size: 10px;
+  font-size: var(--text-3xs);
 }
 .card-heading .plan-actions {
   margin-left: auto;
@@ -220,11 +225,11 @@
   flex-wrap: wrap;
   gap: 6px;
   color: var(--muted-fg);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   margin-top: 4px;
 }
 .card-next {
-  font-size: 12px;
+  font-size: var(--text-sm);
   margin: 10px 0 8px;
   line-height: 1.65;
 }
@@ -270,8 +275,8 @@
   justify-content: center;
 }
 .status-donut strong {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: var(--text-2xl);
+  font-weight: 500;
 }
 .status-donut small {
   color: var(--muted-fg);
@@ -287,8 +292,8 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  margin: 12px 0;
-  font-size: 11px;
+  margin: var(--s-2) 0;
+  font-size: var(--text-2xs);
 }
 .status-legend i,
 .board-column h2 > i {
@@ -309,11 +314,12 @@
 }
 .summary-step-progress > strong {
   display: block;
-  font-size: 24px;
+  font-size: var(--text-2xl);
+  font-weight: 500;
   margin: 12px 0;
 }
 .summary-step-progress > strong > span {
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 400;
 }
 .summary-step-progress progress {
@@ -328,7 +334,7 @@
   gap: 4px;
   padding: 10px 0;
   border-top: 1px solid var(--border);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .agent-workload {
   display: grid;
@@ -339,10 +345,17 @@
   grid-template-columns: minmax(100px, 1fr) auto;
   justify-content: stretch;
   text-align: left;
-  padding: 10px;
+  padding: var(--s-2-5) 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+.agent-workload > button:hover {
+  background: var(--hover);
 }
 .agent-workload > button > span:nth-child(2) {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--muted-fg);
 }
 .agent-workload > button > small {
@@ -350,7 +363,7 @@
   color: var(--muted-fg);
 }
 .summary-panel .activity-feed h3 {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--muted-fg);
 }
 .summary-panel .activity-feed {
@@ -359,7 +372,7 @@
 }
 .summary-panel .activity-item {
   padding: 10px 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .plan-card-grid {
   display: grid;
@@ -384,7 +397,7 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 14px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   white-space: nowrap;
 }
 .board-column > h2 small {
@@ -434,7 +447,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--text-2xs);
 }
 .legend-event {
   width: 8px;
@@ -463,7 +476,7 @@
   table-layout: fixed;
   width: max-content;
   min-width: 100%;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .timeline-table th,
 .timeline-table td {
@@ -475,7 +488,7 @@
 }
 .timeline-table th {
   text-align: left;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   height: 40px;
   position: sticky;
@@ -496,7 +509,7 @@
 .timeline-work time {
   display: block;
   margin-top: 4px;
-  font-size: 10px;
+  font-size: var(--text-3xs);
 }
 .timeline-table .timeline-status {
   width: 150px;
@@ -529,7 +542,7 @@
   border-radius: 50%;
   color: var(--info);
   background: var(--info-bg);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   text-decoration: none;
 }
 .task-table {
@@ -557,7 +570,7 @@
   width: 10%;
 }
 .task-table td time {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: var(--muted-fg);
 }
 @media (min-width: 1600px) {
@@ -585,7 +598,7 @@
     padding: 12px;
   }
   .summary-stat > span {
-    font-size: 11px;
+    font-size: var(--text-2xs);
   }
   .agent-workload > button {
     grid-template-columns: 1fr;

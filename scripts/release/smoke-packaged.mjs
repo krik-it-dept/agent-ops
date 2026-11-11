@@ -33,6 +33,8 @@ const entries = listPackage(asarFile, { isPack: false }).map((e) => e.replaceAll
 check(entries.includes('/out/main/index.cjs'), 'main bundle packed');
 check(entries.includes('/out/preload/index.cjs'), 'preload bundle packed');
 check(entries.includes('/out/renderer/index.html'), 'renderer packed');
+check(entries.includes('/out/renderer/fonts/Geist-Variable.woff2'), 'Geist font packed');
+check(entries.includes('/out/renderer/fonts/Geist-OFL.txt'), 'Geist font license packed');
 check(entries.includes('/node_modules/electron-updater/package.json'), 'electron-updater packed');
 check(!entries.some((e) => e.startsWith('/src/')), 'no TypeScript sources packed');
 check(!entries.some((e) => e.endsWith('.map')), 'no source maps packed');
@@ -97,6 +99,10 @@ try {
   const page = await app.firstWindow();
   await page.getByRole('dialog', { name: 'Agent Ops setup' }).waitFor({ timeout: 30_000 });
   check(true, 'first-run setup opens');
+  check(await page.evaluate(async () => {
+    await document.fonts.ready;
+    return document.fonts.check('13px Geist', 'Cải thiện tìm kiếm');
+  }), 'bundled Geist font loads with strict CSP');
   const result = await page.evaluate(() => window.agentOps.app.getInfo({}));
   if (!result.ok) throw new Error(result.error.message);
   const info = result.value;

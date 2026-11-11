@@ -89,9 +89,7 @@ const TaskRowView = memo(function TaskRowView({
       </td>
       <td>
         <PlanLink plan={plan} />
-        <small className="muted">
-          {plan.repo} · Plan status: {plan.status}
-        </small>
+        <small className="muted">{placeLabel(plan)}</small>
         <SourceLabel plan={plan} />
       </td>
       <td>
