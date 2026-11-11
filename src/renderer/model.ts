@@ -80,17 +80,30 @@ export function archived(plan: Plan, settings: Settings) {
     ? choices[planKey(plan)] === true
     : settings.autoArchiveDone && stage(plan.status) === 'Done';
 }
+/**
+ * A blocking report needs attention while it is still the latest word: the
+ * latest report on a step that is not done, or the latest whole-plan report.
+ * A Done plan or a step checked off since then no longer waits on it.
+ */
+function reportedBlocker(plan: Plan) {
+  if (!plan.runs?.length || stage(plan.status) === 'Done') return false;
+  return (
+    plan.steps.some(
+      (s) =>
+        s.status !== 'done' && execution(plan, s).latest?.event === 'blocked',
+    ) ||
+    [...plan.runs]
+      .filter((r) => !r.step)
+      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0]
+      ?.event === 'blocked'
+  );
+}
 export function needsAttention(plan: Plan, state: StateResponse) {
   return (
     /^waiting for owner/i.test(plan.status) ||
     stage(plan.status) === 'Blocked' ||
     plan.steps.some((s) => s.status === 'blocked') ||
-    (!!plan.runs?.length &&
-      (plan.steps.some((s) => execution(plan, s).latest?.event === 'blocked') ||
-        [...plan.runs]
-          .filter((r) => !r.step)
-          .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0]
-          ?.event === 'blocked')) ||
+    reportedBlocker(plan) ||
     state.stale[planKey(plan)] === true ||
     plan.questions.some((q) => q.open)
   );

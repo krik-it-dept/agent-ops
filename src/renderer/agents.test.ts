@@ -213,4 +213,51 @@ describe('reported agent participation', () => {
       rows.every((r) => execution(r.plan, r.step).latest?.event === 'blocked'),
     ).toBe(true);
   });
+  it('stops asking for attention once a blocked report is superseded by the plan', () => {
+    const quiet = () => {
+      const p = samplePlan();
+      p.questions = [];
+      p.steps = p.steps.filter((s) => s.status !== 'blocked');
+      return p;
+    };
+    const blocked = reported({ event: 'blocked', active: false });
+    const open = { ...quiet(), runs: [blocked] };
+    expect(needsAttention(open, fixtureData().snapshot)).toBe(true);
+    // The owner checked the step off after the agent reported the blocker.
+    const checked = { ...quiet(), runs: [blocked] };
+    checked.steps = checked.steps.map((s, i) =>
+      i === 2 ? { ...s, status: 'done' as const } : s,
+    );
+    expect(needsAttention(checked, fixtureData().snapshot)).toBe(false);
+    // A finished plan keeps its history without staying in Needs attention.
+    const finished = {
+      ...quiet(),
+      status: 'Done',
+      runs: [blocked, reported({ step: null, event: 'blocked' })],
+    };
+    expect(needsAttention(finished, fixtureData().snapshot)).toBe(false);
+    // A whole-plan blocker counts while it is the latest whole-plan report.
+    const planLevel = reported({ step: null, event: 'blocked', active: false });
+    expect(
+      needsAttention({ ...quiet(), runs: [planLevel] }, fixtureData().snapshot),
+    ).toBe(true);
+    expect(
+      needsAttention(
+        {
+          ...quiet(),
+          runs: [
+            planLevel,
+            reported({
+              runId: 'later',
+              step: null,
+              event: 'done',
+              active: false,
+              updatedAt: '2026-11-10T10:00:00.000Z',
+            }),
+          ],
+        },
+        fixtureData().snapshot,
+      ),
+    ).toBe(false);
+  });
 });
