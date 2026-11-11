@@ -252,7 +252,17 @@ export function createPlatformServices(options: ElectronPlatformOptions) {
   const crashes = new CrashService(options.dataDir, app.getVersion(), logger);
   const startup = new StartupService(
     {
-      read: (value) => app.getLoginItemSettings(value),
+      read: (value) => {
+        const settings = app.getLoginItemSettings(value);
+        return {
+          openAtLogin: settings.openAtLogin,
+          launchItems: (settings.launchItems ?? []).map((item) => ({
+            name: item.name,
+            path: item.path,
+            enabled: item.enabled,
+          })),
+        };
+      },
       write: (value) => app.setLoginItemSettings(value),
     },
     policy,

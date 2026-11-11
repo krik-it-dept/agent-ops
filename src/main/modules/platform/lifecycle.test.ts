@@ -65,8 +65,69 @@ describe('OS registration policy and startup', () => {
     expect(port.read).toHaveBeenLastCalledWith({
       path: installed.executable,
       args: ['--background'],
+      name: 'Agent Ops',
     });
     expect(startup.set(false).enabled).toBe(false);
+  });
+  // A fake Run key: values are stored under the name they were written with and
+  // Electron's default lookup name is the app id, as on Windows.
+  function runKey(report: 'openAtLogin' | 'launchItems' = 'openAtLogin') {
+    const values = new Map<string, { path: string; args: string[] }>();
+    return {
+      values,
+      read: vi.fn((o: { path: string; args: string[]; name?: string }) => {
+        const name = o.name ?? 'KrikIT.AgentOps';
+        const found = values.get(name.toLowerCase());
+        return {
+          openAtLogin: report === 'openAtLogin' && !!found,
+          launchItems: [...values].map(([key, v]) => ({
+            name: key === 'agent ops' ? 'Agent Ops' : key,
+            path: v.path,
+            enabled: true,
+          })),
+        };
+      }),
+      write: vi.fn(
+        (v: {
+          openAtLogin: boolean;
+          path: string;
+          args: string[];
+          name: string;
+        }) => {
+          if (v.openAtLogin)
+            values.set(v.name.toLowerCase(), { path: v.path, args: v.args });
+          else values.delete(v.name.toLowerCase());
+        },
+      ),
+    };
+  }
+  it('shows Start with Windows as on after it is turned on, under the name it was written with', () => {
+    const port = runKey();
+    const startup = new StartupService(port, installed);
+    expect(startup.get().enabled).toBe(false);
+    expect(startup.set(true)).toEqual({ enabled: true, managed: true });
+    expect([...port.values.keys()]).toEqual(['agent ops']);
+    expect(startup.get().enabled).toBe(true);
+    expect(startup.set(false)).toEqual({ enabled: false, managed: true });
+    expect(port.values.size).toBe(0);
+    expect(startup.get().enabled).toBe(false);
+  });
+  it('counts an enabled launch item of ours even when the OS only lists it there', () => {
+    const port = runKey('launchItems');
+    const startup = new StartupService(port, installed);
+    port.values.set('agent ops', {
+      path: `"${installed.executable.toUpperCase()}"`,
+      args: ['--background'],
+    });
+    expect(startup.get().enabled).toBe(true);
+    // Another program's item, or ours at another path, does not.
+    port.values.clear();
+    port.values.set('other app', { path: installed.executable, args: [] });
+    port.values.set('agent ops', {
+      path: resolve('elsewhere/agent-ops.exe'),
+      args: ['--background'],
+    });
+    expect(startup.get().enabled).toBe(false);
   });
   it('never reads or writes startup/protocol registration in ordinary development', () => {
     const read = vi.fn(),

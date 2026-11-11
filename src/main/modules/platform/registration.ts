@@ -20,6 +20,9 @@ export function registrationAllowed(policy: RegistrationPolicy): boolean {
   );
 }
 
+const comparable = (value: string) =>
+  resolve(value.trim().replace(/^"(.*)"$/, '$1')).toLowerCase();
+
 export class StartupService {
   readonly managed: boolean;
   constructor(
@@ -37,9 +40,26 @@ export class StartupService {
   }
   get(): { enabled: boolean; managed: boolean } {
     return {
-      enabled: this.managed && this.port.read(this.options()).openAtLogin,
+      enabled: this.managed && this.registered(),
       managed: this.managed,
     };
+  }
+  /**
+   * The Run value is written under APP_NAME, so it is read under the same name;
+   * otherwise Electron looks for its default value name and reports off. An
+   * enabled launch item of ours also counts, whichever way the OS reports it.
+   */
+  private registered(): boolean {
+    const { path, args } = this.options();
+    const result = this.port.read({ path, args, name: APP_NAME });
+    if (result.openAtLogin) return true;
+    const executable = comparable(path);
+    return (result.launchItems ?? []).some(
+      (item) =>
+        item.name.toLowerCase() === APP_NAME.toLowerCase() &&
+        item.enabled &&
+        comparable(item.path) === executable,
+    );
   }
   set(enabled: boolean): { enabled: boolean; managed: boolean } {
     if (!this.managed)
