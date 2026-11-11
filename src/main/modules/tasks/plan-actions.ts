@@ -1,5 +1,5 @@
-// Plan actions. Plan sources stay read-only except the owner's confirmed
-// Delete, which moves the file to the Windows Recycle Bin through an injected
+// Plan actions. Mark as Done is the only content edit (see mark-done.ts).
+// The owner's confirmed Delete moves the file to the Windows Recycle Bin through an injected
 // trash (Electron shell.trashItem). The file is resolved from the settings and
 // the plan key, never from a path the window sends.
 

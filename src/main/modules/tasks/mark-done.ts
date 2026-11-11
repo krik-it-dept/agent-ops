@@ -386,7 +386,9 @@ export async function pruneBackups(root: string, keep: number): Promise<void> {
   let names: string[];
   try {
     names = (await fs.readdir(root, { withFileTypes: true }))
-      .filter((d) => d.isDirectory() && /^\d{8}-\d{6}-[a-f0-9]+$/.test(d.name))
+      .filter(
+        (d) => d.isDirectory() && /^\d{8}-\d{6}-\d{3}[a-f0-9]{8}$/.test(d.name),
+      )
       .map((d) => d.name)
       .sort();
   } catch {

@@ -505,21 +505,32 @@ describe('mark a plan Done', () => {
     const root = path.join(tempDir(), PLAN_EDITS_DIR);
     for (let i = 0; i < 55; i++)
       mkdirSync(
-        path.join(root, `20261111-0800${String(i).padStart(2, '0')}-000aa`),
+        path.join(
+          root,
+          `20261111-0800${String(i).padStart(2, '0')}-000aaaaaaaa`,
+        ),
         { recursive: true },
       );
     mkdirSync(path.join(root, 'keep-me'));
+    const unrelated = put(
+      path.join(root, '20261110-080000-deadbeef', 'notes.txt'),
+      'Keep this',
+    );
     await pruneBackups(root, 50);
     const left = readdirSync(root).sort();
-    expect(left).toHaveLength(51);
+    expect(left).toHaveLength(52);
     expect(left).toContain('keep-me');
-    expect(left[0]).toBe('20261111-080005-000aa');
+    expect(readFileSync(unrelated, 'utf8')).toBe('Keep this');
+    expect(left[1]).toBe('20261111-080005-000aaaaaaaa');
 
     const f = await tasksFixture();
     const own = path.join(f.data, PLAN_EDITS_DIR);
     for (let i = 0; i < 50; i++)
       mkdirSync(
-        path.join(own, `20261110-0000${String(i).padStart(2, '0')}-000bb`),
+        path.join(
+          own,
+          `20261110-0000${String(i).padStart(2, '0')}-000bbbbbbbb`,
+        ),
         {
           recursive: true,
         },
@@ -527,7 +538,7 @@ describe('mark a plan Done', () => {
     expect(code(await f.marker.markDone(body(f)))).toBe('ok');
     const kept = backups(f).sort();
     expect(kept).toHaveLength(50);
-    expect(kept[0]).toBe('20261110-000001-000bb');
+    expect(kept[0]).toBe('20261110-000001-000bbbbbbbb');
     expect(kept[49]).toMatch(/^20261111-080000-/);
   });
 });

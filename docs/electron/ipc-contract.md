@@ -6,7 +6,7 @@ module ownership and persistence; [parity matrix](parity-matrix.md) provides sou
 Channel identifiers use `domain:action`. Storage/DTO field names retain baseline English names;
 UI labels use Workspace / Skills / Tasks.
 
-Current implementation uses these 37 public requests plus private `app:renderer-ready`:
+Current implementation uses these 39 public requests plus private `app:renderer-ready`:
 Empty request and `{ ready: true }` success, normal sender/payload/Result validation, and no
 public bridge method. Preload invokes it after activation listeners attach; main releases
 queued activations only after the reader is ready too. Go source references below are historical
