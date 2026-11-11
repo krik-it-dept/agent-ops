@@ -8,7 +8,7 @@ for (const theme of ['light', 'dark'] as const) {
     const { page } = fixture;
     try {
       await expect(
-        page.getByRole('heading', { name: 'Overview', exact: true }),
+        page.getByRole('heading', { name: 'Summary', exact: true }),
       ).toBeVisible();
       expect(
         await page.evaluate(
@@ -93,9 +93,7 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(
         page.getByRole('heading', { name: 'List', exact: true }),
       ).toBeVisible();
-      await expect(page.locator('.filter-notice')).toContainText(
-        'Status: In progress',
-      );
+      await expect(page.locator('.filter-notice')).toContainText('tasks');
       await page.locator('thead .column-trigger').nth(2).click();
       await page
         .getByLabel('Filter Status', { exact: true })
@@ -138,7 +136,7 @@ for (const theme of ['light', 'dark'] as const) {
         .click();
       await expect(page.locator('.filter-notice')).not.toContainText('Status:');
       await navigate(page, '/');
-      const row = page.locator('article.plan-row').filter({
+      const row = page.locator('article.work-card').filter({
         has: page.getByRole('link', {
           name: 'Cải thiện tìm kiếm',
           exact: true,
@@ -150,9 +148,9 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(
         page.getByRole('heading', { name: 'Archive', exact: true }),
       ).toBeVisible();
-      await expect(page.locator('article.plan-row')).toHaveCount(1);
+      await expect(page.locator('article.work-card')).toHaveCount(1);
       await page
-        .locator('article.plan-row')
+        .locator('article.work-card')
         .getByLabel('Actions for Cải thiện tìm kiếm')
         .click();
       await page
@@ -184,7 +182,7 @@ for (const theme of ['light', 'dark'] as const) {
         ),
       ).toBeVisible();
       await expect(
-        page.locator('article.plan-row').filter({
+        page.locator('article.work-card').filter({
           has: page.getByRole('link', {
             name: 'Cải thiện tìm kiếm',
             exact: true,
@@ -235,7 +233,7 @@ test('Settings: preferences, Workspace picker/paste, Tasks confirmation and per-
     await page.locator('.view').click();
     await page.keyboard.press(',');
     await expect(
-      page.getByRole('heading', { name: 'Overview', exact: true }),
+      page.getByRole('heading', { name: 'Summary', exact: true }),
     ).toBeVisible();
     await page.keyboard.press('Control+,');
     await expect(
@@ -415,7 +413,7 @@ test('first-run setup: Workspace, unchecked Skills choices, suggested Tasks and 
       .getByRole('button', { name: 'Open ledger', exact: true })
       .click();
     await expect(
-      page.getByRole('heading', { name: 'Overview', exact: true }),
+      page.getByRole('heading', { name: 'Summary', exact: true }),
     ).toBeVisible();
     await navigate(page, '/settings/tasks');
     await expect(page.getByLabel('Tasks folder', { exact: true })).toHaveValue(
@@ -463,7 +461,7 @@ test('read failures retain plans and timestamp, update errors are actionable and
     expect(
       await page.locator('.statusbar > span').nth(1).getAttribute('title'),
     ).toBe(checked);
-    await expect(page.locator('article.plan-row').first()).toBeVisible();
+    await expect(page.locator('article.work-card').first()).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Open logs', exact: true }),
     ).toBeVisible();
@@ -490,7 +488,7 @@ test('automatic archive, explicit restore, stars/tabs and refresh preserve navig
       .getByRole('switch', { name: /Automatically archive Done plans/ })
       .check();
     await navigate(page, '/archive');
-    await expect(page.locator('article.plan-row')).toHaveCount(1);
+    await expect(page.locator('article.work-card')).toHaveCount(1);
     await page.getByLabel('Actions for Hoàn tất bản mẫu').click();
     await page.getByRole('button', { name: 'Unarchive', exact: true }).click();
     await expect(
@@ -647,17 +645,25 @@ test('history, deep links, unavailable plans, shortcut sheet and narrow reduced-
       .getByRole('navigation', { name: 'Views' })
       .getByRole('link', { name: 'List', exact: true })
       .click();
+    // Each view must be shown before the next step, or Back can run before the
+    // history entry exists on a slow machine.
+    await expect(
+      page.getByRole('heading', { name: 'List', exact: true }),
+    ).toBeVisible();
     await page
       .getByRole('navigation', { name: 'Views' })
-      .getByRole('link', { name: 'Overview', exact: true })
+      .getByRole('link', { name: 'Summary', exact: true })
       .click();
+    await expect(
+      page.getByRole('heading', { name: 'Summary', exact: true }),
+    ).toBeVisible();
     await page.goBack();
     await expect(
       page.getByRole('heading', { name: 'List', exact: true }),
     ).toBeVisible();
     await page.goForward();
     await expect(
-      page.getByRole('heading', { name: 'Overview', exact: true }),
+      page.getByRole('heading', { name: 'Summary', exact: true }),
     ).toBeVisible();
     await navigate(page, `/plan/${encodeURIComponent(key)}/summary?step=L19`);
     await expect(page.locator('[aria-current="step"]')).toContainText(

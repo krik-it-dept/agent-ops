@@ -189,7 +189,17 @@ export async function collectFixture(
 export function normalized(out: Overview, root: string): unknown {
   const copy = structuredClone(out);
   copy.generatedAt = '<TIME>';
-  for (const plan of copy.plans) plan.mtime = '<TIME>';
+  for (const plan of copy.plans) {
+    plan.mtime = '<TIME>';
+    // The Go baseline predates agent fields; they have their own tests.
+    delete plan.agent;
+    delete plan.runs;
+    for (const step of [
+      ...plan.steps,
+      ...plan.milestones.flatMap((m) => m.steps),
+    ])
+      delete step.executors;
+  }
   return JSON.parse(
     JSON.stringify(copy, (_key, v: unknown) =>
       typeof v === 'string'

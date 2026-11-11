@@ -25,7 +25,8 @@ are retained; add baseline launch compatibility with explicit flags taking prece
 
 Windows x64; Electron main/preload/renderer; React, TypeScript and Vite; no Go runtime,
 Edge dependency or local HTTP server. The app remains a reader of Markdown plans.
-It records file-derived activity, never runs, agents, task assignments or acceptance results.
+It records file-derived activity and reads the runs agents report through the report command
+(`--report`, owner decision 2026-11-11); it never assigns work or records acceptance results.
 Owner actions may archive in configuration, recycle a confirmed plan, or move plans to Tasks
 with backups and a report. The business hierarchy and problem/impact migration remain separate.
 

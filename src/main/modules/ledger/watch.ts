@@ -1,5 +1,5 @@
 import { watch, type FSWatcher } from 'node:fs';
-import { realpath, stat } from 'node:fs/promises';
+import { readdir, realpath, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {
   listPlans,
@@ -48,6 +48,26 @@ async function inspect(
       for (const name of names) await folder(join(config.tasksDir, name));
     } catch {
       parts.push(config.tasksDir, 'missing');
+    }
+  }
+  if (config.runsDir) {
+    // Agent reports: one file per run; a report appends to its file.
+    roots.add(config.runsDir);
+    try {
+      const names = (await readdir(config.runsDir))
+        .filter((name) => name.endsWith('.jsonl'))
+        .sort();
+      parts.push(config.runsDir, names);
+      for (const name of names) {
+        try {
+          const s = await stat(join(config.runsDir, name));
+          parts.push(name, s.size, s.mtimeMs);
+        } catch {
+          parts.push(name, 'missing');
+        }
+      }
+    } catch {
+      parts.push(config.runsDir, 'missing');
     }
   }
   for (const project of config.projects ?? []) {

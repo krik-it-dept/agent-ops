@@ -45,6 +45,28 @@ describe('Go collector differential corpus', () => {
       expect(normalized(result, root)).toEqual(expected);
     }),
   );
+  it('adds agent fields to the frozen plans that carry them', async () =>
+    withTemp(async (root) => {
+      const pick = async (name: string, plan: string) =>
+        (
+          await collectFixture(
+            root,
+            fixtures.find((f) => f.name === name)!,
+          )
+        ).plans.find((p) => p.name === plan)!;
+      const retired = await pick('intentional', 'retired');
+      expect(retired.agent).toBe('Claude');
+      expect(retired.steps.map((s) => [s.text, s.executors])).toEqual([
+        ['a', ['old']],
+      ]);
+      await fs.rm(root, { recursive: true, force: true });
+      await fs.mkdir(root);
+      const current = await pick('golden', 'current');
+      expect(current.agent).toBeUndefined();
+      expect(
+        current.steps.find((s) => s.text === 'Collect plans')?.executors,
+      ).toEqual(['Codex']);
+    }));
   it('covers every corpus and expected overview', async () => {
     const names = fixtures.map((f) => f.name).sort();
     expect((await fs.readdir(join(fixtureRoot, 'corpus'))).sort()).toEqual(

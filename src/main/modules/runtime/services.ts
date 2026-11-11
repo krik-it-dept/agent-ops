@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import skill from '../../../../skills/task-plan/SKILL.md?raw';
 import {
@@ -24,6 +25,7 @@ import { assertNoLegacyInstance } from './legacy-instance';
 import { MutationGate } from './mutation-gate';
 import { updateHandlers, type UpdaterPort } from './updates';
 import type { Channel, Request } from '../../ipc/requests';
+import { pruneRuns, RUNS_DIR_NAME, syncReportPointers } from '../runs';
 
 export interface RuntimeOptions {
   dataDir: string;
@@ -54,6 +56,8 @@ export interface RuntimeOptions {
   crash?: () => import('../logging/crash').CrashNotice | null;
   legacy?: CoreOptions['legacy'];
   sampleModeAllowed?: boolean;
+  /** The full path of the executable agents run with --report; only packaged builds pass it. */
+  reportCommand?: string;
 }
 
 /** Composition adapters only: no duplicate settings, activity or platform business logic. */
@@ -74,8 +78,14 @@ export function createRuntime(options: RuntimeOptions) {
     ...(options.log ? { log: options.log } : {}),
     ...(options.legacy ? { legacy: options.legacy } : {}),
   });
-  const configuration =
+  const runsDir = join(options.dataDir, RUNS_DIR_NAME);
+  const baseConfiguration =
     options.configuration ?? (async () => core.configuration());
+  // Reported runs are read with the plans and their folder is watched with them.
+  const configuration = async (): Promise<LedgerConfiguration> => ({
+    ...(await baseConfiguration()),
+    runsDir,
+  });
   const activity =
     options.activity ?? activityAdapter(options.dataDir, core, options.notify);
   const ledger: LedgerService = new LedgerService({
@@ -193,9 +203,15 @@ export function createRuntime(options: RuntimeOptions) {
   });
   let initialized: Promise<void> | undefined;
   const initialize = () =>
-    (initialized ??= Promise.resolve().then(() => {
+    (initialized ??= Promise.resolve().then(async () => {
       assertNoLegacyInstance(options.dataDir);
-      return core.initialize();
+      await core.initialize();
+      if (options.reportCommand)
+        for (const warning of await syncReportPointers(options.reportCommand, {
+          dataDir: options.dataDir,
+          env: options.environment,
+        }))
+          options.log?.('Report command pointer', warning);
     }));
   return {
     ledger,
@@ -205,6 +221,12 @@ export function createRuntime(options: RuntimeOptions) {
     initialize,
     start: async () => {
       await initialize();
+      try {
+        await mkdir(runsDir, { recursive: true });
+        await pruneRuns(runsDir, new Date());
+      } catch (e) {
+        options.log?.('Old agent reports could not be removed', e);
+      }
       await ledger.start();
       await options.updater?.start();
     },

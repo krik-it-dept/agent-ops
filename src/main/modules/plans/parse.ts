@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
+import { agentList, canonicalAgent } from './agents';
 
 export type StepStatus = 'todo' | 'doing' | 'done' | 'partial' | 'blocked';
 export interface ParsedStep {
   status: StepStatus;
   text: string;
   line: number;
+  /** Canonical names from a trailing `<!-- Executors: A, B -->` comment; absent when none. */
+  executors?: string[];
 }
 export interface ParsedMilestone {
   id: string;
@@ -20,6 +23,8 @@ export interface ParsedPlan {
   spec: string;
   next: string;
   label: string;
+  /** The coordinating agent from the `Agent:` header, canonical; '' when absent or not a valid name. */
+  agent: string;
   steps: ParsedStep[];
   milestones: ParsedMilestone[];
   decisions: string[];
@@ -41,6 +46,7 @@ const fields = {
   spec: ['Spec'],
   next: ['Next', 'Tiếp theo'],
   label: ['Status', 'Trạng thái'],
+  agent: ['Agent'],
 } as const;
 
 export function stripEstimates(text: string): string {
@@ -106,7 +112,11 @@ function decode(source: Uint8Array): { text: string; invalid: boolean } {
   return { text, invalid };
 }
 
-/** Read Markdown without I/O. Unknown lines and retired Agent/Executor headers are ignored. */
+/**
+ * Read Markdown without I/O. Unknown lines and the retired `Executor:` header are ignored.
+ * The step comment `<!-- Executors: ... -->` is metadata: it is removed from the step text,
+ * so it never changes a step's identity.
+ */
 export function parseMarkdown(source: string | Uint8Array): ParsedPlan {
   const bytes = typeof source === 'string' ? Buffer.from(source) : source;
   const decoded = decode(bytes);
@@ -117,6 +127,7 @@ export function parseMarkdown(source: string | Uint8Array): ParsedPlan {
     spec: '',
     next: '',
     label: '',
+    agent: '',
     steps: [],
     milestones: [],
     decisions: [],
@@ -228,12 +239,20 @@ export function parseMarkdown(source: string | Uint8Array): ParsedPlan {
         .replace(/^\s*\uFE0F/, '')
         .trim();
     }
-    text = text.replace(/\s*<!--\s*Executors?:\s*([^<>]*?)\s*-->\s*$/i, '');
+    let executors: string[] = [];
+    text = text.replace(
+      /\s*<!--\s*Executors?:\s*([^<>]*?)\s*-->\s*$/i,
+      (_comment, names: string) => {
+        executors = agentList(names);
+        return '';
+      },
+    );
     const step: ParsedStep = {
       status,
       text: stripEstimates(text).trim(),
       line: index + 1,
     };
+    if (executors.length) step.executors = executors;
     p.steps.push(step);
     milestone?.steps.push(step);
   }
@@ -241,6 +260,7 @@ export function parseMarkdown(source: string | Uint8Array): ParsedPlan {
     p[field as keyof typeof fields] =
       keys.map((k) => header.get(k)).find((v) => v !== undefined) ?? '';
   }
+  p.agent = canonicalAgent(p.agent) ?? '';
   p.unclosedFence = fence ? fenceLine : 0;
   return p;
 }

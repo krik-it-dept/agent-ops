@@ -34,6 +34,33 @@ export interface Step {
   line: number;
   milestone: string;
   index: number;
+  /** Agents named in the step's `<!-- Executors: A, B -->` comment (also `Executor:`); canonical names. */
+  executors?: string[];
+}
+/** The lifecycle event an agent reported for one run of work. */
+export type RunEvent = 'start' | 'progress' | 'done' | 'blocked' | 'stopped';
+/**
+ * AgentRun is one run of work an agent reported for a plan (through the report
+ * command), summarised by its latest event. Agents record runs; the app only
+ * reads them and never assigns work.
+ */
+export interface AgentRun {
+  runId: string;
+  /** Canonical agent name (Claude, Codex, Gemini, Antigravity, Cursor, Copilot) or the reported name. */
+  agent: string;
+  /** The coordinating agent, '' when not reported. */
+  coordinator: string;
+  role: 'coordinator' | 'executor';
+  /** The latest event of the run. */
+  event: RunEvent;
+  /** Latest event is start or progress and is recent enough to count as working now. */
+  active: boolean;
+  startedAt: ISOTime;
+  updatedAt: ISOTime;
+  /** The checklist step the run worked on, when reported. */
+  step: { line: number; text: string; milestone: string } | null;
+  /** The latest reported result or blocking reason, plain text. */
+  result: string;
 }
 export interface Decision {
   key: string;
@@ -78,6 +105,10 @@ export interface Plan {
   source: 'tasks' | 'legacy';
   workspace: string;
   file: string;
+  /** The coordinating agent from the plan's `Agent:` line, '' when absent. */
+  agent?: string;
+  /** Reported runs for this plan, newest first. */
+  runs?: AgentRun[];
 }
 export interface ProjectResult {
   id: string;
@@ -143,7 +174,13 @@ export type ActivityKind =
   | 'answer'
   | 'milestone'
   | 'waiting'
-  | 'stale';
+  | 'stale'
+  /** An agent reported a run start (text: the step, extra: the result so far, actor: the agent). */
+  | 'run-started'
+  /** An agent reported a run done or stopped (extra: its result). */
+  | 'run-finished'
+  /** An agent reported a run blocked (extra: what blocks it). */
+  | 'run-blocked';
 export interface Activity {
   ts: ISOTime;
   project?: string;

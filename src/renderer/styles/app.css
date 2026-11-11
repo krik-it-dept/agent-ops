@@ -711,7 +711,7 @@ progress::-webkit-progress-value {
   font-weight: 500;
 }
 .task-table th:first-child {
-  width: 52%;
+  width: 30%;
 }
 .task-table td small {
   display: block;

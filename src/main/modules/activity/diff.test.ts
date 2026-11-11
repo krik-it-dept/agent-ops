@@ -380,3 +380,50 @@ function offset(d: Date): string {
   const a = Math.abs(m);
   return `${sign}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`;
 }
+
+describe('reported runs', () => {
+  const mark = (runId: string, event: string, over = {}) => ({
+    runId,
+    event,
+    agent: 'Codex',
+    step: 'Build it',
+    result: '',
+    ...over,
+  });
+  const T = new Date('2026-11-11T05:00:00Z');
+  it('announces a run started, finished and blocked, by the agent that reported it', () => {
+    const old = plan({ runs: [mark('a', 'start'), mark('b', 'progress')] });
+    const cur = plan({
+      runs: [
+        mark('c', 'start', { agent: 'Claude', step: '' }),
+        mark('b', 'blocked', { result: 'Thiếu quyền' }),
+        mark('a', 'done', { result: 'PR #3' }),
+        mark('d', 'stopped', { result: 'Dừng' }),
+      ],
+    });
+    const events = diff(one(old), one(cur), T);
+    expect(events.map((e) => [e.kind, e.actor, e.text, e.extra ?? ''])).toEqual(
+      [
+        ['run-finished', 'Codex', 'Build it', 'Dừng'],
+        ['run-finished', 'Codex', 'Build it', 'PR #3'],
+        ['run-blocked', 'Codex', 'Build it', 'Thiếu quyền'],
+        ['run-started', 'Claude', 'Cả plan', ''],
+      ],
+    );
+    expect(events.every((e) => e.ts === T.toISOString())).toBe(true);
+  });
+  it('announces nothing for unchanged runs or a snapshot from before runs', () => {
+    const cur = plan({ runs: [mark('a', 'progress'), mark('b', 'done')] });
+    expect(diff(one(cur), one(clone(cur)), T)).toEqual([]);
+    const before = plan();
+    expect(diff(one(before), one(cur), T)).toEqual([]);
+    const ended = plan({ runs: [mark('b', 'done', { result: 'x' })] });
+    expect(
+      diff(one(ended), one(plan({ runs: [mark('b', 'done')] })), T),
+    ).toEqual([]);
+  });
+  it('announces runs of a new plan after the plan itself', () => {
+    const p = plan({ runs: [mark('a', 'start')] });
+    expect(kinds(diff({}, one(p), T))).toEqual({ new: 1, 'run-started': 1 });
+  });
+});

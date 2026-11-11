@@ -26,6 +26,8 @@ import {
   placeLabel,
 } from '../model';
 import { useLedger } from '../store';
+import { AgentChain, StepAgents, StepResult } from '../components/Agents';
+import { execution } from '../agents';
 import {
   Empty,
   Glyph,
@@ -43,16 +45,31 @@ import type { Plan, Step } from '../../shared/contracts';
 export function ActivityFeed({
   plan,
   query = '',
+  plans,
+  limit = Infinity,
 }: {
   plan?: Plan;
+  plans?: Plan[];
+  limit?: number;
   query?: string;
 }) {
   const { snapshot } = useLedger();
   if (!snapshot) return null;
   let last = '';
-  const items = activityFor(snapshot, plan).filter((e) =>
-    fold(e.text + ' ' + e.plan + ' ' + e.extra).includes(fold(query)),
-  );
+  const keys = plans ? new Set(plans.map(planKey)) : null;
+  const items = activityFor(snapshot, plan)
+    .filter(
+      (e) =>
+        (!keys ||
+          (e.project
+            ? keys.has([e.project, e.repo, e.plan].join('/'))
+            : snapshot.state.plans.filter(
+                (p) => p.repo === e.repo && p.name === e.plan,
+              ).length === 1 &&
+              plans!.some((p) => p.repo === e.repo && p.name === e.plan))) &&
+        fold(e.text + ' ' + e.plan + ' ' + e.extra).includes(fold(query)),
+    )
+    .slice(0, limit);
   return items.length ? (
     <div className="activity-feed">
       {items.map((e, i) => {
@@ -71,26 +88,27 @@ export function ActivityFeed({
                 <time dateTime={e.ts}>{timeLabel(e.ts)}</time>
               </header>
               <small>
-                {
-                  (
-                    {
-                      new: 'Opened the plan',
-                      closed: 'Closed the plan',
-                      moved: 'Moved the plan file',
-                      status: 'Stage changed',
-                      done: 'Done',
-                      doing: 'Started',
-                      decision: 'Decision',
-                      question: 'Question',
-                      answer: 'Answered',
-                      milestone: 'Milestone done',
-                      blocked: 'Blocked',
-                      waiting: 'Waiting for you',
-                      stale: 'Stale',
-                      partial: 'Partly done',
-                    } as const
-                  )[e.kind]
-                }
+                {(
+                  {
+                    new: 'Opened the plan',
+                    closed: 'Closed the plan',
+                    moved: 'Moved the plan file',
+                    status: 'Stage changed',
+                    done: 'Done',
+                    doing: 'Started',
+                    decision: 'Decision',
+                    question: 'Question',
+                    answer: 'Answered',
+                    milestone: 'Milestone done',
+                    blocked: 'Blocked',
+                    waiting: 'Waiting for you',
+                    stale: 'Stale',
+                    partial: 'Partly done',
+                    'run-started': 'Agent started',
+                    'run-finished': 'Agent finished',
+                    'run-blocked': 'Agent blocked',
+                  } as Record<string, string>
+                )[e.kind] || 'Agent activity'}
               </small>
               <p>{e.text}</p>
               {e.extra && <p className="muted">{e.extra}</p>}
@@ -169,7 +187,7 @@ export function PlanPage({
     return (
       <Empty title="Plan unavailable">
         <p>This plan is no longer in the ledger.</p>
-        <Link to="/">Overview</Link>
+        <Link to="/">Summary</Link>
       </Empty>
     );
   const openQuestions = plan.questions.filter((q) => q.open);
@@ -185,6 +203,14 @@ export function PlanPage({
     ['activity', 'Activity'],
   ];
   const starred = navigation.starred.includes(planKey(plan));
+  const matchesStep = (s: Step) =>
+    fold(
+      [
+        s.text,
+        ...execution(plan, s).agents,
+        execution(plan, s).latest?.result || '',
+      ].join(' '),
+    ).includes(fold(query));
   function steps(list: Step[]) {
     return [...list]
       .map((s, i) => ({ s, i }))
@@ -193,7 +219,7 @@ export function PlanPage({
           (workflow[a.s.status] ?? 99) - (workflow[b.s.status] ?? 99) ||
           a.i - b.i,
       )
-      .filter(({ s }) => fold(s.text).includes(fold(query)))
+      .filter(({ s }) => matchesStep(s))
       .map(({ s, i }) => (
         <div
           key={`${s.line}:${i}`}
@@ -209,9 +235,15 @@ export function PlanPage({
               ]
             }
           </span>
-          <p>
-            <RichText text={s.text} plan={plan} />
-          </p>
+          <div className="step-content">
+            <p>
+              <RichText text={s.text} plan={plan} />
+            </p>
+            <StepAgents plan={plan!} step={s} />
+            <small className="step-result">
+              <StepResult plan={plan!} step={s} />
+            </small>
+          </div>
           <small>{stepLabels[s.status] || 'Unknown'}</small>
         </div>
       ));
@@ -230,7 +262,7 @@ export function PlanPage({
     <header className="plan-header">
       <p className="breadcrumb">{placeLabel(plan)}</p>
       <div className="row">
-        <Link to="/">← Overview</Link>
+        <Link to="/">← Summary</Link>
         <h1>{plan.name}</h1>
         <button
           aria-pressed={starred}
@@ -257,6 +289,7 @@ export function PlanPage({
           Copy link
         </button>
       </div>
+      <AgentChain plan={plan} labels />
     </header>
   );
   return (
@@ -404,7 +437,8 @@ export function PlanPage({
                       m.summary +
                       ' ' +
                       m.steps.map((s) => s.text).join(' '),
-                  ).includes(fold(query)),
+                  ).includes(fold(query)) ||
+                  m.steps.some(matchesStep),
               )
               .map((m, i) => {
                 const token = `${planKey(plan)}|${m.id}|${i}`;

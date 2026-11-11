@@ -8,6 +8,7 @@ import type {
   PlatformSnapshot,
 } from '../platform';
 import { validPlanKey } from '../platform/activation';
+import { USER_ENV_NAMES, type UserEnvName } from '../platform/windows';
 import { planActionPath } from '../tasks';
 import type { UserEnvironment } from '../tasks';
 import { readPlanFile } from '../plans';
@@ -131,6 +132,12 @@ export function startupAdapter(
   };
 }
 
+function pointerName(name: string): UserEnvName {
+  if (!(USER_ENV_NAMES as readonly string[]).includes(name))
+    throw new Error('Unknown environment pointer.');
+  return name as UserEnvName;
+}
+
 /** The platform writer already queries HKCU, deduplicates and broadcasts atomically per request. */
 export function environmentAdapter(
   platform: PlatformServices,
@@ -138,11 +145,11 @@ export function environmentAdapter(
   return {
     // Force delegation even for clearing an existing value; the platform owns the real read.
     get: async () => '\0',
-    set: async (_name, value) => {
-      await platform.environment.setUserEnv('AGENT_OPS_TASKS', value);
+    set: async (name, value) => {
+      await platform.environment.setUserEnv(pointerName(name), value);
     },
-    delete: async () => {
-      await platform.environment.setUserEnv('AGENT_OPS_TASKS', null);
+    delete: async (name) => {
+      await platform.environment.setUserEnv(pointerName(name), null);
     },
     broadcast: () => {},
   };

@@ -10,7 +10,7 @@ test('sandbox, typed bridge, strict CSP, safe external targets and single instan
   const { app, page, temp } = fixture;
   try {
     await expect(
-      page.getByRole('heading', { name: 'Overview', exact: true }),
+      page.getByRole('heading', { name: 'Summary', exact: true }),
     ).toBeVisible();
     expect(new URL(page.url()).protocol).toBe('app:');
     expect(new URL(page.url()).host).toBe('agent-ops');
