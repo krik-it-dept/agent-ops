@@ -6,7 +6,6 @@ import {
   filterTasks,
   fold,
   planKey,
-  progress,
   stepLabels,
   taskRows,
   type ListFilters,
@@ -17,20 +16,21 @@ import { useLedger } from '../store';
 import { execution, stepAgentMatches } from '../agents';
 import { StepAgents, StepResult } from '../components/Agents';
 import { whenLabel } from '../model';
-import {
-  Empty,
-  PlanLink,
-  Progress,
-  SourceLabel,
-  Status,
-  planRoute,
-} from '../components/ui';
+import { Empty, PlanLink, SourceLabel, planRoute } from '../components/ui';
 import {
   loadPreference,
   savePreference,
   type Navigation,
 } from '../preferences';
 import type { AgentOpsClient } from '../../shared/contracts';
+import { PlanStatePicker } from '../components/PlanControls';
+import {
+  PlanAttention,
+  SegmentedProgress,
+  TaskCounts,
+  TaskOverview,
+  taskSummary,
+} from '../components/TaskProgress';
 
 const savedLists = new WeakMap<
   AgentOpsClient,
@@ -156,6 +156,13 @@ export function TaskList({
   });
   const [work, setWork] = useState(saved.work);
   const [selected, setSelected] = useState<string[] | null>(saved.plans);
+  const linkedPlan = search.get('plan');
+  useEffect(() => {
+    if (linkedPlan) {
+      setSelected(linkedPlan === 'all' ? null : [linkedPlan]);
+      setWork('');
+    }
+  }, [linkedPlan]);
   const [sort, setSort] = useState<ListFilters['sort']>(saved.sort);
   useEffect(() => {
     savedLists.set(client, { work, plans: selected, sort });
@@ -186,13 +193,17 @@ export function TaskList({
       taskRows(allPlans).filter((r) => stepAgentMatches(r.plan, r.step, agent)),
     [allPlans, agent],
   );
-  const rows = filterTasks(allRows, {
+  const overviewRows = filterTasks(allRows, {
     query,
-    status,
+    status: 'all',
     work,
     plans: selected,
     sort,
   });
+  const rows =
+    status === 'all'
+      ? overviewRows
+      : overviewRows.filter((r) => r.step.status === status);
   useEffect(() => {
     if (!draft) return;
     popup.current?.querySelector<HTMLElement>('input,select,button')?.focus();
@@ -491,6 +502,11 @@ export function TaskList({
           Clear filters
         </button>
       </div>
+      <TaskOverview
+        steps={overviewRows.map((r) => r.step)}
+        selected={status}
+        onSelect={setStatus}
+      />
       <div className="list-toolbar">
         <label>
           Group by{' '}
@@ -564,6 +580,7 @@ export function TaskList({
           ) : (
             shownGroups.map(([key, list, visible]) => {
               const p = list[0]!.plan;
+              const summary = taskSummary(p.steps);
               const closed = navigation.groups[key] === true;
               return (
                 <Fragment key={key}>
@@ -585,21 +602,27 @@ export function TaskList({
                             <span aria-hidden="true">{closed ? '›' : '⌄'}</span>
                             {p.name}
                           </button>
+                          <PlanAttention
+                            plan={p}
+                            blocked={summary.counts.blocked}
+                          />
                           <small>
                             {placeLabel(p)} · {list.length} of {p.steps.length}{' '}
                             tasks matched
                           </small>
                           <SourceLabel plan={p} />
                         </div>
+                        <TaskCounts summary={summary} compact />
                       </th>
                       <td>
-                        <Status value={p.status} />
+                        <small>Plan state</small>
+                        <PlanStatePicker plan={p} showLabel />
                       </td>
                       <td>
-                        <small>Plan progress</small>
-                        <Progress
-                          {...progress(p.steps)}
-                          label={`Plan progress for ${p.name}`}
+                        <SegmentedProgress
+                          summary={summary}
+                          label={`Task progress for ${p.name}`}
+                          detail
                         />
                       </td>
                       <td>

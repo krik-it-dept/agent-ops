@@ -47,6 +47,7 @@ export function createBridge(
       archive: call('plans:archive'),
       recycle: call('plans:recycle'),
       markDone: call('plans:mark-done'),
+      setStatus: call('plans:set-status'),
       undoMarkDone: call('plans:undo-mark-done'),
     },
     skills: {

@@ -11,10 +11,12 @@ Use Overview, List, Needs attention and Archive to find work. Search with Ctrl+K
 F5 and open Settings with Ctrl+,. Plan pages show recorded stages, questions, decisions and recent
 changes. Light/dark appearance, private stars, recent plans and open tabs survive launches.
 
-Agent Ops never assigns work. The only plan content it changes is the Status line, when you mark a
-plan Done: drag its card into the Done column on the Board, or choose Mark as Done in the card menu
-(`⋯`) or on the plan page. It keeps a backup, refuses if the file changed since you looked at it,
-and offers Undo for 2 minutes. Archive/Unarchive changes app settings.
+Agent Ops never assigns work. The only plan content it changes is the top Status value, when you
+choose a Plan state through its icon or drag a card between Board columns. Mark as Done remains
+available in the card menu (`⋯`) and on the plan page. It keeps a backup, refuses if the file changed
+since you looked at it, and offers Undo for 2 minutes. Checklist task statuses stay unchanged.
+Pin Board cards without changing state; reorder or pin open Plan tabs from their menu or by dragging.
+Drag Plan cards in the sidebar to reorder them within their workspace, and drag the sidebar edge to resize it. Summary puts task links and agent workload first, with bounded Current work and Recent activity panels and Show more controls; Plan pages keep Goal and Next compact at the top while Waiting for owner / Blocked notes and open questions live in Questions. Archive/Unarchive changes app settings.
 Delete asks for confirmation and moves the file to the Windows Recycle Bin. Closing the window
 hides it in the notification area; choose Quit there to exit.
 

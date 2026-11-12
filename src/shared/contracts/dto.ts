@@ -1,5 +1,18 @@
 export type ISOTime = string;
 export type PlanKey = string; // project/repo/name, or unambiguous legacy repo/name for lookup
+export const PLAN_STATES = [
+  'Planning',
+  'Implementing',
+  'Reviewing',
+  'Fixing review',
+  'Testing',
+  'Waiting for CI',
+  'Waiting for owner',
+  'Shipping',
+  'Blocked',
+  'Done',
+] as const;
+export type PlanState = (typeof PLAN_STATES)[number];
 export type ProjectId = string; // /^[a-z0-9][a-z0-9-]{0,39}$/; configured id cannot be "tasks"
 export type TargetId = string; // same pattern; look up in config, never derive a path from input id
 export type Revision = string; // /^[a-f0-9]{64}$/
@@ -27,7 +40,8 @@ export interface AppError {
 }
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError };
 
-export type StepStatus = 'todo' | 'doing' | 'done' | 'partial' | 'blocked';
+export type StepStatus =
+  'todo' | 'doing' | 'done' | 'partial' | 'blocked' | 'waiting';
 export interface Step {
   status: StepStatus;
   text: string;

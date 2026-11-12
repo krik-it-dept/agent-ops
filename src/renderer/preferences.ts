@@ -4,6 +4,10 @@ export interface Navigation {
   starred: string[];
   recent: { key: string; openedAt: string }[];
   openPlans: string[];
+  pinnedPlans: string[];
+  pinnedCards: string[];
+  sidebarWidth: number;
+  sidebarOrder: string[];
   collapsed: boolean;
   folders: Record<string, boolean>;
   disclosures: Record<string, boolean>;
@@ -15,6 +19,10 @@ export const defaultNavigation = (): Navigation => ({
   starred: [],
   recent: [],
   openPlans: [],
+  pinnedPlans: [],
+  pinnedCards: [],
+  sidebarWidth: 244,
+  sidebarOrder: [],
   collapsed: false,
   folders: {},
   disclosures: {},
@@ -55,10 +63,25 @@ export function normalizeNavigation(value: Partial<Navigation>): Navigation {
           Object.entries(v).filter(([, on]) => typeof on === 'boolean'),
         )
       : {};
+  const open = strings(base.openPlans);
+  const pinned = strings(base.pinnedPlans)
+    .filter((key) => open.includes(key))
+    .slice(0, 8);
   return {
     ...base,
     starred: strings(base.starred).slice(0, 200),
-    openPlans: strings(base.openPlans).slice(-8),
+    pinnedPlans: pinned,
+    pinnedCards: strings(base.pinnedCards).slice(0, 200),
+    sidebarOrder: strings(base.sidebarOrder).slice(0, 2000),
+    openPlans: [
+      ...open.filter((key) => pinned.includes(key)),
+      ...open.filter((key) => !pinned.includes(key)).slice(-8),
+    ],
+    sidebarWidth:
+      typeof base.sidebarWidth === 'number' &&
+      Number.isFinite(base.sidebarWidth)
+        ? Math.round(Math.max(185, Math.min(420, base.sidebarWidth)))
+        : 244,
     recent: Array.isArray(base.recent)
       ? base.recent
           .filter(
@@ -91,6 +114,9 @@ export function migrateNavigation(nav: Navigation, plans: Plan[]): Navigation {
     starred: nav.starred.map(key),
     recent: nav.recent.map((r) => ({ ...r, key: key(r.key) })),
     openPlans: nav.openPlans.map(key),
+    pinnedPlans: nav.pinnedPlans.map(key),
+    pinnedCards: nav.pinnedCards.map(key),
+    sidebarOrder: nav.sidebarOrder.map(key),
     groups: Object.fromEntries(
       Object.entries(nav.groups).map(([k, v]) => [key(k), v]),
     ),
@@ -101,14 +127,75 @@ export function visitPlan(
   key: string,
   at: string,
 ): Navigation {
-  return {
+  return normalizeNavigation({
     ...nav,
     openPlans: nav.openPlans.includes(key)
       ? nav.openPlans
-      : [...nav.openPlans, key].slice(-8),
+      : [...nav.openPlans, key],
     recent: [
       { key, openedAt: at },
       ...nav.recent.filter((r) => r.key !== key),
     ].slice(0, 12),
+  });
+}
+
+export function pinPlanTab(
+  nav: Navigation,
+  key: string,
+  pinned: boolean,
+): Navigation {
+  if (!nav.openPlans.includes(key) || (pinned && nav.pinnedPlans.length >= 8))
+    return nav;
+  return normalizeNavigation({
+    ...nav,
+    pinnedPlans: pinned
+      ? [...nav.pinnedPlans, key]
+      : nav.pinnedPlans.filter((k) => k !== key),
+  });
+}
+
+/** Sidebar ordering is private presentation; it never moves a file or changes Plan state. */
+export function moveSidebarPlan(
+  nav: Navigation,
+  keys: string[],
+  source: string,
+  target: string,
+  after: boolean,
+): Navigation {
+  if (source === target || !keys.includes(source) || !keys.includes(target))
+    return nav;
+  const rank = new Map(nav.sidebarOrder.map((key, index) => [key, index]));
+  const ordered = [...new Set(keys)].sort(
+    (a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity),
+  );
+  const next = ordered.filter((key) => key !== source);
+  next.splice(next.indexOf(target) + (after ? 1 : 0), 0, source);
+  if (next.every((key, index) => key === ordered[index])) return nav;
+  return {
+    ...nav,
+    sidebarOrder: [
+      ...nav.sidebarOrder.filter((key) => !keys.includes(key)),
+      ...next,
+    ].slice(-2000),
   };
+}
+
+export function movePlanTab(
+  nav: Navigation,
+  key: string,
+  target: string,
+): Navigation {
+  const from = nav.openPlans.indexOf(key),
+    to = nav.openPlans.indexOf(target);
+  if (
+    from < 0 ||
+    to < 0 ||
+    from === to ||
+    nav.pinnedPlans.includes(key) !== nav.pinnedPlans.includes(target)
+  )
+    return nav;
+  const openPlans = [...nav.openPlans];
+  openPlans.splice(from, 1);
+  openPlans.splice(to, 0, key);
+  return { ...nav, openPlans };
 }

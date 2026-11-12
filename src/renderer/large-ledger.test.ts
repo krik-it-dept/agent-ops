@@ -71,6 +71,8 @@ describe('large ledgers', () => {
         data,
         createElement(WorkViews, {
           view,
+          navigation: defaultNavigation(),
+          setNavigation: () => undefined,
           query: '',
           agent: '',
           clear: () => undefined,
@@ -117,8 +119,8 @@ describe('large ledgers', () => {
         clear: () => undefined,
       }),
     );
-    // Six current work cards, with the count left to the shell title.
-    expect(all.match(/class="work-card/g)).toHaveLength(6);
+    // Three current work cards; the rest are behind Show more in a fixed frame.
+    expect(all.match(/class="work-card/g)).toHaveLength(3);
     expect(all).not.toMatch(/of 400 plans/);
     expect(all).toContain('>400<');
     expect(found.match(/class="work-card/g)).toHaveLength(1);

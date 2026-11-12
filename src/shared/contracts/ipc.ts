@@ -16,6 +16,11 @@ export interface RequestMap {
   'plans:archive': { key: D.PlanKey; archived: boolean };
   'plans:recycle': { key: D.PlanKey; revision: D.Revision; confirm: true };
   'plans:mark-done': { key: D.PlanKey; revision: D.Revision };
+  'plans:set-status': {
+    key: D.PlanKey;
+    revision: D.Revision;
+    status: D.PlanState;
+  };
   'plans:undo-mark-done': { key: D.PlanKey; token: string };
   'skills:list': D.Empty;
   'skills:add': D.TargetInput & { skillDir: string };
@@ -63,6 +68,7 @@ export interface ResponseMap {
   'plans:archive': D.Settings;
   'plans:recycle': { recycled: true };
   'plans:mark-done': D.MarkDoneResponse;
+  'plans:set-status': D.MarkDoneResponse;
   'plans:undo-mark-done': D.UndoMarkDoneResponse;
   'skills:list': D.SkillsResponse;
   'skills:add': D.SkillsResponse;
@@ -120,6 +126,7 @@ export interface AgentOpsBridge {
     archive: Call<'plans:archive'>;
     recycle: Call<'plans:recycle'>;
     markDone: Call<'plans:mark-done'>;
+    setStatus: Call<'plans:set-status'>;
     undoMarkDone: Call<'plans:undo-mark-done'>;
   };
   skills: {

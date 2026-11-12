@@ -25,11 +25,12 @@ are retained; add baseline launch compatibility with explicit flags taking prece
 
 Windows x64; Electron main/preload/renderer; React, TypeScript and Vite; no Go runtime,
 Edge dependency or local HTTP server. The app remains a reader of Markdown plans, with one
-owner edit: Mark as Done sets the value of the top `Status:` line to `Done` (owner decision
-2026-11-11, guards in AGENTS.md).
+owner edit: an explicit Plan-state action replaces only the value of the top `Status:` line
+with a whitelisted `PLAN_STATES` value (owner decision 2026-11-12, extending Mark as Done from
+2026-11-11; byte/revision/backup/Undo guards in AGENTS.md). Checklist task states stay unchanged.
 It records file-derived activity and reads the runs agents report through the report command
 (`--report`, owner decision 2026-11-11); it never assigns work or records acceptance results.
-Owner actions may mark a plan Done, archive in configuration, recycle a confirmed plan, or move plans to Tasks
+Owner actions may choose a Plan state, archive in configuration, recycle a confirmed plan, or move plans to Tasks
 with backups and a report. The business hierarchy and problem/impact migration remain separate.
 
 Keep `%LOCALAPPDATA%\AgentOps` and config version 1. Preserve English storage keys including

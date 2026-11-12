@@ -374,6 +374,7 @@ interface WorkspaceAddResponse {
 | `plans:archive`     | `{ key: PlanKey; archived: boolean }`                 | `Settings`                 | NOT_FOUND, READ_ONLY, IO_ERROR, UNAVAILABLE; archive true/false is an explicit config override.                                                                                                                                                | POST `/api/plan-actions/archive`, `plan_actions.go:26` |
 | `plans:recycle`     | `{ key: PlanKey; revision: Revision; confirm: true }` | `{ recycled: true }`       | NOT_FOUND for missing plan/file, REVISION_CHANGED for changed bytes/identity, CONFLICT for locked/redirected/unsafe/non-recyclable file, UNAVAILABLE during restart. Main resolves from configuration and accepted plan; never accepts a path. | POST `/api/plan-actions/recycle`, `plan_actions.go:26` |
 | `plans:mark-done` | `{ key: PlanKey; revision: Revision }` | `MarkDoneResponse` | READ_ONLY, BUSY, UNAVAILABLE; NOT_FOUND for a missing plan/file; REVISION_CHANGED ("This plan changed. Look again before marking it Done.") when the board revision or the file bytes differ, also when re-checked just before the rename; CONFLICT for no top `Status:` line, a locked/redirected/unsafe file; IO_ERROR when the backup cannot be saved. Already Done: `changed: false`, `undo: null`, no write. Main resolves from configuration and the accepted plan; never accepts a path. | none (owner decision 2026-11-11) |
+| `plans:set-status` | `{ key: PlanKey; revision: Revision; status: PlanState }` | `MarkDoneResponse` | The same guards and error codes as Mark as Done. `status` is one of shared `PLAN_STATES`; arbitrary strings, paths and extra fields are rejected. A matching current stage is a no-op. Changes only the top Status value; checklist tasks stay unchanged. | none (owner decision 2026-11-12) |
 | `plans:undo-mark-done` | `{ key: PlanKey; token: string }` | `UndoMarkDoneResponse` | READ_ONLY, BUSY, UNAVAILABLE; CONFLICT when the token is unknown, used, for another plan or older than 2 minutes; REVISION_CHANGED when the file no longer holds exactly what Mark as Done wrote. Restores the original bytes only. | none (owner decision 2026-11-11) |
 
 `settings:set` is not a distributed transaction: baseline applies Tasks and optional move before
@@ -389,13 +390,13 @@ copy is removed; the backup stays. No overwrite, source-path injection, links ou
 or arbitrary `from` folder is allowed. Choosing a new folder without move stops reading the old
 folder. Clear previousTasksDir only when it has no remaining plans.
 
-Mark as Done is the one plan edit (owner decision 2026-11-11). Main finds the top Status line
+Explicit Plan-state changes are the one plan edit (owner decision 2026-11-12, extending Mark as Done from 2026-11-11). Main finds the top Status line
 (the first `Status:` header line before the first level-2 to level-4 heading, outside fenced or indented
-code; a legacy `Trạng thái:` label alone does not permit editing) and replaces its value with `Done` on the raw bytes, so the BOM,
+code; a legacy `Trạng thái:` label alone does not permit editing) and replaces its value with a whitelisted state on the raw bytes, so the BOM,
 line endings, spacing and every other byte stay. Before writing it copies the original to
 `<dataDir>\backups\plan-edits\<UTC time>-<id>\<workspace>\<plan>.md` and keeps the newest 50 such
-folders; the write is atomic. It records one `status` activity entry, "Marked Done in Agent Ops", with
-actor `Agent Ops`, and refreshes the ledger before replying. Undo tokens live in memory only and
+folders; the write is atomic. It records one `status` activity entry, "Marked Done in Agent Ops" for Done or "Plan state changed in Agent Ops" otherwise, with
+actor `Agent Ops`, and refreshes the ledger before replying. The existing `plans:undo-mark-done` method undoes either action. Undo tokens live in memory only and
 do not survive an app restart. Both actions re-resolve the current plan and its containment before
 replacement; Undo also checks expiry at that point. As with Delete, a change in the small interval
 between the final check and rename can still be overwritten; there is no cross-process write lock.

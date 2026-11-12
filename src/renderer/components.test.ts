@@ -62,6 +62,18 @@ function render(
   );
 }
 describe('React screen components', () => {
+  it('puts task progress and agent workload ahead of bounded current work and recent activity', () => {
+    const html = render('/');
+    expect(html.indexOf('Task progress')).toBeLessThan(
+      html.indexOf('Agent workload'),
+    );
+    expect(html.indexOf('Agent workload')).toBeLessThan(
+      html.indexOf('Current work'),
+    );
+    expect(html).toContain('summary-bounded');
+    expect(html).toContain('Show more plans');
+    expect(html).toContain('status=all');
+  });
   it('keeps a failed manual check or skip from turning Try again into an install', () => {
     const update = fixtureData().update;
     expect(updateRetryAction(update, 'check')).toBe('check');
@@ -113,6 +125,9 @@ describe('React screen components', () => {
   it('escapes plan and diagnostic text and omits private metadata from Overview', () => {
     const html = render('/', 'overview', (data) => {
       data.snapshot.state.plans[0]!.name = '<script>alert(1)</script>';
+      data.snapshot.state.plans = data.snapshot.state.plans.filter(
+        (p, index) => index === 0 || p.source === 'legacy',
+      );
       data.snapshot.state.repos = [
         {
           project: 'studio',
@@ -130,7 +145,7 @@ describe('React screen components', () => {
     expect(html).toContain('In workspace');
     expect(html).toContain('Plan warning');
   });
-  it('preserves milestone order, includes loose steps once and puts blockers before Next', () => {
+  it('keeps milestone entry compact and shows owner blockers and questions only on Questions', () => {
     const key = encodeURIComponent('studio/Ledger/Cải thiện tìm kiếm');
     const html = render(`/plan/${key}/summary`, 'plan', (data) => {
       data.snapshot.state.plans[0]!.status = 'Blocked - Source unavailable';
@@ -138,9 +153,23 @@ describe('React screen components', () => {
     expect(html.indexOf('Prepare the source')).toBeLessThan(
       html.indexOf('Release and verify'),
     );
-    expect(html.indexOf('Source unavailable')).toBeLessThan(
-      html.indexOf('<strong>Next'),
+    expect(html).not.toContain('Source unavailable');
+    expect(html).not.toContain('Open questions (');
+    const questions = render(`/plan/${key}/questions`, 'plan', (data) => {
+      data.snapshot.state.plans[0]!.status = 'Blocked - Source unavailable';
+    });
+    expect(questions).toContain('Source unavailable');
+    const waitingNoQuestions = render(
+      `/plan/${key}/questions`,
+      'plan',
+      (data) => {
+        data.snapshot.state.plans[0]!.status =
+          'Waiting for owner - Confirm rollout';
+        data.snapshot.state.plans[0]!.questions = [];
+      },
     );
+    expect(waitingNoQuestions).toContain('Confirm rollout');
+    expect(waitingNoQuestions).not.toContain('No questions recorded');
     expect(html).toContain('Other steps');
     expect(html.match(/Giữ tiếng Việt trong kết quả/g)).toHaveLength(1);
     expect(html).not.toMatch(/draggable|contenteditable|data-agent/);
@@ -228,7 +257,15 @@ describe('React screen components', () => {
         ),
       }),
     );
-    expect(html).toContain('steps · Waiting for owner</small>');
+    expect(html).toContain('title="Plan state: Waiting for owner"');
+    expect(html).not.toContain('class="sidebar-plan-link" draggable="false"');
+    expect(html).toContain('3 / 5 · 60%');
+    expect(html).toContain(
+      'aria-label="Done + In progress: 3 of 5 tasks · 60%"',
+    );
+    expect(html).toContain('aria-label="1 blocked tasks"');
+    expect(html).not.toContain('task-segments');
+    expect(html).not.toContain('task-counts');
     expect(html).not.toContain('Please confirm the release wording');
     // Settings and shortcut help live in the sidebar footer beside Archive.
     const footer = html.slice(html.indexOf('<footer'));
@@ -345,7 +382,11 @@ describe('React screen components', () => {
       expect(
         rows.filter((r) => r.includes('aria-pressed="true"')),
       ).toHaveLength(1);
-      expect(summary('').match(/aria-pressed="true"/)).toBeNull();
+      expect(
+        summary('').match(
+          /<button class="workload-row"[^>]*aria-pressed="true"/,
+        ),
+      ).toBeNull();
     });
   });
   describe('board and chart columns', () => {

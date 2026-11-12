@@ -1,6 +1,6 @@
-// Mark as Done is the one plan edit Agent Ops makes, on the owner's action on
-// the Board, a card menu or a plan page. It changes only the value of the
-// plan's top Status line to Done (see plan-edit.ts). The file is resolved from
+// An owner-selected Plan state is the one plan edit Agent Ops makes, through
+// the icon picker, Board drop or Mark as Done. It changes only the value of the
+// plan's top Status line to a whitelisted state (see plan-edit.ts). The file is resolved from
 // the plan key like Archive and Delete, never from a path the window sends;
 // its bytes must still be the revision the owner saw; the original is copied
 // to <dataDir>\backups\plan-edits first; and the file is replaced atomically
@@ -23,6 +23,7 @@ import { OwnerError, fail, settle, type Result } from '../settings/result';
 import { MAX_PLAN_BYTES } from './move';
 import { planActionPath, type PlanRef } from './plan-actions';
 import { findStatus, isDone, replaceStatus } from './plan-edit';
+import { PLAN_STATES, type PlanState } from '../../../shared/contracts';
 
 export const UNDO_FOR_MS = 2 * 60 * 1000;
 export const KEEP_BACKUPS = 50;
@@ -30,16 +31,19 @@ export const PLAN_EDITS_DIR = path.join('backups', 'plan-edits');
 
 const CHANGED = 'This plan changed. Look again before marking it Done.';
 const UNDO_CHANGED =
-  'This plan changed after it was marked Done, so Undo did not change it.';
+  'This plan changed after its state was updated, so Undo did not change it.';
 const UNDO_GONE =
-  'Undo is no longer available. It works for 2 minutes after marking a plan Done.';
+  'Undo is no longer available. It works for 2 minutes after changing a Plan state.';
 const NO_STATUS =
   'This plan has no Status line at the top, so it was not changed. Add a Status line to the plan first.';
-const VERB = 'marked Done';
+const VERB = 'updated';
 
 export interface MarkDoneRequest {
   key: string;
   revision: string;
+}
+export interface SetPlanStatusRequest extends MarkDoneRequest {
+  status: PlanState;
 }
 export interface UndoMarkDoneRequest {
   key: string;
@@ -70,6 +74,7 @@ export interface MarkedDone {
   key: string;
   plan: PlanRef;
   previous: string;
+  status: string;
   at: Date;
 }
 
@@ -224,6 +229,17 @@ export class MarkDone {
 
   /** markDone writes `Done` as the plan's Status value. */
   async markDone(req: MarkDoneRequest): Promise<Result<MarkDoneResult>> {
+    return this.setStatus({ ...req, status: 'Done' });
+  }
+
+  /** Owner-selected plan states use exactly the same byte, backup and Undo guards. */
+  async setStatus(req: SetPlanStatusRequest): Promise<Result<MarkDoneResult>> {
+    if (!PLAN_STATES.includes(req.status))
+      return fail('INVALID_REQUEST', 'Choose a supported Plan state.');
+    const changedMessage =
+      req.status === 'Done'
+        ? CHANGED
+        : 'This plan changed. Refresh and review it before changing its state.';
     if (this.opts.store.readOnly)
       return fail('READ_ONLY', this.opts.store.readOnly);
     const p = this.opts.lookup(req.key);
@@ -236,19 +252,23 @@ export class MarkDone {
       return fail('INVALID_REQUEST', 'This request is not valid.');
     const result = await settle(async () => {
       if (req.revision !== p.revision)
-        throw new OwnerError('REVISION_CHANGED', CHANGED);
+        throw new OwnerError('REVISION_CHANGED', changedMessage);
       let file: string;
       try {
         file = await planActionPath(p, this.opts.store.get(), VERB);
       } catch (err) {
         throw unavailable(err);
       }
-      const read = await readPlan(file, CHANGED);
+      const read = await readPlan(file, changedMessage);
       if (sha(read.bytes) !== req.revision)
-        throw new OwnerError('REVISION_CHANGED', CHANGED);
+        throw new OwnerError('REVISION_CHANGED', changedMessage);
       const span = findStatus(read.bytes);
       if (!span) throw new OwnerError('CONFLICT', NO_STATUS);
-      if (isDone(span.value))
+      if (
+        (req.status === 'Done' && isDone(span.value)) ||
+        span.value.split(' - ')[0]!.trim().toLowerCase() ===
+          req.status.toLowerCase()
+      )
         return {
           key: req.key,
           changed: false,
@@ -257,7 +277,7 @@ export class MarkDone {
           revision: req.revision,
           undo: null,
         };
-      const next = replaceStatus(read.bytes, span, 'Done');
+      const next = replaceStatus(read.bytes, span, req.status);
       const backup = await this.backup(p, read.bytes);
       try {
         await replaceChecked(
@@ -265,7 +285,7 @@ export class MarkDone {
           read,
           req.revision,
           next,
-          CHANGED,
+          changedMessage,
           () => this.validatePath(req.key, file),
           this.opts.io,
         );
@@ -290,7 +310,7 @@ export class MarkDone {
       return {
         key: req.key,
         changed: true,
-        status: 'Done',
+        status: req.status,
         previous: span.value,
         revision,
         undo: { token, expiresAt: new Date(expires).toISOString() },
@@ -303,6 +323,7 @@ export class MarkDone {
           key: req.key,
           plan: p,
           previous: result.value.previous,
+          status: result.value.status,
           at: this.now(),
         });
       } catch {

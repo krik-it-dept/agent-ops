@@ -35,6 +35,7 @@ import { Empty, planRoute, ToastHost } from './components/ui';
 import { UpdatePanel, updating, useUpdateDock } from './components/Updates';
 import { CommandSearch, ShortcutSheet } from './components/Commands';
 import { Sidebar, sidebarPlans } from './components/Sidebar';
+import { PlanTabs } from './components/PlanTabs';
 import { Overview } from './views/Overview';
 import { WorkViews } from './views/WorkViews';
 import { agentMatches, agentName, participation } from './agents';
@@ -161,6 +162,7 @@ function Shell() {
     const next = new URLSearchParams(searchRef.current);
     next.delete('q');
     next.delete('agent');
+    next.delete('plan');
     searchRef.current = next;
     setSearch(next, { replace: true });
   }
@@ -277,7 +279,7 @@ function Shell() {
     setSearch(next, { replace: true });
   }
   const status = (
-    ['doing', 'todo', 'blocked', 'partial', 'done', 'all'].includes(
+    ['doing', 'todo', 'blocked', 'waiting', 'partial', 'done', 'all'].includes(
       search.get('status') || '',
     )
       ? search.get('status')
@@ -420,8 +422,11 @@ function Shell() {
     isSetup,
     settings?.shortcuts,
     query,
+    navigation.openPlans,
+    navigation.pinnedPlans,
   ]);
   function closeTab(key: string) {
+    if (navigation.pinnedPlans.includes(key)) return;
     const index = navigation.openPlans.indexOf(key),
       tabs = navigation.openPlans.filter((k) => k !== key);
     setNavigation((nav) => ({ ...nav, openPlans: tabs }));
@@ -546,23 +551,13 @@ function Shell() {
               >
                 Archive
               </Link>
-              {navigation.openPlans.map((key) => {
-                const p = findPlan(plans, key);
-                return p ? (
-                  <span
-                    className={`document-tab${activeKey === key ? ' on' : ''}`}
-                    key={key}
-                  >
-                    <Link to={planRoute(key)}>{p.name}</Link>
-                    <button
-                      aria-label={`Close ${p.name}`}
-                      onClick={() => closeTab(key)}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ) : null;
-              })}
+              <PlanTabs
+                plans={plans}
+                navigation={navigation}
+                setNavigation={setNavigation}
+                current={activeKey}
+                close={closeTab}
+              />
             </nav>
             {notice.includes('Recycle Bin') && (
               <section className="banner result-banner" role="status">
@@ -777,6 +772,8 @@ function Shell() {
                     element={
                       <WorkViews
                         view="board"
+                        navigation={navigation}
+                        setNavigation={setNavigation}
                         query={query}
                         agent={agent}
                         clear={clearFilters}
@@ -788,6 +785,8 @@ function Shell() {
                     element={
                       <WorkViews
                         view="timeline"
+                        navigation={navigation}
+                        setNavigation={setNavigation}
                         query={query}
                         agent={agent}
                         clear={clearFilters}

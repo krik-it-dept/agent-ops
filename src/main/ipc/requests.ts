@@ -1,5 +1,6 @@
 import { ServiceFault } from './errors';
 import type { RequestMap } from '../../shared/contracts';
+import { PLAN_STATES } from '../../shared/contracts';
 
 interface Rule<T> {
   read(value: unknown): T;
@@ -142,6 +143,11 @@ export const requestSchemas = {
   'plans:archive': object({ key, archived: bool }),
   'plans:recycle': object({ key, revision, confirm: literal(true) }),
   'plans:mark-done': object({ key, revision }),
+  'plans:set-status': object({
+    key,
+    revision,
+    status: literal(...PLAN_STATES),
+  }),
   'plans:undo-mark-done': object({
     key,
     token: text(32, 32, /^[a-f0-9]{32}$/),

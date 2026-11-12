@@ -33,7 +33,7 @@ for (const theme of ['light', 'dark'] as const) {
         'Not reported',
       );
       await expect(
-        page.getByRole('img', { name: /To do:.*In progress:/ }),
+        page.getByRole('region', { name: 'Task overview' }),
       ).toBeVisible();
       await page
         .locator('.agent-workload button')
@@ -63,7 +63,9 @@ for (const theme of ['light', 'dark'] as const) {
       const groupStatus = await group.locator('td').nth(0).boundingBox();
       expect(Math.abs(groupStatus!.x - statusHeader!.x)).toBeLessThan(2);
       await expect(group.locator('td').nth(0).locator('.pill')).toBeVisible();
-      await expect(group.locator('td').nth(1)).toContainText('Plan progress');
+      await expect(
+        group.locator('td').nth(1).getByRole('group'),
+      ).toHaveAttribute('aria-label', /^Task progress for /);
       await expect(group.locator('td').nth(2)).toContainText('Open plan');
       await expect(page.locator('.task-table tbody .glyph')).toHaveCount(0);
       // Deep links keep their agent even in another case or with no plans left.
@@ -231,6 +233,9 @@ for (const theme of ['light', 'dark'] as const) {
         await app.evaluate(({ BrowserWindow }) =>
           BrowserWindow.getAllWindows()[0]!.setContentSize(1000, 800),
         );
+        await expect
+          .poll(() => page.evaluate(() => Math.abs(innerWidth - 1000)))
+          .toBeLessThanOrEqual(4);
         await expect(
           page.getByRole('heading', { name: title, exact: true }),
         ).toBeInViewport();
@@ -257,7 +262,9 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(last).toBeInViewport({ ratio: 0.95 });
         const box = (await last.boundingBox())!;
         expect(box.x).toBeGreaterThanOrEqual(0);
-        expect(box.x + box.width).toBeLessThanOrEqual(1001);
+        expect(box.x + box.width).toBeLessThanOrEqual(
+          await page.evaluate(() => innerWidth + 1),
+        );
         expect(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth,
@@ -266,6 +273,9 @@ for (const theme of ['light', 'dark'] as const) {
         await app.evaluate(({ BrowserWindow }) =>
           BrowserWindow.getAllWindows()[0]!.setContentSize(1920, 1080),
         );
+        await expect
+          .poll(() => page.evaluate(() => Math.abs(innerWidth - 1920)))
+          .toBeLessThanOrEqual(4);
       }
       await page.locator('.timeline-event').first().click();
       await expect(page.getByRole('tabpanel')).toContainText('Codex');

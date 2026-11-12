@@ -255,6 +255,73 @@ const body = (f: Fixture) => ({
   revision: f.plan.revision,
 });
 
+describe('owner-selected Plan state', () => {
+  it('changes only Status, keeps a backup and undoes the exact bytes', async () => {
+    const original =
+      '\ufeffGoal: Giữ nguyên\r\nStatus: Testing - CI  \r\n## M1: Work\r\n- [doing] Keep this\r\n';
+    const f = await tasksFixture(original);
+    const result = await f.marker.setStatus({
+      ...body(f),
+      status: 'Waiting for owner',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(readFileSync(f.file, 'utf8')).toBe(
+      original.replace('Testing - CI', 'Waiting for owner'),
+    );
+    expect(readFileSync(result.value.backup!, 'utf8')).toBe(original);
+    expect(f.recorded[0]).toMatchObject({ status: 'Waiting for owner' });
+    expect(
+      code(
+        await f.marker.undo({
+          key: planKey(f.plan),
+          token: result.value.undo!.token,
+        }),
+      ),
+    ).toBe('ok');
+    expect(readFileSync(f.file, 'utf8')).toBe(original);
+  });
+  it('rejects arbitrary state strings before writing', async () => {
+    const f = await tasksFixture();
+    const original = readFileSync(f.file);
+    expect(
+      code(
+        await f.marker.setStatus({
+          ...body(f),
+          status: 'Done\nGoal: injected' as never,
+        }),
+      ),
+    ).toBe('INVALID_REQUEST');
+    expect(readFileSync(f.file)).toEqual(original);
+    expect(backups(f)).toHaveLength(0);
+  });
+  it('refuses stale revisions, read-only files and plans without an English header', async () => {
+    const f = await tasksFixture();
+    expect(
+      code(
+        await f.marker.setStatus({
+          ...body(f),
+          revision: 'b'.repeat(64),
+          status: 'Blocked',
+        }),
+      ),
+    ).toBe('REVISION_CHANGED');
+    const noHeader = await tasksFixture('Goal: no header\n- [todo] Work\n');
+    expect(
+      code(
+        await noHeader.marker.setStatus({
+          ...body(noHeader),
+          status: 'Planning',
+        }),
+      ),
+    ).toBe('CONFLICT');
+    Object.defineProperty(f.store, 'readOnly', { get: () => 'Read only' });
+    expect(
+      code(await f.marker.setStatus({ ...body(f), status: 'Planning' })),
+    ).toBe('READ_ONLY');
+  });
+});
+
 function backups(f: Fixture): string[] {
   try {
     return readdirSync(path.join(f.data, PLAN_EDITS_DIR));

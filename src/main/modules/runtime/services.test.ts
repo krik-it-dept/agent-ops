@@ -137,6 +137,42 @@ describe('composition adapters with real libraries and isolated files', () => {
       source,
     );
   });
+  it('changes a Plan state through the guarded handler without changing checklist tasks', async () => {
+    const { root, runtime } = await fixture();
+    const tasks = join(root, 'Tasks');
+    const file = join(tasks, 'web', 'state.md');
+    const original =
+      'Status: Planning\r\nGoal: Keep evidence\r\n- [todo] Work\r\n';
+    await mkdir(join(tasks, 'web'), { recursive: true });
+    await writeFile(file, original);
+    await runtime.handlers['settings:set']!({ tasksDir: tasks });
+    await runtime.ledger.settled();
+    const plan = runtime.ledger.findPlan('tasks/web/state')!;
+    const result = await runtime.handlers['plans:set-status']!({
+      key: 'tasks/web/state',
+      revision: plan.revision,
+      status: 'Implementing',
+    });
+    expect(result.changed).toBe(true);
+    expect(await readFile(file, 'utf8')).toBe(
+      original.replace('Planning', 'Implementing'),
+    );
+    expect(
+      runtime.ledger
+        .getState()
+        .activity.filter((event) => event.kind === 'status'),
+    ).toMatchObject([
+      {
+        text: 'Plan state changed in Agent Ops',
+        extra: 'Planning → Implementing',
+      },
+    ]);
+    await runtime.handlers['plans:undo-mark-done']!({
+      key: 'tasks/web/state',
+      token: result.undo!.token,
+    });
+    expect(await readFile(file, 'utf8')).toBe(original);
+  });
   it('marks a Tasks plan Done through the handler, records it once, refreshes and undoes it', async () => {
     const { root, runtime, collector, notify } = await fixture();
     const tasks = join(root, 'Tasks');

@@ -1,5 +1,5 @@
-import { memo, useMemo, type DragEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { memo, useMemo, useState, type DragEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   archived,
   fold,
@@ -8,23 +8,31 @@ import {
   placeLabel,
   planSearchText,
   planKey,
-  progress,
   stage,
   type DisplayPlan,
 } from '../model';
-import { agentMatches, agentWorkload, participation } from '../agents';
+import {
+  agentMatches,
+  agentWorkload,
+  participation,
+  stepAgentMatches,
+} from '../agents';
 import { useLedger } from '../store';
 import {
   Empty,
   PlanActions,
   PlanLink,
-  Progress,
   SourceLabel,
-  Status,
   Warning,
 } from '../components/ui';
 import { AgentBadge, AgentChain } from '../components/Agents';
 import { ActivityFeed } from './PlanPage';
+import {
+  TaskOverview,
+  SegmentedProgress,
+  taskSummary,
+} from '../components/TaskProgress';
+import { PlanStatePicker, PlanPinButton } from '../components/PlanControls';
 
 /** "1 plan", "3 plans". */
 export const plural = (count: number, noun: string) =>
@@ -54,11 +62,13 @@ export const PlanCard = memo(function PlanCard({
   plan,
   attention = false,
   drag,
+  pin,
 }: {
   plan: DisplayPlan;
   attention?: boolean;
   /** On the Board, a card that can be dragged to Done. */
   drag?: { start(plan: DisplayPlan): void; end(): void } | undefined;
+  pin?: { pinned: boolean; toggle(): void } | undefined;
 }) {
   const current = plan.milestones.find(milestoneOpen);
   const key = planKey(plan);
@@ -80,7 +90,14 @@ export const PlanCard = memo(function PlanCard({
     >
       <div className="card-heading">
         <PlanLink plan={plan} />
-        <Status value={plan.status} />
+        <PlanStatePicker plan={plan} showLabel />
+        {pin && (
+          <PlanPinButton
+            name={plan.name}
+            pinned={pin.pinned}
+            toggle={pin.toggle}
+          />
+        )}
         <PlanActions plan={plan} />
       </div>
       <div className="card-place">
@@ -93,9 +110,16 @@ export const PlanCard = memo(function PlanCard({
       </small>
       <div className="card-footer">
         <AgentChain plan={plan} />
-        <Progress
-          {...progress(plan.steps)}
-          label={`Plan progress for ${plan.name}`}
+        <Link
+          className="card-tasks-link"
+          to={`/list?${new URLSearchParams({ plan: key, status: 'all' })}`}
+        >
+          Tasks →
+        </Link>
+        <SegmentedProgress
+          summary={taskSummary(plan.steps)}
+          label={`Task progress for ${plan.name}`}
+          detail
         />
       </div>
       <Warning plan={plan} />
@@ -165,6 +189,9 @@ export function Overview({
 }) {
   const { snapshot, settings } = useLedger();
   const [search, setSearch] = useSearchParams();
+  const navigate = useNavigate();
+  const [morePlans, setMorePlans] = useState(false);
+  const [moreActivity, setMoreActivity] = useState(false);
   const all = useMemo(
     () =>
       snapshot && settings
@@ -224,7 +251,9 @@ export function Overview({
     const age = Date.parse(snapshot.now) - Date.parse(participation(p).updated);
     return age >= 0 && age <= 7 * 86400000;
   }).length;
-  const steps = progress(plans.flatMap((p) => p.steps));
+  const steps = plans.flatMap((p) =>
+    p.steps.filter((step) => stepAgentMatches(p, step, agent)),
+  );
   const agents = [
     ...new Set(plans.flatMap((p) => participation(p).agents)),
   ].sort();
@@ -290,62 +319,47 @@ export function Overview({
             ))}
           </div>
           <div className="summary-grid">
-            <section className="summary-panel summary-focus">
+            <section className="summary-panel summary-task-progress">
               <div className="panel-heading">
-                <h2>Current work</h2>
+                <h2>Task progress</h2>
                 <Link
-                  to={`/list?${new URLSearchParams({ ...Object.fromEntries(search), status: 'all' })}`}
+                  to={`/list?${new URLSearchParams({ ...Object.fromEntries(search), plan: 'all', status: 'all' })}`}
                 >
                   View tasks →
                 </Link>
               </div>
               <p className="muted">
-                Active plans, with items needing attention first
+                Checklist tasks · select a status to open List
               </p>
-              {active.length ? (
-                active
-                  .slice(0, 6)
-                  .map((p) => (
-                    <PlanCard
-                      key={planKey(p)}
-                      plan={p}
-                      attention={needsAttention(p, snapshot)}
-                    />
-                  ))
-              ) : (
-                <p>All plans are complete</p>
-              )}
-              {active.length > 6 && (
-                <Link to={`/board?${search}`}>View all plans →</Link>
-              )}
-            </section>
-            <section className="summary-panel">
-              <h2>Status overview</h2>
-              <p className="muted">Current state of your plans</p>
-              <StatusOverview plans={plans} />
-              <div className="summary-step-progress">
-                <h2>Step progress</h2>
-                <strong>
-                  {steps.done} <span className="muted">/ {steps.total}</span>
-                </strong>
-                <Progress {...steps} label="Step progress" />
+              <TaskOverview
+                steps={steps}
+                selected="all"
+                onSelect={(status) =>
+                  navigate(
+                    `/list?${new URLSearchParams({ ...Object.fromEntries(search), plan: 'all', status })}`,
+                  )
+                }
+              />
+              <div className="summary-quick-links">
+                <Link
+                  to={`/list?${new URLSearchParams({ ...Object.fromEntries(search), plan: 'all', status: 'doing' })}`}
+                >
+                  In progress tasks →
+                </Link>
+                <Link
+                  to={`/list?${new URLSearchParams({ ...Object.fromEntries(search), plan: 'all', status: 'blocked' })}`}
+                >
+                  Blocked tasks →
+                </Link>
+                {attention > 0 && (
+                  <Link to={`/attention?${search}`}>
+                    {plural(attention, 'plan')}{' '}
+                    {attention === 1 ? 'needs' : 'need'} attention →
+                  </Link>
+                )}
               </div>
-              {attention > 0 && (
-                <>
-                  <h3>Needs attention</h3>
-                  {plans
-                    .filter((p) => needsAttention(p, snapshot))
-                    .slice(0, 3)
-                    .map((p) => (
-                      <div className="attention-row" key={planKey(p)}>
-                        <PlanLink plan={p} />
-                        <small className="muted">{placeLabel(p)}</small>
-                      </div>
-                    ))}
-                </>
-              )}
             </section>
-            <section className="summary-panel">
+            <section className="summary-panel summary-workload">
               <h2>Agent workload</h2>
               <p className="muted">
                 Reported participation · select an agent to view work
@@ -389,11 +403,67 @@ export function Overview({
                 })}
               </div>
             </section>
-            <section className="summary-panel">
-              <h2>Recent activity</h2>
-              <ActivityFeed plans={plans} limit={8} />
+            <section className="summary-panel summary-focus summary-bounded">
+              <div className="panel-heading">
+                <h2>Current work</h2>
+                <Link to={`/board?${search}`}>View all plans →</Link>
+              </div>
+              <p className="muted">
+                Active plans, with items needing attention first
+              </p>
+              <div className="summary-panel-body">
+                {active.length ? (
+                  active
+                    .slice(0, morePlans ? active.length : 3)
+                    .map((p) => (
+                      <PlanCard
+                        key={planKey(p)}
+                        plan={p}
+                        attention={needsAttention(p, snapshot)}
+                      />
+                    ))
+                ) : (
+                  <p>All plans are complete</p>
+                )}
+              </div>
+              <footer>
+                {active.length > 3 && (
+                  <button
+                    className="link-button"
+                    aria-expanded={morePlans}
+                    onClick={() => setMorePlans(!morePlans)}
+                  >
+                    {morePlans
+                      ? 'Show fewer plans'
+                      : `Show more plans (${active.length - 3})`}
+                  </button>
+                )}
+              </footer>
+            </section>
+            <section className="summary-panel summary-recent summary-bounded">
+              <div className="panel-heading">
+                <h2>Recent activity</h2>
+                <Link to={`/timeline?${search}`}>View timeline →</Link>
+              </div>
+              <p className="muted">Recorded updates across matching plans</p>
+              <div className="summary-panel-body">
+                <ActivityFeed plans={plans} limit={moreActivity ? 40 : 4} />
+              </div>
+              <footer>
+                <button
+                  className="link-button"
+                  aria-expanded={moreActivity}
+                  onClick={() => setMoreActivity(!moreActivity)}
+                >
+                  {moreActivity ? 'Show less activity' : 'Show more activity'}
+                </button>
+              </footer>
             </section>
           </div>
+          <details className="summary-plan-states">
+            <summary>Plan states</summary>
+            <StatusOverview plans={plans} />
+          </details>
         </>
       )}
     </div>
