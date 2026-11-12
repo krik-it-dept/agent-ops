@@ -3,6 +3,13 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## Unreleased
+
+- **Quieter installer updates.** Running the setup `.exe` while Agent Ops is
+  open stops the main process before its helper processes, avoiding a false
+  "recovered from an internal error" notice on the next start and transient
+  process-stop races.
+
 ## v1.3.0 - Task progress, plan-state picker and workspace arrangement
 
 - **Task progress at a glance.** Plan pages, List, Board cards and Summary show

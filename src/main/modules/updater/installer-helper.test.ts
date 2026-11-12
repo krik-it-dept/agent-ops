@@ -204,6 +204,81 @@ describe.skipIf(process.platform !== 'win32')('installer helper', () => {
   );
 
   it(
+    'stops a parent process before its child processes so the parent never records child-process-gone',
+    { timeout: 120_000 },
+    async () => {
+      const root = temp('tree');
+      const target = join(root, 'AgentOps', 'agent-ops.exe');
+      const readyFile = join(root, 'ready.json');
+      const crashFile = join(root, 'crash.json');
+      mkdirSync(join(target, '..'), { recursive: true });
+      copyFileSync(process.execPath, target);
+
+      const parentScript = `
+        const { spawn } = require('node:child_process');
+        const { writeFileSync } = require('node:fs');
+        const kids = [];
+        let ready = 0;
+        for (let i = 0; i < 6; i++) {
+          const k = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+            stdio: 'ignore',
+            windowsHide: true,
+          });
+          k.on('exit', () => {
+            writeFileSync(process.env.AO_CRASH, JSON.stringify({ childPid: k.pid }));
+          });
+          k.once('spawn', () => {
+            ready++;
+            if (ready === 6) {
+              writeFileSync(
+                process.env.AO_READY,
+                JSON.stringify({ mainPid: process.pid, childPids: kids.map((c) => c.pid) }),
+              );
+            }
+          });
+          kids.push(k);
+        }
+        setInterval(() => {}, 1000);
+      `;
+      const main = spawn(target, ['-e', parentScript], {
+        stdio: 'ignore',
+        windowsHide: true,
+        env: { ...process.env, AO_READY: readyFile, AO_CRASH: crashFile },
+      });
+      children.push(main);
+
+      for (let i = 0; i < 100 && !existsSync(readyFile); i++) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      const { mainPid, childPids } = JSON.parse(
+        readFileSync(readyFile, 'utf8'),
+      ) as { mainPid: number; childPids: number[] };
+
+      try {
+        const result = run('stop', '-Executable', target);
+        expect(result.code, result.out).toBe(0);
+        expect(
+          existsSync(crashFile),
+          `parent recorded child exit before parent stopped:\n${result.out}`,
+        ).toBe(false);
+        const stoppedPids = [...result.out.matchAll(/^stopped (\d+) /gm)].map(
+          (m) => Number(m[1]),
+        );
+        expect(stoppedPids[0]).toBe(mainPid);
+        expect(new Set(stoppedPids)).toEqual(new Set([mainPid, ...childPids]));
+      } finally {
+        for (const pid of [mainPid, ...childPids]) {
+          try {
+            process.kill(pid);
+          } catch {
+            // already exited
+          }
+        }
+      }
+    },
+  );
+
+  it(
     'checks the install folder and refuses links in any existing part of a path',
     { timeout: 120_000 },
     () => {

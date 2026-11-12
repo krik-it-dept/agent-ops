@@ -67,6 +67,15 @@ public static class AgentOpsNative {
     public uint Serial; public uint SizeHigh; public uint SizeLow; public uint Links;
     public uint IndexHigh; public uint IndexLow;
   }
+  [StructLayout(LayoutKind.Sequential)]
+  struct ProcessBasicInformation {
+    public IntPtr Reserved1;
+    public IntPtr PebBaseAddress;
+    public IntPtr Reserved2_0;
+    public IntPtr Reserved2_1;
+    public IntPtr UniqueProcessId;
+    public IntPtr InheritedFromUniqueProcessId;
+  }
   [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
   static extern SafeFileHandle CreateFileW(string name, uint access, uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
   [DllImport("kernel32.dll", SetLastError = true)]
@@ -83,6 +92,21 @@ public static class AgentOpsNative {
   public static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
   [DllImport("kernel32.dll", SetLastError = true)]
   public static extern bool CloseHandle(IntPtr handle);
+  [DllImport("ntdll.dll")]
+  static extern int NtQueryInformationProcess(IntPtr process, int infoClass, out ProcessBasicInformation info, int size, out int returnLength);
+
+  public static IntPtr OpenWithError(uint access, int pid, out int error) {
+    IntPtr h = OpenProcess(access, false, pid);
+    error = h == IntPtr.Zero ? Marshal.GetLastWin32Error() : 0;
+    return h;
+  }
+
+  public static int ParentPid(IntPtr process) {
+    ProcessBasicInformation info;
+    int len;
+    int status = NtQueryInformationProcess(process, 0, out info, Marshal.SizeOf(typeof(ProcessBasicInformation)), out len);
+    return status == 0 ? (int)info.InheritedFromUniqueProcessId.ToInt64() : 0;
+  }
 
   // Volume serial and file index of an existing file or folder; null when it cannot be opened.
   public static string FileId(string path) {
@@ -168,39 +192,94 @@ function Stop-Exact([string[]]$Targets) {
     $id = [AgentOpsNative]::FileId($long)
     if (-not $id) { Out-Line "error: cannot identify $long"; $code = [Math]::Max($code, 2); continue }
     $name = [System.IO.Path]::GetFileNameWithoutExtension($long)
-    foreach ($process in [System.Diagnostics.Process]::GetProcessesByName($name)) {
-      $processId = $process.Id
-      if ($processId -eq $PID -or $processId -eq $KeepPid) { continue }
-      # PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION
-      $handle = [AgentOpsNative]::OpenProcess(0x00101001, $false, $processId)
-      if ($handle -eq [IntPtr]::Zero) {
-        $exited = $false; try { $exited = $process.HasExited } catch { $exited = $false }
-        if ($exited) { continue }
-        Out-Line "error: cannot inspect process $processId"
-        $code = [Math]::Max($code, 2)
-        continue
-      }
+    for ($pass = 0; $pass -lt 2; $pass++) {
+      $matched = New-Object System.Collections.Generic.List[pscustomobject]
       try {
-        if ([AgentOpsNative]::WaitForSingleObject($handle, 0) -eq 0) { continue } # already exited
-        $image = [AgentOpsNative]::ImagePath($handle)
-        if (-not $image) { Out-Line "error: cannot inspect process $processId"; $code = [Math]::Max($code, 2); continue }
-        if ([AgentOpsNative]::FileId($image) -ne $id) { continue } # another copy: never touched
-        if (-not [AgentOpsNative]::TerminateProcess($handle, 1)) {
-          if ([AgentOpsNative]::WaitForSingleObject($handle, 0) -ne 0) {
-            Out-Line "error: cannot stop process $processId"
-            $code = 1
+        foreach ($process in [System.Diagnostics.Process]::GetProcessesByName($name)) {
+          $processId = $process.Id
+          if ($processId -eq $PID -or $processId -eq $KeepPid) { continue }
+          # Inspect with SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION first so other copies
+          # are never opened for termination and already-exited PIDs (Win32 error 87) are skipped.
+          $openErr = 0
+          $queryHandle = [AgentOpsNative]::OpenWithError(0x00101000, $processId, [ref]$openErr)
+          if ($queryHandle -eq [IntPtr]::Zero -and $openErr -eq 5) {
+            # Kernel process rundown briefly reports ERROR_ACCESS_DENIED before the PID disappears.
+            Start-Sleep -Milliseconds 50
+            $queryHandle = [AgentOpsNative]::OpenWithError(0x00101000, $processId, [ref]$openErr)
+          }
+          if ($queryHandle -eq [IntPtr]::Zero) {
+            if ($openErr -eq 87) { continue }
+            Out-Line "error: cannot inspect process $processId"
+            $code = [Math]::Max($code, 2)
             continue
           }
+          try {
+            if ([AgentOpsNative]::WaitForSingleObject($queryHandle, 0) -eq 0) { continue } # already exited
+            $image = [AgentOpsNative]::ImagePath($queryHandle)
+            if (-not $image) {
+              if ([AgentOpsNative]::WaitForSingleObject($queryHandle, 50) -eq 0) { continue }
+              Out-Line "error: cannot inspect process $processId"
+              $code = [Math]::Max($code, 2)
+              continue
+            }
+            if ([AgentOpsNative]::FileId($image) -ne $id) { continue } # another copy: never touched
+            # PROCESS_TERMINATE | SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION
+            $termErr = 0
+            $termHandle = [AgentOpsNative]::OpenWithError(0x00101001, $processId, [ref]$termErr)
+            if ($termHandle -eq [IntPtr]::Zero) {
+              if ($termErr -eq 87 -or [AgentOpsNative]::WaitForSingleObject($queryHandle, 250) -eq 0) { continue }
+              Out-Line "error: cannot stop process $processId"
+              $code = 1
+              continue
+            }
+            $termImage = [AgentOpsNative]::ImagePath($termHandle)
+            if (-not $termImage -or [AgentOpsNative]::FileId($termImage) -ne $id) {
+              [void][AgentOpsNative]::CloseHandle($termHandle)
+              continue
+            }
+            $matched.Add([pscustomobject]@{
+              Pid = $processId
+              Handle = $termHandle
+              ParentPid = [AgentOpsNative]::ParentPid($termHandle)
+              Depth = 0
+            })
+          } finally {
+            [void][AgentOpsNative]::CloseHandle($queryHandle)
+          }
         }
-        if ([AgentOpsNative]::WaitForSingleObject($handle, [uint32]($TimeoutSeconds * 1000)) -ne 0) {
-          Out-Line "error: process $processId did not exit"
-          $code = 1
-          continue
+        if ($matched.Count -eq 0) { break }
+        # Stop parent (Electron main) processes before child processes so a live main
+        # process never observes child-process-gone / renderer-gone during installer shutdown.
+        $byPid = @{}
+        foreach ($entry in $matched) { $byPid[$entry.Pid] = $entry }
+        $limit = $matched.Count
+        foreach ($entry in $matched) {
+          $depth = 0
+          $cursor = $entry.ParentPid
+          while ($depth -lt $limit -and $byPid.ContainsKey($cursor)) {
+            $depth++
+            $cursor = $byPid[$cursor].ParentPid
+          }
+          $entry.Depth = $depth
         }
-        $stopped++
-        Out-Line "stopped $processId $long"
+        foreach ($entry in @($matched | Sort-Object Depth)) {
+          if ([AgentOpsNative]::WaitForSingleObject($entry.Handle, 0) -ne 0) {
+            $terminated = [AgentOpsNative]::TerminateProcess($entry.Handle, 1)
+            $waitMs = if ($terminated) { [uint32]($TimeoutSeconds * 1000) } else { [uint32]([Math]::Min($TimeoutSeconds * 1000, 2000)) }
+            if ([AgentOpsNative]::WaitForSingleObject($entry.Handle, $waitMs) -ne 0) {
+              Out-Line $(if ($terminated) { "error: process $($entry.Pid) did not exit" } else { "error: cannot stop process $($entry.Pid)" })
+              $code = 1
+              continue
+            }
+          }
+          $stopped++
+          Out-Line "stopped $($entry.Pid) $long"
+        }
+        if ($code -ne 0) { break }
       } finally {
-        [void][AgentOpsNative]::CloseHandle($handle)
+        foreach ($entry in $matched) {
+          [void][AgentOpsNative]::CloseHandle($entry.Handle)
+        }
       }
     }
   }
