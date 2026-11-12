@@ -3,7 +3,7 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
-## Unreleased
+## v1.3.0 - Task progress, plan-state picker and workspace arrangement
 
 - **Task progress at a glance.** Plan pages, List, Board cards and Summary show
   a compact segmented bar with done and doing tasks counted toward the total,
