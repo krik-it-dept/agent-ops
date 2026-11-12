@@ -3,7 +3,7 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
-## Unreleased
+## v1.3.1 - Quieter installer updates
 
 - **Quieter installer updates.** Running the setup `.exe` while Agent Ops is
   open stops the main process before its helper processes, avoiding a false
