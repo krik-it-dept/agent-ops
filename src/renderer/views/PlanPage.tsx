@@ -35,12 +35,12 @@ import {
   Progress,
   RichText,
   SourceLabel,
-  Status,
   Warning,
   planRoute,
 } from '../components/ui';
 import type { Navigation } from '../preferences';
 import type { Plan, Step } from '../../shared/contracts';
+import { PlanStatePicker, PlanPinButton } from '../components/PlanControls';
 
 export function ActivityFeed({
   plan,
@@ -78,13 +78,29 @@ export function ActivityFeed({
         last = day;
         const showActor =
           !plan || ![plan.name, plan.repo, 'agent'].includes(e.actor);
+        const candidates = !plan
+          ? snapshot.state.plans.filter(
+              (p) =>
+                p.name === e.plan &&
+                p.repo === e.repo &&
+                (!e.project || p.project === e.project),
+            )
+          : [];
+        const target = candidates.length === 1 ? candidates[0] : undefined;
         return (
           <div key={`${e.ts}:${e.project}:${e.repo}:${e.plan}:${e.kind}:${i}`}>
             {heading && <h3>{day}</h3>}
             <article className="activity-item">
               <header>
                 {showActor && <strong>{e.actor}</strong>}
-                {!plan && <span>{e.plan}</span>}
+                {!plan &&
+                  (target ? (
+                    <Link to={planRoute(planKey(target), 'activity')}>
+                      {e.plan}
+                    </Link>
+                  ) : (
+                    <span>{e.plan}</span>
+                  ))}
                 <time dateTime={e.ts}>{timeLabel(e.ts)}</time>
               </header>
               <small>
@@ -191,6 +207,15 @@ export function PlanPage({
       </Empty>
     );
   const openQuestions = plan.questions.filter((q) => q.open);
+  const ownerWait =
+    stage(plan.status) === 'Blocked' || /^waiting for owner/i.test(plan.status);
+  const ownerReason = reason(plan.status) || 'No reason recorded';
+  const showOwnerWait =
+    ownerWait &&
+    fold(`${stage(plan.status)} ${ownerReason}`).includes(fold(query));
+  const filteredQuestions = plan.questions.filter((q) =>
+    fold(q.ask + ' ' + q.answer).includes(fold(query)),
+  );
   const tab = ['summary', 'decisions', 'questions', 'activity'].includes(
     section,
   )
@@ -230,9 +255,14 @@ export function PlanPage({
         >
           <span className={`step-box step-${s.status}`} aria-hidden="true">
             {
-              { done: '✓', doing: '◐', todo: '○', blocked: '×', partial: '!' }[
-                s.status
-              ]
+              {
+                done: '✓',
+                doing: '◐',
+                todo: '○',
+                blocked: '×',
+                waiting: '◷',
+                partial: '!',
+              }[s.status]
             }
           </span>
           <div className="step-content">
@@ -282,7 +312,19 @@ export function PlanPage({
         >
           {starred ? '★' : '☆'}
         </button>
-        <Status value={plan.status} />
+        <PlanStatePicker plan={plan} showLabel />
+        <PlanPinButton
+          name={plan.name}
+          pinned={navigation.pinnedCards.includes(planKey(plan))}
+          toggle={() =>
+            setNavigation((nav) => ({
+              ...nav,
+              pinnedCards: nav.pinnedCards.includes(planKey(plan))
+                ? nav.pinnedCards.filter((key) => key !== planKey(plan))
+                : [...nav.pinnedCards, planKey(plan)].slice(-200),
+            }))
+          }
+        />
         <SourceLabel plan={plan} />
         <PlanActions plan={plan} afterDelete={() => navigate('/')}>
           <button
@@ -330,38 +372,19 @@ export function PlanPage({
             </div>
           )}
         </div>
-        <div className="plan-summary-side">
-          {(stage(plan.status) === 'Blocked' ||
-            /^waiting for owner/i.test(plan.status)) && (
-            <div className="callout warning">
-              <strong>{stage(plan.status)}</strong>
-              <p>
-                <RichText
-                  text={reason(plan.status) || 'No reason recorded'}
-                  plan={plan}
-                />
-              </p>
-            </div>
-          )}
-          {openQuestions.length > 0 && (
-            <div className="callout">
-              <strong>Open questions ({openQuestions.length})</strong>
-              <p>{openQuestions[0]!.ask}</p>
-              <Link to={planRoute(planKey(plan), 'questions')}>
-                View all questions
-              </Link>
-            </div>
-          )}
-          {plan.next && (
-            <div className="callout">
-              <strong>Next</strong>
-              <p>
-                <RichText text={plan.next} plan={plan} />
-              </p>
-            </div>
-          )}
-          <Warning plan={plan} />
-        </div>
+        {(plan.next || plan.diagnostics.length > 0) && (
+          <div className="plan-summary-side">
+            {plan.next && (
+              <div className="callout">
+                <strong>Next</strong>
+                <p>
+                  <RichText text={plan.next} plan={plan} />
+                </p>
+              </div>
+            )}
+            <Warning plan={plan} />
+          </div>
+        )}
         {(clipped || expanded) && (
           <button
             className="summary-toggle"
@@ -423,6 +446,9 @@ export function PlanPage({
             }
           >
             {label}
+            {id === 'questions' && (ownerWait || openQuestions.length > 0) && (
+              <span className="tab-attention-dot" aria-hidden="true" />
+            )}
           </button>
         ))}
       </nav>
@@ -474,6 +500,7 @@ export function PlanPage({
                             done: 'Done',
                             doing: 'Implementing',
                             blocked: 'Blocked',
+                            waiting: 'Waiting',
                             partial: 'Waiting for owner',
                             todo: 'Planning',
                           }[milestoneState(m)]
@@ -522,10 +549,17 @@ export function PlanPage({
             <Empty title="No decisions recorded" />
           ))}
         {tab === 'questions' &&
-          (plan.questions.length ? (
-            plan.questions
-              .filter((q) => fold(q.ask + ' ' + q.answer).includes(fold(query)))
-              .map((q, i) => (
+          (showOwnerWait || filteredQuestions.length ? (
+            <>
+              {showOwnerWait && (
+                <div className="callout warning">
+                  <strong>{stage(plan.status)}</strong>
+                  <p>
+                    <RichText text={ownerReason} plan={plan} />
+                  </p>
+                </div>
+              )}
+              {filteredQuestions.map((q, i) => (
                 <article className="entry" key={q.key + i}>
                   <time>{q.when}</time>
                   <div>
@@ -541,9 +575,12 @@ export function PlanPage({
                     )}
                   </div>
                 </article>
-              ))
+              ))}
+            </>
           ) : (
-            <Empty title="No questions recorded" />
+            <Empty
+              title={query ? 'No matching questions' : 'No questions recorded'}
+            />
           ))}
         {tab === 'activity' && <ActivityFeed plan={plan} query={query} />}
       </section>

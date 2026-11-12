@@ -108,7 +108,9 @@ for (const theme of ['light', 'dark'] as const) {
       await page
         .getByRole('button', { name: 'Collapse all', exact: true })
         .click();
-      await expect(page.locator('.task-group').first()).toContainText('2/5');
+      await expect(page.locator('.task-group').first()).toContainText(
+        '3 / 5 · 60%',
+      );
       await expect(
         page.locator('.task-table tbody:not(.task-group) tr').first(),
       ).not.toBeVisible();
@@ -539,8 +541,12 @@ test('automatic archive, explicit restore, stars/tabs and refresh preserve navig
     await expect(
       page.getByRole('tablist', { name: 'Plan sections' }),
     ).toBeInViewport();
-    // Goal and Next stay within a third of the window until expanded.
+    // Goal and Next stay compact at ordinary heights and stay within a third of a short window until expanded.
     await page.locator('.view').evaluate((el) => el.scrollTo(0, 0));
+    await expect(
+      page.getByRole('button', { name: 'Show full summary' }),
+    ).toHaveCount(0);
+    await page.setViewportSize({ width: 520, height: 240 });
     const tallest = () =>
       page.evaluate(() =>
         Math.max(

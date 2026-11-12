@@ -153,7 +153,29 @@ describe('application IPC registry', () => {
     expect(removeHandler).toHaveBeenCalledTimes(2);
   });
   it('has request validators for every document channel and rejects empty/oversized or unsafe variants', () => {
-    expect(Object.keys(requestSchemas)).toHaveLength(40);
+    expect(Object.keys(requestSchemas)).toHaveLength(41);
+    expect(
+      parseRequest('plans:set-status', {
+        key: 'tasks/team/plan',
+        revision: 'a'.repeat(64),
+        status: 'Implementing',
+      }),
+    ).toMatchObject({ status: 'Implementing' });
+    expect(() =>
+      parseRequest('plans:set-status', {
+        key: 'tasks/team/plan',
+        revision: 'a'.repeat(64),
+        status: 'Anything',
+      }),
+    ).toThrow();
+    expect(() =>
+      parseRequest('plans:set-status', {
+        key: 'tasks/team/plan',
+        revision: 'a'.repeat(64),
+        status: 'Planning',
+        path: 'C:/outside.md',
+      }),
+    ).toThrow();
     expect(parseRequest('tasks:move-legacy', { keys: [] })).toEqual({
       keys: [],
     });

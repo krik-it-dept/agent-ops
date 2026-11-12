@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { agentList, canonicalAgent } from './agents';
 
-export type StepStatus = 'todo' | 'doing' | 'done' | 'partial' | 'blocked';
+export type StepStatus =
+  'todo' | 'doing' | 'done' | 'partial' | 'blocked' | 'waiting';
 export interface ParsedStep {
   status: StepStatus;
   text: string;
@@ -162,7 +163,7 @@ export function parseMarkdown(source: string | Uint8Array): ParsedPlan {
     if (fence) continue;
     // The s flag makes "." match CR and U+2028/U+2029 inside a line, like Go's regexp.
     const head =
-      /^#{2,4}\s*(M\d+[a-z]?)\s*[:.\-–]\s*(.*?)\s*(?:\[(todo|doing|done|partial|blocked)\])?\s*$/is.exec(
+      /^#{2,4}\s*(M\d+[a-z]?)\s*[:.\-–]\s*(.*?)\s*(?:\[(todo|doing|done|partial|blocked|waiting)\])?\s*$/is.exec(
         l,
       );
     if (head) {
@@ -225,7 +226,9 @@ export function parseMarkdown(source: string | Uint8Array): ParsedPlan {
       continue;
     }
     const word =
-      /^(?:[-*]\s*)?\[(todo|doing|done|partial|blocked)\]\s*(.*)$/is.exec(l);
+      /^(?:[-*]\s*)?\[(todo|doing|done|partial|blocked|waiting)\]\s*(.*)$/is.exec(
+        l,
+      );
     let status: StepStatus, text: string;
     if (word) {
       status = word[1]!.toLowerCase() as StepStatus;

@@ -4,6 +4,19 @@ import { parseMarkdown, stripEstimates } from './parse';
 import { parsePlan, stamped } from './overview';
 
 describe('Go parser baseline', () => {
+  it('reads explicit waiting tasks independently of the recorded plan state', () => {
+    const plan = parsePlan(
+      'Status: Waiting for CI\n## M1: Verify [waiting]\n- [done] Build\n- [waiting] Await input\n- [partial] Legacy work\n',
+    );
+    expect(plan.status).toBe('Waiting for CI');
+    expect(plan.steps.map((s) => s.status)).toEqual([
+      'done',
+      'waiting',
+      'partial',
+    ]);
+    expect(plan.milestones[0]!.state).toBe('waiting');
+    expect(plan.milestones[0]!.progress).toEqual({ done: 1, total: 3 });
+  });
   it('reads headers only before sections and outside fences', () => {
     const p = parsePlan(
       '# Plan\n\nGoal: real goal\n\n```\nStatus: Done\nSpec: fake.md\n```\n\n## M1: Work\nNext: not a header\n- [doing] step\n',

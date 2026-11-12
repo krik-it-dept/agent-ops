@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { Link } from 'react-router-dom';
 import type { Plan } from '../../shared/contracts';
+import type { PlanState } from '../../shared/contracts';
 import {
   archived,
   planKey,
@@ -194,31 +195,35 @@ const UNDO_FOR_MS = 2 * 60 * 1000;
  * plan's Status line, a toast offers Undo for 2 minutes, and a refusal is
  * shown plainly while the plan stays where it was.
  */
-export function useMarkDone() {
+export function usePlanStatus() {
   const { client, reload, report, showToast, settings } = useLedger();
   const readOnly = !!settings?.readOnly;
   return useCallback(
-    async (plan: Plan): Promise<boolean> => {
+    async (plan: Plan, status: PlanState): Promise<boolean> => {
       if (readOnly) return false;
       const key = planKey(plan);
       const origin =
         document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null;
-      const focusUndo = !!origin?.closest('.plan-actions');
+      const focusUndo = !!origin?.closest('.plan-actions, .plan-state-picker');
       try {
-        const result = await client.plans.markDone({
-          key,
-          revision: plan.revision,
-        });
+        const request = { key, revision: plan.revision };
+        const result =
+          status === 'Done'
+            ? await client.plans.markDone(request)
+            : await client.plans.setStatus({ ...request, status });
         await reload();
         const token = result.undo?.token;
         if (!result.changed || !token) {
-          showToast({ message: `${plan.name} is already Done` });
+          showToast({ message: `${plan.name} is already ${status}` });
           return true;
         }
         showToast({
-          message: `Marked ${plan.name} Done`,
+          message:
+            status === 'Done'
+              ? `Marked ${plan.name} Done`
+              : `${plan.name}: ${status}`,
           timeout: UNDO_FOR_MS,
           focusAction: focusUndo,
           action: {
@@ -254,6 +259,10 @@ export function useMarkDone() {
     },
     [client, reload, report, showToast, readOnly],
   );
+}
+export function useMarkDone() {
+  const change = usePlanStatus();
+  return useCallback((plan: Plan) => change(plan, 'Done'), [change]);
 }
 /** ToastHost shows the latest toast at the bottom of the window. */
 export function ToastHost() {

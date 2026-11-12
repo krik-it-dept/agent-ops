@@ -1,6 +1,6 @@
 // plan-edit finds and replaces the value of a plan's top Status line on the
 // raw file bytes. It is the only plan content Agent Ops may change (the owner's
-// Mark as Done). Every other byte stays as it was: the BOM, line endings,
+// explicit Plan-state picker, Board drop or Mark as Done). Every other byte stays as it was: the BOM, line endings,
 // spacing around the value, invalid UTF-8 elsewhere and the rest of the file.
 //
 // The top Status line is the first `Status:` header line, matched

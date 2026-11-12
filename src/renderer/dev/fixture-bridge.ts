@@ -20,6 +20,7 @@ import type {
   ResponseMap,
   Result,
 } from '../../shared/contracts';
+import { PLAN_STATES } from '../../shared/contracts';
 
 export type FixtureMode =
   | 'demo'
@@ -630,7 +631,12 @@ export function createFixtureBridge(
           value = { recycled: true };
           break;
         }
-        case 'plans:mark-done': {
+        case 'plans:mark-done':
+        case 'plans:set-status': {
+          const status =
+            channel === 'plans:set-status' ? String(input.status) : 'Done';
+          if (!PLAN_STATES.includes(status as (typeof PLAN_STATES)[number]))
+            fail('INVALID_REQUEST', 'Choose a supported Plan state.');
           const key = String(input.key);
           const plan =
             data.snapshot.state.plans.find(
@@ -647,7 +653,10 @@ export function createFixtureBridge(
               'CONFLICT',
               'This plan could not be changed. The file may be locked or unavailable.',
             );
-          if (plan.status.split(' - ')[0]!.trim().toLowerCase() === 'done') {
+          if (
+            plan.status.split(' - ')[0]!.trim().toLowerCase() ===
+            status.toLowerCase()
+          ) {
             value = {
               plan: { key, status: plan.status, revision: plan.revision },
               changed: false,
@@ -662,8 +671,15 @@ export function createFixtureBridge(
             tone: plan.tone,
             revision: plan.revision,
           });
-          plan.status = 'Done';
-          plan.tone = 'ok';
+          plan.status = status;
+          plan.tone =
+            status === 'Done'
+              ? 'ok'
+              : status === 'Blocked'
+                ? 'bad'
+                : status.startsWith('Waiting')
+                  ? 'pending'
+                  : 'doing';
           plan.revision = token.padStart(64, 'd');
           data.snapshot.activity.unshift({
             ts: new Date().toISOString(),
@@ -671,8 +687,11 @@ export function createFixtureBridge(
             repo: plan.repo,
             plan: plan.name,
             kind: 'status',
-            text: 'Marked Done in Agent Ops',
-            extra: `${undos.get(token)!.status.split(' - ')[0]} → Done`,
+            text:
+              status === 'Done'
+                ? 'Marked Done in Agent Ops'
+                : 'Plan state changed in Agent Ops',
+            extra: `${undos.get(token)!.status.split(' - ')[0]} → ${status}`,
             actor: 'Agent Ops',
           });
           publish();

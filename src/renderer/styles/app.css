@@ -248,8 +248,9 @@ kbd {
   min-height: 0;
 }
 .plan-sidebar {
-  width: 244px;
-  flex: 0 0 244px;
+  position: relative;
+  width: min(var(--sidebar-width, 244px), 40vw);
+  flex: 0 0 min(var(--sidebar-width, 244px), 40vw);
   min-height: 0;
   background: var(--panel);
   border-right: 1px solid var(--border);
@@ -853,6 +854,9 @@ progress::-webkit-progress-value {
   column-gap: 24px;
   padding: 0 8px 12px;
 }
+.plan-summary:not(:has(> .plan-summary-side)) {
+  grid-template-columns: minmax(0, 1fr);
+}
 .plan-summary-main,
 .plan-summary-side {
   min-width: 0;
@@ -899,6 +903,9 @@ progress::-webkit-progress-value {
   margin: 12px 0;
   font-size: 14px;
 }
+.goal > p {
+  max-width: 72ch;
+}
 .goal > strong {
   font-size: 11px;
   color: var(--muted-fg);
@@ -941,6 +948,13 @@ progress::-webkit-progress-value {
 .plan-tabs button[aria-selected='true'] {
   color: var(--fg);
   border-bottom: 2px solid var(--fg);
+}
+.tab-attention-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning-text);
+  flex-shrink: 0;
 }
 .milestone {
   border: 1px solid var(--border);
@@ -1434,10 +1448,6 @@ dialog > .actions {
   }
 }
 @media (max-width: 900px) {
-  .plan-sidebar {
-    width: 220px;
-    flex-basis: 220px;
-  }
   .app-name,
   .save-state {
     display: none;
@@ -1447,10 +1457,6 @@ dialog > .actions {
   }
 }
 @media (max-width: 650px) {
-  .plan-sidebar {
-    width: 185px;
-    flex-basis: 185px;
-  }
   .fixture-badge {
     display: none;
   }

@@ -3,6 +3,25 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## Unreleased
+
+- **Task progress at a glance.** Plan pages, List, Board cards and Summary show
+  a compact segmented bar with done and doing tasks counted toward the total,
+  hover counts by status, `[waiting]` checklist steps, and one-click task
+  status filters inside a plan.
+- **Change a plan's state anywhere.** Pick a state from the status icon on a
+  plan page, List row or Board card, or drag a card between Board columns to
+  update only the plan's top `Status:` line, with the same backup and 2-minute
+  Undo as Mark as Done.
+- **Keep your workspace arranged.** Resize the sidebar, drag plan cards to
+  reorder them within a workspace (or press `Alt+Up` / `Alt+Down` in All and
+  Starred), reorder and pin open plan tabs at the top, and pin important cards
+  on the Board without changing plan files.
+- **Compact Summary and plan entry.** Summary pairs Task progress with Agent
+  workload above bounded Current work and Recent activity panels. Opening a
+  plan shows only Goal and Next above Milestones; waiting/blocked notes and
+  open questions live in the Questions tab with an attention dot when needed.
+
 ## v1.2.2 - Plan pages focus on goals and milestones
 
 - **Agents beside the task.** On a plan page each task shows its agents and

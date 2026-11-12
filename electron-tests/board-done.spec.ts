@@ -32,23 +32,23 @@ test('Board: drag a plan to Done, Undo from the toast, refusals keep the card, k
     const search = card(page, 'studio/Ledger/Cải thiện tìm kiếm');
     await expect(inProgress.locator(search)).toHaveCount(1);
     await expect(search).toHaveAttribute('draggable', 'true');
-    // A plan that is already Done cannot be dragged and has no Mark as Done.
+    // Done plans can be moved back to another state but have no Mark as Done.
     const finished = card(page, 'studio/Ledger/Hoàn tất bản mẫu');
     await expect(done.locator(finished)).toHaveCount(1);
-    await expect(finished).not.toHaveAttribute('draggable', 'true');
+    await expect(finished).toHaveAttribute('draggable', 'true');
     await finished.locator('summary').click();
     await expect(
       finished.getByRole('button', { name: 'Mark as Done' }),
     ).toHaveCount(0);
     await finished.locator('summary').click();
 
-    // While dragging, only the Done column shows as the target.
+    // All other Plan-state columns are targets.
     const dataTransfer = await dragOver(page, search, done);
     await expect(done).toHaveClass(/drop-target/);
     await expect(
       done.getByText('Drop here to mark the plan Done'),
     ).toBeVisible();
-    await expect(page.locator('.board-column.drop-target')).toHaveCount(1);
+    await expect(page.locator('.board-column.drop-target')).toHaveCount(4);
     await done.dispatchEvent('drop', { dataTransfer });
     await search.dispatchEvent('dragend', { dataTransfer });
     await expect(done.locator(search)).toHaveCount(1);
@@ -61,10 +61,14 @@ test('Board: drag a plan to Done, Undo from the toast, refusals keep the card, k
       'Cải thiện tìm kiếm is back to Implementing',
     );
 
-    // Dropping on another column changes nothing.
+    // Other columns write the matching Plan state, and Undo restores it.
     await drop(page, search, column(page, 'Review & test'));
+    await expect(column(page, 'Review & test').locator(search)).toHaveCount(1);
+    await expect(
+      search.getByLabel('Plan state for Cải thiện tìm kiếm'),
+    ).toHaveValue('Reviewing');
+    await toast.getByRole('button', { name: 'Undo' }).click();
     await expect(inProgress.locator(search)).toHaveCount(1);
-    await expect(page.locator('.toast')).not.toContainText('Marked');
 
     // A refusal is shown plainly and the card stays where it was.
     const locked = card(page, 'studio/Services/Khắc phục đồng bộ');

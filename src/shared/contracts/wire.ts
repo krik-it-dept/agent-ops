@@ -144,7 +144,7 @@ function response(channel: keyof RequestMap, value: unknown): boolean {
     return typeof value.cancelled === 'boolean';
   if (channel.startsWith('shell:open-')) return value.opened === true;
   if (channel === 'plans:recycle') return value.recycled === true;
-  if (channel === 'plans:mark-done')
+  if (channel === 'plans:mark-done' || channel === 'plans:set-status')
     return (
       markedPlan(value.plan) &&
       typeof value.changed === 'boolean' &&

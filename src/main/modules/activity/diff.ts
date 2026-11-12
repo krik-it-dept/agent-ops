@@ -2,7 +2,8 @@
 // ported from main.go: new, changed (status, steps, decisions, questions,
 // milestones), moved (one event, not closed + new), closed, and stale.
 
-export type StepStatus = 'todo' | 'doing' | 'done' | 'partial' | 'blocked';
+export type StepStatus =
+  'todo' | 'doing' | 'done' | 'partial' | 'blocked' | 'waiting';
 
 export interface Step {
   line?: number;

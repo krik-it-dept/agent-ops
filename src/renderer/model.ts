@@ -14,6 +14,7 @@ import type {
 export const stepLabels = {
   doing: 'In progress',
   blocked: 'Blocked',
+  waiting: 'Waiting',
   partial: 'Partial',
   todo: 'To do',
   done: 'Done',
@@ -66,6 +67,7 @@ export function milestoneState(m: Milestone): Step['status'] {
   if (m.steps.length && m.steps.every((s) => s.status === 'done'))
     return 'done';
   if (m.steps.some((s) => s.status === 'blocked')) return 'blocked';
+  if (m.steps.some((s) => s.status === 'waiting')) return 'waiting';
   return m.steps.some((s) => ['doing', 'done', 'partial'].includes(s.status))
     ? 'doing'
     : 'todo';
@@ -343,7 +345,14 @@ export function looseSteps(plan: Plan) {
       ),
   );
 }
-export const workflow = { doing: 0, blocked: 1, partial: 2, todo: 3, done: 4 };
+export const workflow = {
+  doing: 0,
+  blocked: 1,
+  waiting: 2,
+  partial: 3,
+  todo: 4,
+  done: 5,
+};
 export interface TaskRow {
   plan: DisplayPlan;
   step: Step;

@@ -117,7 +117,9 @@ export function isOverview(value: unknown): value is Overview {
     keys.add(key);
     const step = (s: Plan['steps'][number]): boolean =>
       !!s &&
-      ['todo', 'doing', 'done', 'partial', 'blocked'].includes(s.status) &&
+      ['todo', 'doing', 'done', 'partial', 'blocked', 'waiting'].includes(
+        s.status,
+      ) &&
       typeof s.text === 'string' &&
       Number.isSafeInteger(s.line);
     return (

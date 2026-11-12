@@ -8,22 +8,34 @@ import {
 } from '../model';
 import { agentMatches, participation } from '../agents';
 import { useLedger } from '../store';
-import { Empty, isDone, useMarkDone } from '../components/ui';
+import { Empty, usePlanStatus } from '../components/ui';
+import type { Navigation } from '../preferences';
+import type { PlanState } from '../../shared/contracts';
 import { Timeline } from './Timeline';
 import { COLUMNS, columnOf, PLAN_DRAG_TYPE, PlanCard } from './Overview';
 
-const DONE_COLUMN = COLUMNS.indexOf('Done');
+const COLUMN_STATES: PlanState[] = [
+  'Planning',
+  'Implementing',
+  'Reviewing',
+  'Waiting for owner',
+  'Done',
+];
 
 export function WorkViews({
   view,
   query,
   agent,
   clear,
+  navigation,
+  setNavigation,
 }: {
   view: 'board' | 'timeline';
   query: string;
   agent: string;
   clear(): void;
+  navigation: Navigation;
+  setNavigation(update: (nav: Navigation) => Navigation): void;
 }) {
   const { snapshot, settings } = useLedger();
   const plans = useMemo(
@@ -49,12 +61,12 @@ export function WorkViews({
   const limit = page.signature === signature ? page.limit : 100;
   // A stable slice keeps Timeline's memoised activity from re-running on every render.
   const shown = useMemo(() => plans.slice(0, limit), [plans, limit]);
-  // Cards are dragged to the Done column only; no other column is a target.
+  // A drag carries the exact revision the owner saw. Pinning is private navigation only.
   const [dragging, setDragging] = useState('');
   const draggedPlan = useRef<DisplayPlan | null>(null);
-  const [over, setOver] = useState(false);
+  const [over, setOver] = useState<number | 'pinned' | null>(null);
   const [marking, setMarking] = useState(false);
-  const markDone = useMarkDone();
+  const changeStatus = usePlanStatus();
   const drag = useMemo(
     () => ({
       start: (plan: DisplayPlan) => {
@@ -64,7 +76,7 @@ export function WorkViews({
       end: () => {
         draggedPlan.current = null;
         setDragging('');
-        setOver(false);
+        setOver(null);
       },
     }),
     [],
@@ -74,11 +86,11 @@ export function WorkViews({
     canDrag &&
     draggedPlan.current !== null &&
     event.dataTransfer.types.includes(PLAN_DRAG_TYPE);
-  const doneTarget = {
+  const dropTarget = (target: number | 'pinned') => ({
     onDragEnter: (event: DragEvent) => {
       if (!accepts(event)) return;
       event.preventDefault();
-      setOver(true);
+      setOver(target);
     },
     onDragOver: (event: DragEvent) => {
       if (!accepts(event)) return;
@@ -87,7 +99,7 @@ export function WorkViews({
     },
     onDragLeave: (event: DragEvent) => {
       if (!event.currentTarget.contains(event.relatedTarget as Node | null))
-        setOver(false);
+        setOver(null);
     },
     onDrop: (event: DragEvent) => {
       if (!accepts(event)) return;
@@ -95,11 +107,30 @@ export function WorkViews({
       const key = event.dataTransfer.getData(PLAN_DRAG_TYPE) || dragging;
       const plan = draggedPlan.current;
       drag.end();
-      if (!plan || planKey(plan) !== key || isDone(plan)) return;
+      if (!plan || planKey(plan) !== key) return;
+      const pin = (pinned: boolean) =>
+        setNavigation((nav) => ({
+          ...nav,
+          pinnedCards: pinned
+            ? [...new Set([...nav.pinnedCards, key])].slice(-200)
+            : nav.pinnedCards.filter((value) => value !== key),
+        }));
+      if (target === 'pinned') {
+        pin(true);
+        return;
+      }
+      if (columnOf(plan) === target) {
+        pin(false);
+        return;
+      }
       setMarking(true);
-      void markDone(plan).finally(() => setMarking(false));
+      void changeStatus(plan, COLUMN_STATES[target]!)
+        .then((changed) => {
+          if (changed) pin(false);
+        })
+        .finally(() => setMarking(false));
     },
-  };
+  });
   if (!snapshot) return null;
   return (
     <div className={`work-${view}`}>
@@ -114,45 +145,111 @@ export function WorkViews({
       {!plans.length ? (
         <Empty title="No matching work" />
       ) : view === 'board' ? (
-        <div className="board-columns">
-          {COLUMNS.map((title, i) => {
-            const column = plans.filter((p) => columnOf(p) === i);
-            const target = i === DONE_COLUMN && dragging !== '';
-            return (
-              <section
-                className={`board-column column-${i}${target ? ' drop-target' : ''}${target && over ? ' drop-over' : ''}`}
-                key={title}
-                aria-label={title}
-                aria-busy={i === DONE_COLUMN && marking ? true : undefined}
-                {...(i === DONE_COLUMN ? doneTarget : {})}
-              >
-                <h2>
-                  <i />
-                  {title}
-                  <small>{column.length}</small>
-                </h2>
-                {target && (
-                  <p className="drop-hint">Drop here to mark the plan Done</p>
-                )}
-                {column.slice(0, limit).map((p) => (
+        <>
+          <section
+            className={`board-pinned${dragging ? ' drop-target' : ''}${over === 'pinned' ? ' drop-over' : ''}`}
+            aria-label="Pinned plans"
+            {...dropTarget('pinned')}
+          >
+            <div className="board-pinned-heading">
+              <h2>
+                Pinned{' '}
+                <small>
+                  {
+                    plans.filter((p) =>
+                      navigation.pinnedCards.includes(planKey(p)),
+                    ).length
+                  }
+                </small>
+              </h2>
+              <span className="muted">
+                Drop here to pin without changing status
+              </span>
+            </div>
+            <div className="board-pinned-cards">
+              {plans
+                .filter((p) => navigation.pinnedCards.includes(planKey(p)))
+                .map((p) => (
                   <PlanCard
                     key={planKey(p)}
                     plan={p}
-                    drag={canDrag && !isDone(p) ? drag : undefined}
+                    drag={canDrag ? drag : undefined}
+                    pin={{
+                      pinned: true,
+                      toggle: () =>
+                        setNavigation((nav) => ({
+                          ...nav,
+                          pinnedCards: nav.pinnedCards.filter(
+                            (key) => key !== planKey(p),
+                          ),
+                        })),
+                    }}
                   />
                 ))}
-                {column.length > limit && (
-                  <button
-                    onClick={() => setPage({ signature, limit: limit + 100 })}
-                  >
-                    Show more plans
-                  </button>
-                )}
-                {!column.length && <p className="muted">No plans</p>}
-              </section>
-            );
-          })}
-        </div>
+            </div>
+          </section>
+          <div className="board-columns">
+            {COLUMNS.map((title, i) => {
+              const column = plans.filter(
+                (p) =>
+                  columnOf(p) === i &&
+                  !navigation.pinnedCards.includes(planKey(p)),
+              );
+              const target =
+                dragging !== '' &&
+                draggedPlan.current !== null &&
+                (columnOf(draggedPlan.current) !== i ||
+                  navigation.pinnedCards.includes(dragging));
+              return (
+                <section
+                  className={`board-column column-${i}${target ? ' drop-target' : ''}${target && over === i ? ' drop-over' : ''}`}
+                  key={title}
+                  aria-label={title}
+                  aria-busy={marking ? true : undefined}
+                  {...dropTarget(i)}
+                >
+                  <h2>
+                    <i />
+                    {title}
+                    <small>{column.length}</small>
+                  </h2>
+                  {target && (
+                    <p className="drop-hint">
+                      {i === 4
+                        ? 'Drop here to mark the plan Done'
+                        : `Drop here to set ${COLUMN_STATES[i]}`}
+                    </p>
+                  )}
+                  {column.slice(0, limit).map((p) => (
+                    <PlanCard
+                      key={planKey(p)}
+                      plan={p}
+                      drag={canDrag ? drag : undefined}
+                      pin={{
+                        pinned: false,
+                        toggle: () =>
+                          setNavigation((nav) => ({
+                            ...nav,
+                            pinnedCards: [
+                              ...new Set([...nav.pinnedCards, planKey(p)]),
+                            ].slice(-200),
+                          })),
+                      }}
+                    />
+                  ))}
+                  {column.length > limit && (
+                    <button
+                      onClick={() => setPage({ signature, limit: limit + 100 })}
+                    >
+                      Show more plans
+                    </button>
+                  )}
+                  {!column.length && <p className="muted">No plans</p>}
+                </section>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <>
           <Timeline plans={shown} />

@@ -108,7 +108,7 @@ export class CoreServices {
       store: this.store,
       lookup: (key) => options.ledger().findPlan(key),
       changed: options.changed,
-      record: ({ key, plan, previous, at }) =>
+      record: ({ key, plan, previous, status, at }) =>
         options.ledger().record(
           {
             ts: at.toISOString(),
@@ -116,11 +116,14 @@ export class CoreServices {
             repo: plan.repo,
             plan: plan.name,
             kind: 'status',
-            text: 'Marked Done in Agent Ops',
-            extra: `${stage(previous) || 'No stage'} → Done`,
+            text:
+              status === 'Done'
+                ? 'Marked Done in Agent Ops'
+                : 'Plan state changed in Agent Ops',
+            extra: `${stage(previous) || 'No stage'} → ${status}`,
             actor: 'Agent Ops',
           },
-          { key, value: 'Done' },
+          { key, value: status },
         ),
     });
   }
@@ -330,6 +333,21 @@ export class CoreServices {
           plan: { key: done.key, status: done.status, revision: done.revision },
           changed: done.changed,
           undo: done.undo,
+        };
+      },
+      'plans:set-status': async (request) => {
+        const edited = unwrap(
+          await this.planAction(() => this.marker.setStatus(request)),
+        );
+        await this.options.ledger().settled();
+        return {
+          plan: {
+            key: edited.key,
+            status: edited.status,
+            revision: edited.revision,
+          },
+          changed: edited.changed,
+          undo: edited.undo,
         };
       },
       'plans:undo-mark-done': async (request) => {

@@ -180,7 +180,7 @@ test('Board refuses a revision refreshed during a drag and preserves the agent s
     await expect(card).toContainText('Owner saw this');
     const transfer = await page.evaluateHandle(() => new DataTransfer());
     await card.dispatchEvent('dragstart', { dataTransfer: transfer });
-    await expect(page.locator('.board-column.drop-target')).toHaveCount(1);
+    await expect(page.locator('.board-column.drop-target')).toHaveCount(4);
     const changed = source.replace(
       'Owner saw this',
       'Agent changed this while dragging',
@@ -405,8 +405,10 @@ test('real first-run setup, native picker port, Skills install, Tasks move, live
       await readFile(join(edits, backup!, 'workspace', 'real-plan.md')),
     ).toEqual(original);
     await expect(
-      page.locator('.plan-header').getByText('Done', { exact: true }),
-    ).toBeVisible();
+      page
+        .locator('.plan-header')
+        .getByLabel('Plan state for real-plan', { exact: true }),
+    ).toHaveValue('Done');
     await toast.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect(toast).toContainText('real-plan is back to Testing');
     expect(await readFile(moved)).toEqual(original);
