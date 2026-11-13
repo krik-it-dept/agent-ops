@@ -39,7 +39,7 @@ export function openingHash(
     route = planRoute(saved.view.slice(5));
   if (!route && saved.layout === 'list') route = '/list';
   if (
-    !/^\/(?:list|board|timeline|attention|archive|plan\/[^/]+\/(?:summary|checklist|decisions|questions|activity))?$/.test(
+    !/^\/(?:list|board|timeline|attention|archive|sessions|plan\/[^/]+\/(?:summary|checklist|decisions|questions|activity))?$/.test(
       route,
     )
   )

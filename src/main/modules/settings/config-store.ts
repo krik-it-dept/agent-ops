@@ -161,6 +161,7 @@ export interface SettingsPatch {
   textSize?: TextSize;
   shortcuts?: boolean;
   autoArchiveDone?: boolean;
+  claudeHooks?: boolean;
 }
 
 const BOOLEAN_FIELDS = [
@@ -168,6 +169,7 @@ const BOOLEAN_FIELDS = [
   'setupComplete',
   'shortcuts',
   'autoArchiveDone',
+  'claudeHooks',
 ] as const;
 
 export interface SettingsStoreOptions {

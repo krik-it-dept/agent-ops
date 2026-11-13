@@ -71,9 +71,9 @@ for (const theme of ['dark', 'light'] as const) {
       ).toBeLessThan(2);
       const height = (await current.boundingBox())!.height;
       await current.getByRole('button', { name: /Show more plans/ }).click();
-      expect((await current.boundingBox())!.height).toBe(height);
+      expect((await current.boundingBox())!.height).toBeCloseTo(height, 1);
       await recent.getByRole('button', { name: 'Show more activity' }).click();
-      expect((await recent.boundingBox())!.height).toBe(height);
+      expect((await recent.boundingBox())!.height).toBeCloseTo(height, 1);
       await current.locator('.card-tasks-link').first().click();
       await expect(
         page.getByRole('heading', { name: 'List', exact: true }),

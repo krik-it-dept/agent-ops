@@ -148,6 +148,29 @@ export function Preferences({ setup = false }: { setup?: boolean }) {
             </label>
           </section>
           <section className="settings-card">
+            <h3>Sessions</h3>
+            <label className="setting-row">
+              <span>
+                <strong>Claude Code session hooks</strong>
+                <small>
+                  The installed app keeps its hooks in Claude Code settings
+                  (yours and each Orca profile's), with a backup before each
+                  change. Sessions then record their todos and handoff notes,
+                  and a new session after /clear or a compaction gets the latest
+                  note and the open plans of its workspace. Other hooks stay as
+                  they are.
+                </small>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={settings.claudeHooks}
+                disabled={locked}
+                onChange={(e) => change({ claudeHooks: e.target.checked })}
+              />
+            </label>
+          </section>
+          <section className="settings-card">
             <h3>Maintenance</h3>
             <div className="setting-row">
               <span>
@@ -786,7 +809,7 @@ export function SettingsPage({ returnTo = '/' }: { returnTo?: string }) {
         (
           {
             general:
-              'appearance theme dark light notifications startup shortcuts automatic archive data folder setup',
+              'appearance theme dark light notifications startup shortcuts automatic archive sessions hooks claude data folder setup',
             projects: 'workspace folders add hidden',
             integrations: 'AI tools skills reminder install path',
             tasks: 'folder move shared plans',

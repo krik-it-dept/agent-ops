@@ -1,7 +1,7 @@
 ---
 name: task-plan
 description: Create, update, reorganise or close the owner's task plan files in the Agent Ops Tasks folder. Use when the owner says "/task-plan", "update tiến độ", "cập nhật plan", when substantial work starts (several PRs or sessions, over about an hour, or owner decisions along the way), when its stage, steps, decisions, questions or milestones change, or to convert an old-format plan. Arguments: none (bring the plan up to date), `migrate` (rewrite an old plan into the current format), `close` (finish a plan).
-agent-ops-skill: 5
+agent-ops-skill: 6
 ---
 
 # Task plan
@@ -171,6 +171,31 @@ $id = & $report --report --agent Codex --plan-file "<plan.md>" --step-line <line
 running as another agent) reports its own runs: `--agent` is the worker's own agent, `--role executor`, and
 `--coordinator <the coordinator's agent>` (the plan's `Agent:` line). The coordinator does not report the
 worker's step for it. When the coordinator does a step itself, it reports with its own name and no `--role`.
+
+## Session handoff
+
+A long session costs context. Before the owner clears it (`/clear`), or when the owner asks for a handoff,
+write a short handoff note so the next session in the same folder can carry on:
+
+```bash
+"$REPORT" --handoff --agent Claude --text "<the note>"
+```
+
+```powershell
+& $report --handoff --agent Claude --text "<the note>" | Select-Object -Last 1
+```
+
+- The note (at most 8000 characters, plain text, no secrets) says what is done with evidence, what is in
+  progress, the next concrete steps, decisions settled in this session, and files, commands or IDs the next
+  session needs. Name the plan file when there is one, and bring the plan up to date first.
+- `--handoff` uses the current folder; pass `--cwd <full path>` to name another. It prints `ok`; on a problem
+  it prints one plain sentence. A missing report command means no handoff: tell the owner and stop there.
+- You cannot clear the session yourself. After writing the note, tell the owner it is saved and that they can
+  type `/clear` now.
+- In Claude Code, Agent Ops' hooks load the newest note into the session that starts after `/clear` or a
+  compaction, together with the open plans of the workspace. When the owner clears without a note, the hooks
+  save one from the todo list and the latest requests. Other clients read the newest note for the folder with
+  `--handoff --show` at the start of a session.
 
 ## Orchestration (Orca)
 

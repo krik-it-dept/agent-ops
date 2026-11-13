@@ -37,6 +37,7 @@ import { CommandSearch, ShortcutSheet } from './components/Commands';
 import { Sidebar, sidebarPlans } from './components/Sidebar';
 import { PlanTabs } from './components/PlanTabs';
 import { Overview } from './views/Overview';
+import { Sessions } from './views/Sessions';
 import { WorkViews } from './views/WorkViews';
 import { agentMatches, agentName, participation } from './agents';
 import { TaskList, restoreListPreferences } from './views/TaskList';
@@ -68,8 +69,14 @@ function Shell() {
     if (!textSize || readOnly) return;
     const sizes = ['small', 'default', 'large', 'larger'] as const;
     let last = 0;
-    const step = (to: (typeof sizes)[number]) => {
-      if (to === textSize) return;
+    type Size = (typeof sizes)[number];
+    // The size on screen, which runs ahead of the saved setting while a save is on its way.
+    const shown = (): Size => {
+      const value = document.documentElement.dataset.textSize as Size;
+      return sizes.includes(value) ? value : textSize;
+    };
+    const step = (to: Size) => {
+      if (to === shown()) return;
       document.documentElement.dataset.textSize = to;
       void client.settings
         .set({ textSize: to })
@@ -77,7 +84,7 @@ function Shell() {
         .catch(report);
     };
     const by = (delta: number) => {
-      const i = sizes.indexOf(textSize);
+      const i = sizes.indexOf(shown());
       step(sizes[Math.max(0, Math.min(sizes.length - 1, i + delta))]!);
     };
     const onWheel = (event: WheelEvent) => {
@@ -455,7 +462,9 @@ function Shell() {
             ? 'Board'
             : location.pathname === '/timeline'
               ? 'Timeline'
-              : 'Summary';
+              : location.pathname === '/sessions'
+                ? 'Sessions'
+                : 'Summary';
   return (
     <div className="app">
       {/* First-run setup is modal: the app bar and status bar stay visible
@@ -550,6 +559,14 @@ function Shell() {
                 aria-current={view === 'archive' ? 'page' : undefined}
               >
                 Archive
+              </Link>
+              <Link
+                to={`/sessions?${search}`}
+                aria-current={
+                  location.pathname === '/sessions' ? 'page' : undefined
+                }
+              >
+                Sessions
               </Link>
               <PlanTabs
                 plans={plans}
@@ -814,6 +831,10 @@ function Shell() {
                         clear={clearFilters}
                       />
                     }
+                  />
+                  <Route
+                    path="/sessions"
+                    element={<Sessions query={query} />}
                   />
                   <Route
                     path="/plan/:key/:section?"

@@ -48,6 +48,18 @@ Reports go to `%LOCALAPPDATA%/AgentOps/runs` while the app runs; the window show
 and each run's latest result. The app keeps `AGENT_OPS_REPORT` and `report-command.txt` pointing at
 the command, and the task-plan skill tells agents how to use it. Reports never change plan files.
 
+## Sessions and handoffs
+
+Before a long session is cleared, the agent writes a handoff note with
+`agent-ops.exe --handoff --agent Claude --text "<done, next, decisions>"`; other clients read the newest
+note for their folder with `--handoff --show`. The installed app also keeps its hooks in Claude Code
+settings (the user's `~/.claude/settings.json` and each Orca profile's), with a backup under
+`%LOCALAPPDATA%/AgentOps/backups/claude-settings` before every change. Through
+`agent-ops.exe --hook agent-ops-hooks-v1`, sessions record their todos, prompts and waits under
+`%LOCALAPPDATA%/AgentOps/sessions`, save a note automatically when cleared or compacted without one, and
+get the newest note plus the workspace's open plans when the next session starts. The Sessions view shows
+these records; Settings > Sessions turns the hooks off and removes them. Other hooks stay unchanged.
+
 ## Development
 
 Use Windows x64 and Node.js 24 (see `.nvmrc`). Go is not needed.

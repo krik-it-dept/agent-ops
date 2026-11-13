@@ -183,7 +183,7 @@ describe('seeding the list', () => {
     let list = cfg['integrations'] as Record<string, unknown>[];
     expect(list.map((t) => t['source'])).toEqual(['detected', 'detected']);
     expect(list[1]).toMatchObject({
-      version: 5,
+      version: 6,
       installedAt: '2026-11-10T10:00:00Z',
     });
     expect(
@@ -278,7 +278,7 @@ describe('settings preservation', () => {
       'source',
       'addedAt',
     ]);
-    expect(t).toMatchObject({ version: 5, addedAt: '2026-01-01T00:00:00Z' });
+    expect(t).toMatchObject({ version: 6, addedAt: '2026-01-01T00:00:00Z' });
   });
 
   it('refuses every change to a list it cannot read, and leaves it as it is', async () => {
@@ -423,7 +423,7 @@ describe('idempotent actions and backups', () => {
     put(skillFileOf(dir), skillText.replaceAll('\n', '\r\n'));
     expect((await f.service.listTargets()).targets[0]).toMatchObject({
       state: 'installed',
-      installedVersion: 5,
+      installedVersion: 6,
     });
     // A SKILL.md that is itself a link (here a junction) is never edited.
     const elsewhere = path.join(f.home, 'elsewhere');
@@ -569,7 +569,7 @@ describe('markers', () => {
 
 describe('helpers', () => {
   it('reads the skill version from the front matter only', () => {
-    expect(skillVersionOf(Buffer.from(skillText))).toBe(5);
+    expect(skillVersionOf(Buffer.from(skillText))).toBe(6);
     expect(
       skillVersionOf(
         Buffer.from('---\r\nname: x\r\nagent-ops-skill: 7\r\n---\r\n'),

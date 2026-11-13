@@ -266,6 +266,8 @@ export interface Settings {
   textSize: TextSize;
   shortcuts: boolean;
   autoArchiveDone: boolean;
+  /** Agent Ops keeps its session hooks in Claude Code settings. */
+  claudeHooks: boolean;
   planArchive: Record<PlanKey, boolean> | null;
   startWithWindows: boolean;
   startupManaged: boolean;
@@ -290,6 +292,7 @@ export interface SettingsPatch {
   textSize?: TextSize;
   shortcuts?: boolean;
   autoArchiveDone?: boolean;
+  claudeHooks?: boolean;
   tasksDir?: string;
   allowInsideWorkspace?: boolean;
   moveExisting?: boolean;
@@ -485,4 +488,43 @@ export interface MarkDoneResponse {
 }
 export interface UndoMarkDoneResponse {
   plan: MarkedPlan;
+}
+
+/** A todo as a session last recorded it. */
+export interface SessionTodo {
+  text: string;
+  state: 'pending' | 'in_progress' | 'completed';
+}
+/** A handoff note left for the next session in the same folder. */
+export interface SessionNote {
+  at: ISOTime;
+  agent: string;
+  text: string;
+  /** Saved by a hook from the todo list, not written by the agent. */
+  auto: boolean;
+}
+/**
+ * SessionSummary is what an AI client session recorded about itself through
+ * hooks or the handoff command. It is presence and notes, never acceptance.
+ */
+export interface SessionSummary {
+  id: string;
+  agent: string;
+  cwd: string;
+  workspace: string;
+  startedAt: ISOTime;
+  lastAt: ISOTime;
+  state: 'active' | 'waiting' | 'idle' | 'quiet' | 'ended' | 'note';
+  /** What the client asks the owner while waiting. */
+  waiting: string;
+  /** The first words of the owner's latest prompt. */
+  lastPrompt: string;
+  todos: SessionTodo[];
+  /** Newest first. */
+  notes: SessionNote[];
+  compactions: number;
+}
+export interface SessionsResponse {
+  sessions: SessionSummary[];
+  readAt: ISOTime;
 }

@@ -47,6 +47,7 @@ export interface RequestMap {
   'updates:check': D.Empty;
   'updates:apply': { version: string };
   'updates:skip': { version: string };
+  'sessions:list': D.Empty;
 }
 export interface ResponseMap {
   'app:renderer-ready': { ready: true };
@@ -95,6 +96,7 @@ export interface ResponseMap {
   'updates:check': D.UpdateState;
   'updates:apply': D.UpdateState;
   'updates:skip': D.UpdateState;
+  'sessions:list': D.SessionsResponse;
 }
 type Call<C extends keyof RequestMap> = (
   request: RequestMap[C],
@@ -166,6 +168,9 @@ export interface AgentOpsBridge {
     apply: Call<'updates:apply'>;
     skip: Call<'updates:skip'>;
     onChanged: Subscribe<'updates:changed'>;
+  };
+  sessions: {
+    list: Call<'sessions:list'>;
   };
 }
 

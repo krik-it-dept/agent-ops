@@ -64,7 +64,7 @@ describe('Skills list and actions', () => {
     let state = await s.listTargets();
     expect(state.targets).toEqual([]);
     expect(await s.suggestTargets()).toEqual([]);
-    expect(state.skillVersion).toBe(5);
+    expect(state.skillVersion).toBe(6);
 
     mkdirSync(path.join(f.home, '.claude'));
     mkdirSync(path.join(f.home, '.codex'));
@@ -111,14 +111,14 @@ describe('Skills list and actions', () => {
     t = byId(await s.listTargets(), id);
     expect(t).toMatchObject({
       state: 'installed',
-      installedVersion: 5,
-      stateText: 'Installed v5',
+      installedVersion: 6,
+      stateText: 'Installed v6',
     });
     const stored = storedTargets(f);
     expect(stored).toHaveLength(1);
     expect(stored[0]).toMatchObject({
       sha256: contentHash(Buffer.from(skillText)),
-      version: 5,
+      version: 6,
     });
     expect(stored[0]!['installedAt']).toMatch(
       /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/,

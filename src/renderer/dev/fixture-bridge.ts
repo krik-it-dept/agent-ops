@@ -248,6 +248,7 @@ export function fixtureData(mode: FixtureMode = 'demo'): {
     textSize: 'default',
     shortcuts: true,
     autoArchiveDone: false,
+    claudeHooks: true,
     planArchive: null,
     startWithWindows: false,
     startupManaged: true,
@@ -887,6 +888,38 @@ export function createFixtureBridge(
           break;
         case 'updates:get':
           value = data.update;
+          break;
+        case 'sessions:list':
+          value = {
+            readAt: new Date().toISOString(),
+            sessions: [
+              {
+                id: 'sample-session',
+                agent: 'Claude',
+                cwd: 'C:/Work/sample',
+                workspace: 'sample',
+                startedAt: new Date(Date.now() - 3_600_000).toISOString(),
+                lastAt: new Date(Date.now() - 60_000).toISOString(),
+                state: 'waiting',
+                waiting: 'Claude needs your permission to use Bash',
+                lastPrompt: 'Add the sessions page',
+                todos: [
+                  { text: 'Write the reader', state: 'completed' },
+                  { text: 'Build the page', state: 'in_progress' },
+                  { text: 'Update the skill', state: 'pending' },
+                ],
+                notes: [
+                  {
+                    at: new Date(Date.now() - 1_800_000).toISOString(),
+                    agent: 'Claude',
+                    text: 'Done: reader. Next: page, then skill.',
+                    auto: false,
+                  },
+                ],
+                compactions: 1,
+              },
+            ],
+          };
           break;
         case 'updates:check':
           if (mode === 'error')
