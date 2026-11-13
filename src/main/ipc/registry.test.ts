@@ -153,7 +153,7 @@ describe('application IPC registry', () => {
     expect(removeHandler).toHaveBeenCalledTimes(2);
   });
   it('has request validators for every document channel and rejects empty/oversized or unsafe variants', () => {
-    expect(Object.keys(requestSchemas)).toHaveLength(41);
+    expect(Object.keys(requestSchemas)).toHaveLength(42);
     expect(
       parseRequest('plans:set-status', {
         key: 'tasks/team/plan',

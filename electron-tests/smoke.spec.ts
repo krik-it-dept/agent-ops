@@ -45,6 +45,7 @@ test('sandbox, typed bridge, strict CSP, safe external targets and single instan
         'app',
         'diagnostics',
         'plans',
+        'sessions',
         'settings',
         'shell',
         'skills',

@@ -172,6 +172,7 @@ export class CoreServices {
       textSize: c.textSize || 'default',
       shortcuts: c.shortcuts,
       autoArchiveDone: c.autoArchiveDone,
+      claudeHooks: c.claudeHooks,
       planArchive: c.planArchive,
       startWithWindows: startup,
       startupManaged: this.options.startup?.managed ?? false,

@@ -88,5 +88,8 @@ export function createBridge(
       skip: call('updates:skip'),
       onChanged: (listener) => subscribe('updates:changed', listener),
     },
+    sessions: {
+      list: call('sessions:list'),
+    },
   };
 }

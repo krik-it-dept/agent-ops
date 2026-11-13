@@ -99,6 +99,22 @@ function response(channel: keyof RequestMap, value: unknown): boolean {
       value.platform === 'win32'
     );
   if (channel.startsWith('updates:')) return update(value);
+  if (channel === 'sessions:list')
+    return (
+      Array.isArray(value.sessions) &&
+      value.sessions.every(
+        (s) =>
+          record(s) &&
+          typeof s.id === 'string' &&
+          typeof s.agent === 'string' &&
+          typeof s.cwd === 'string' &&
+          typeof s.workspace === 'string' &&
+          typeof s.state === 'string' &&
+          Array.isArray(s.todos) &&
+          Array.isArray(s.notes),
+      ) &&
+      typeof value.readAt === 'string'
+    );
   if (channel === 'state:get')
     return (
       Number.isSafeInteger(value.generation) &&

@@ -26,6 +26,12 @@ import { MutationGate } from './mutation-gate';
 import { updateHandlers, type UpdaterPort } from './updates';
 import type { Channel, Request } from '../../ipc/requests';
 import { pruneRuns, RUNS_DIR_NAME, syncReportPointers } from '../runs';
+import {
+  pruneSessions,
+  readSessions,
+  SESSIONS_DIR_NAME,
+  syncClaudeHooks,
+} from '../sessions';
 
 export interface RuntimeOptions {
   dataDir: string;
@@ -58,6 +64,11 @@ export interface RuntimeOptions {
   sampleModeAllowed?: boolean;
   /** The full path of the executable agents run with --report; only packaged builds pass it. */
   reportCommand?: string;
+  /**
+   * Where Claude Code settings live. Only the installed app passes it (with
+   * reportCommand); dev, test and smoke never touch real AI client settings.
+   */
+  claudeHooks?: { homeDir: string; roamingAppData: string };
 }
 
 /** Composition adapters only: no duplicate settings, activity or platform business logic. */
@@ -79,6 +90,7 @@ export function createRuntime(options: RuntimeOptions) {
     ...(options.legacy ? { legacy: options.legacy } : {}),
   });
   const runsDir = join(options.dataDir, RUNS_DIR_NAME);
+  const sessionsDir = join(options.dataDir, SESSIONS_DIR_NAME);
   const baseConfiguration =
     options.configuration ?? (async () => core.configuration());
   // Reported runs are read with the plans and their folder is watched with them.
@@ -162,12 +174,36 @@ export function createRuntime(options: RuntimeOptions) {
       sampleModeAllowed: options.sampleModeAllowed === true,
     }),
     'app:get-instance': () => ({ pid: process.pid, version: options.version }),
+    'sessions:list': () => readSessions(sessionsDir, new Date()),
     ...core.handlers(),
     ...(options.updater ? updateHandlers(options.updater) : {}),
     ...(typeof options.handlers === 'function'
       ? options.handlers({ core, ledger })
       : options.handlers),
   };
+  const setSettings = handlers['settings:set'];
+  if (setSettings)
+    handlers['settings:set'] = async (request) => {
+      const result = await setSettings(request);
+      if (request.claudeHooks !== undefined) await syncHooks();
+      return result;
+    };
+  /** Keep Agent Ops' hooks in Claude Code settings as the owner's setting says. */
+  async function syncHooks(): Promise<void> {
+    if (!options.reportCommand || !options.claudeHooks) return;
+    try {
+      const settings = await core.settings();
+      if (settings.readOnly) return;
+      const { problems } = await syncClaudeHooks(
+        settings.claudeHooks ? options.reportCommand : null,
+        { dataDir: options.dataDir, ...options.claudeHooks },
+      );
+      for (const problem of problems)
+        options.log?.('Claude Code hooks', problem);
+    } catch (e) {
+      options.log?.('Claude Code hooks', e);
+    }
+  }
   const guarded: ServiceHandlers = {};
   function bind<C extends Channel>(channel: C): void {
     const handler = handlers[channel];
@@ -187,6 +223,7 @@ export function createRuntime(options: RuntimeOptions) {
       'updates:get',
       'updates:check',
       'updates:apply',
+      'sessions:list',
     ].includes(channel);
     Object.assign(guarded, {
       [channel]: (request: Request<C>) =>
@@ -212,6 +249,7 @@ export function createRuntime(options: RuntimeOptions) {
           env: options.environment,
         }))
           options.log?.('Report command pointer', warning);
+      await syncHooks();
     }));
   return {
     ledger,
@@ -226,6 +264,11 @@ export function createRuntime(options: RuntimeOptions) {
         await pruneRuns(runsDir, new Date());
       } catch (e) {
         options.log?.('Old agent reports could not be removed', e);
+      }
+      try {
+        await pruneSessions(sessionsDir, new Date());
+      } catch (e) {
+        options.log?.('Old session records could not be removed', e);
       }
       await ledger.start();
       await options.updater?.start();

@@ -50,6 +50,8 @@ export interface AppConfig {
   textSize: TextSize;
   shortcuts: boolean;
   autoArchiveDone: boolean;
+  /** Agent Ops keeps its hooks in Claude Code settings (installed app only). */
+  claudeHooks: boolean;
   /** Explicit owner choices by plan key; false overrides automatic archiving. */
   planArchive: Record<string, boolean>;
   pickerDirectory: string;
@@ -72,6 +74,7 @@ export function defaultConfig(): AppConfig {
     textSize: '',
     shortcuts: true,
     autoArchiveDone: false,
+    claudeHooks: true,
     planArchive: {},
     pickerDirectory: '',
     extra: {},
@@ -123,6 +126,7 @@ const KNOWN_KEYS = new Set([
   'textSize',
   'shortcuts',
   'autoArchiveDone',
+  'claudeHooks',
   'planArchive',
   'pickerDirectory',
   'integrations',
@@ -223,6 +227,7 @@ export function parseConfig(text: string): AppConfig {
     textSize: field(raw, 'textSize', 'string', '' as TextSize),
     shortcuts: field(raw, 'shortcuts', 'boolean', true),
     autoArchiveDone: field(raw, 'autoArchiveDone', 'boolean', false),
+    claudeHooks: field(raw, 'claudeHooks', 'boolean', true),
     planArchive,
     pickerDirectory: field(raw, 'pickerDirectory', 'string', ''),
     extra,
@@ -305,6 +310,7 @@ export function serializeConfig(c: AppConfig): string {
   if (c.textSize !== '') out.textSize = c.textSize;
   out.shortcuts = c.shortcuts;
   out.autoArchiveDone = c.autoArchiveDone;
+  if (!c.claudeHooks) out.claudeHooks = false;
   if (Object.keys(c.planArchive).length > 0) out.planArchive = c.planArchive;
   if (c.pickerDirectory !== '') out.pickerDirectory = c.pickerDirectory;
   if (c.integrations !== undefined) out.integrations = c.integrations;

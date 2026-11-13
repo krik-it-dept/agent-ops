@@ -37,6 +37,7 @@ import { CommandSearch, ShortcutSheet } from './components/Commands';
 import { Sidebar, sidebarPlans } from './components/Sidebar';
 import { PlanTabs } from './components/PlanTabs';
 import { Overview } from './views/Overview';
+import { Sessions } from './views/Sessions';
 import { WorkViews } from './views/WorkViews';
 import { agentMatches, agentName, participation } from './agents';
 import { TaskList, restoreListPreferences } from './views/TaskList';
@@ -455,7 +456,9 @@ function Shell() {
             ? 'Board'
             : location.pathname === '/timeline'
               ? 'Timeline'
-              : 'Summary';
+              : location.pathname === '/sessions'
+                ? 'Sessions'
+                : 'Summary';
   return (
     <div className="app">
       {/* First-run setup is modal: the app bar and status bar stay visible
@@ -550,6 +553,14 @@ function Shell() {
                 aria-current={view === 'archive' ? 'page' : undefined}
               >
                 Archive
+              </Link>
+              <Link
+                to={`/sessions?${search}`}
+                aria-current={
+                  location.pathname === '/sessions' ? 'page' : undefined
+                }
+              >
+                Sessions
               </Link>
               <PlanTabs
                 plans={plans}
@@ -814,6 +825,10 @@ function Shell() {
                         clear={clearFilters}
                       />
                     }
+                  />
+                  <Route
+                    path="/sessions"
+                    element={<Sessions query={query} />}
                   />
                   <Route
                     path="/plan/:key/:section?"

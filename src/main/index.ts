@@ -8,7 +8,7 @@ import {
   protocol,
   dialog,
 } from 'electron';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -55,36 +55,77 @@ import {
 import { checkHealth } from './modules/runtime/health';
 import { prepareDataFolder } from './modules/runtime/startup';
 import { REPORT_FLAG, runReport } from './modules/runs';
+import {
+  HANDOFF_FLAG,
+  HOOK_FLAG,
+  runHandoff,
+  runHook,
+} from './modules/sessions';
 
 /**
- * Command mode for agents: record one report and exit. It takes no
- * single-instance lock, opens no window and registers nothing, so it works
- * while the app runs. Chromium profile folders go to a temporary folder.
+ * Reads the hook event from stdin, up to 1 MB. Electron's stdin stream gets no
+ * data from a pipe on Windows, so the descriptor is read directly; a console
+ * (no pipe) gives nothing.
  */
-async function reportMode(): Promise<void> {
+function readStdin(limit = 1 << 20): string {
+  if (process.stdin.isTTY) return '';
+  const chunks: Buffer[] = [];
+  const buffer = Buffer.alloc(64 * 1024);
+  let size = 0;
+  for (;;) {
+    let read: number;
+    try {
+      read = readSync(0, buffer, 0, buffer.length, null);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'EAGAIN') continue;
+      break;
+    }
+    if (read <= 0) break;
+    size += read;
+    if (size > limit) return '';
+    chunks.push(Buffer.from(buffer.subarray(0, read)));
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/**
+ * Command mode for agents and AI client hooks: record one report, handoff or
+ * hook event and exit. It takes no single-instance lock, opens no window and
+ * registers nothing, so it works while the app runs. Chromium profile folders
+ * go to a temporary folder.
+ */
+async function commandMode(flag: string): Promise<void> {
   const profile = mkdtempSync(join(tmpdir(), 'agent-ops-report-'));
   app.setPath('appData', profile);
   app.setPath('userData', profile);
   app.setPath('sessionData', join(profile, 'chromium'));
   app.setAppLogsPath(join(profile, 'logs'));
+  const args = process.argv.slice(process.argv.indexOf(flag) + 1);
+  const label =
+    flag === REPORT_FLAG
+      ? 'report'
+      : flag === HANDOFF_FLAG
+        ? 'handoff'
+        : 'hook';
   let outcome;
   try {
-    outcome = await runReport(
-      process.argv.slice(process.argv.indexOf(REPORT_FLAG) + 1),
-      {
-        dataDir: resolveDataDir({
-          env: process.env,
-          development: !app.isPackaged,
-          repoDir: resolve(__dirname, '../..'),
-        }),
-      },
-    );
+    const dataDir = resolveDataDir({
+      env: process.env,
+      development: !app.isPackaged,
+      repoDir: resolve(__dirname, '../..'),
+    });
+    outcome =
+      flag === REPORT_FLAG
+        ? await runReport(args, { dataDir })
+        : flag === HANDOFF_FLAG
+          ? await runHandoff(args, { dataDir, cwd: process.cwd() })
+          : await runHook(readStdin(), { dataDir });
   } catch {
     outcome = {
-      code: 1,
+      code: flag === HOOK_FLAG ? 0 : 1,
       stdout: '',
-      stderr:
-        'Agent Ops report: the Agent Ops data folder could not be found.\n',
+      stderr: `Agent Ops ${label}: the Agent Ops data folder could not be found.
+`,
     };
   }
   try {
@@ -103,7 +144,8 @@ async function reportMode(): Promise<void> {
 
 // Resolve once, before Chromium starts or single-instance locking touches a profile.
 async function entry(): Promise<void> {
-  if (process.argv.includes(REPORT_FLAG)) return reportMode();
+  for (const flag of [REPORT_FLAG, HANDOFF_FLAG, HOOK_FLAG])
+    if (process.argv.includes(flag)) return commandMode(flag);
   const dataDir = resolveDataDir({
     env: process.env,
     development: !app.isPackaged,
@@ -410,6 +452,15 @@ async function entry(): Promise<void> {
               : {}),
             // A development build runs as electron.exe plus the app folder, which is not one command.
             ...(app.isPackaged ? { reportCommand: process.execPath } : {}),
+            // Only the verified installed app keeps hooks in the owner's Claude Code settings.
+            ...(app.isPackaged && installedRuntime(scope)
+              ? {
+                  claudeHooks: {
+                    homeDir: profileDir,
+                    roamingAppData: join(profileDir, 'AppData', 'Roaming'),
+                  },
+                }
+              : {}),
             trash: (file) => platform.folders.trash(file),
             notify: (events) => {
               desktop?.notify(events);

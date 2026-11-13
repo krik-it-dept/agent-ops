@@ -3,6 +3,19 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
+## Unreleased - Sessions and handoffs
+
+- **Hand off before a clear.** Agents write a short handoff note with
+  `--handoff`; after `/clear` or a compaction, the next Claude Code session in
+  the same folder starts with that note and the workspace's open plans.
+  Clearing without a note saves one from the todo list and latest requests.
+- **Sessions view.** See each AI session by workspace: working, waiting for
+  you, idle or ended, with its todo list and handoff notes.
+- **Claude Code hooks kept in place.** The installed app adds its hooks to
+  Claude Code settings (yours and each Orca profile's) with a backup first,
+  leaves other hooks unchanged, and removes them when Settings > Sessions is
+  turned off.
+
 ## v1.3.1 - Quieter installer updates
 
 - **Quieter installer updates.** Running the setup `.exe` while Agent Ops is

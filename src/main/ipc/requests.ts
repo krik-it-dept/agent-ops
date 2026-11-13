@@ -127,6 +127,7 @@ export const requestSchemas = {
     textSize: optional(literal('small', 'default', 'large', 'larger')),
     shortcuts: optional(bool),
     autoArchiveDone: optional(bool),
+    claudeHooks: optional(bool),
     tasksDir: optional(text()),
     allowInsideWorkspace: optional(bool),
     moveExisting: optional(bool),
@@ -190,6 +191,7 @@ export const requestSchemas = {
   'updates:check': empty,
   'updates:apply': object({ version }),
   'updates:skip': object({ version }),
+  'sessions:list': empty,
 } as const satisfies { [C in keyof RequestMap]: Rule<RequestMap[C]> };
 export type Channel = keyof RequestMap;
 export type Request<C extends Channel> = RequestMap[C];

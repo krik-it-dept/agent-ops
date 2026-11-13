@@ -484,7 +484,7 @@ test('real Skills update and explicit replace keep backups in a temporary profil
     );
     await expect(card).toContainText('Update available');
     await card.getByRole('button', { name: 'Update', exact: true }).click();
-    await expect(card).toContainText('Installed v5');
+    await expect(card).toContainText('Installed v6');
     expect(await readFile(file, 'utf8')).toBe(canonical);
     const changed = canonical + '\nOwner changes to preserve\n';
     await writeFile(file, changed);
@@ -494,7 +494,7 @@ test('real Skills update and explicit replace keep backups in a temporary profil
     await card.getByRole('button', { name: 'Replace', exact: true }).click();
     expect(await readFile(file, 'utf8')).toBe(changed);
     await card.getByRole('button', { name: 'Click again to replace' }).click();
-    await expect(card).toContainText('Installed v5');
+    await expect(card).toContainText('Installed v6');
     expect(await readFile(file, 'utf8')).toBe(canonical);
     const backupFiles = await readdir(join(f.root, 'data', 'backups'), {
       recursive: true,
