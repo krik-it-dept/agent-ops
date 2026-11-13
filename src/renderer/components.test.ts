@@ -62,12 +62,12 @@ function render(
   );
 }
 describe('React screen components', () => {
-  it('puts task progress and agent workload ahead of bounded current work and recent activity', () => {
+  it('puts agent workload and task progress ahead of bounded current work and recent activity', () => {
     const html = render('/');
-    expect(html.indexOf('Task progress')).toBeLessThan(
-      html.indexOf('Agent workload'),
-    );
     expect(html.indexOf('Agent workload')).toBeLessThan(
+      html.indexOf('Task progress'),
+    );
+    expect(html.indexOf('Task progress')).toBeLessThan(
       html.indexOf('Current work'),
     );
     expect(html).toContain('summary-bounded');
