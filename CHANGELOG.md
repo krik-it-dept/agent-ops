@@ -3,7 +3,7 @@
 Each release section becomes the GitHub release notes and the in-app update notes.
 The release workflow takes the section whose heading starts with the pushed tag.
 
-## Unreleased - Sessions and handoffs
+## v1.4.0 - Sessions, handoffs and agent workload table
 
 - **Hand off before a clear.** Agents write a short handoff note with
   `--handoff`; after `/clear` or a compaction, the next Claude Code session in
