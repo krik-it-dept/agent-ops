@@ -1047,9 +1047,17 @@ button.task-count:focus-visible,
 .summary-task-progress button.task-count {
   padding-inline: 5px;
 }
-.summary-task-progress,
-.summary-workload {
-  grid-column: 1 / -1;
+/* Task progress must not be stretched to the full width: at that width the
+   hidden window's renderer could stall (seen on CI). The workload table may. */
+@media (min-width: 1151px) {
+  .summary-grid-three {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
+  }
+}
+.summary-blocks {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 .summary-quick-links {
   display: flex;

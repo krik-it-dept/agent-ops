@@ -431,7 +431,19 @@ export function Overview({
               </div>
             ))}
           </div>
-          <div className="summary-grid">
+          <div className="summary-blocks">
+            <AgentWorkloadTable
+              plans={plans}
+              agents={agents}
+              selected={agent}
+              select={(name) => {
+                const next = new URLSearchParams(search);
+                next.set('agent', name);
+                setSearch(next);
+              }}
+            />
+          </div>
+          <div className="summary-grid summary-grid-three">
             <section className="summary-panel summary-task-progress">
               <div className="panel-heading">
                 <h2>Task progress</h2>
@@ -472,16 +484,6 @@ export function Overview({
                 )}
               </div>
             </section>
-            <AgentWorkloadTable
-              plans={plans}
-              agents={agents}
-              selected={agent}
-              select={(name) => {
-                const next = new URLSearchParams(search);
-                next.set('agent', name);
-                setSearch(next);
-              }}
-            />
             <section className="summary-panel summary-focus summary-bounded">
               <div className="panel-heading">
                 <h2>Current work</h2>
