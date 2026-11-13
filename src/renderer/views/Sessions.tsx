@@ -136,9 +136,8 @@ export function Sessions({ query }: { query: string }) {
     (s) => s.state === 'waiting',
   ).length;
   return (
-    <section className="sessions-view" aria-labelledby="sessions-title">
+    <section className="sessions-view" aria-label="Sessions">
       <div className="sessions-head">
-        <h2 id="sessions-title">Sessions</h2>
         <p className="muted">
           What AI sessions recorded about themselves: who works where, their
           todo lists and the handoff notes they leave before a clear. Agent Ops

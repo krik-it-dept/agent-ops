@@ -108,10 +108,15 @@ export function stepAgentMatches(plan: Plan, step: Step, agent: string) {
   return agent === 'unreported' ? !agents.length : agents.includes(agent);
 }
 export function agentWorkload(plans: Plan[], agent: string) {
-  const tasks = plans.flatMap((p) => p.steps.map((s) => execution(p, s)));
+  const tasks = plans.flatMap((p) =>
+    p.steps.map((s) => ({ ...execution(p, s), status: s.status })),
+  );
+  const mine = tasks.filter((s) => s.agents.includes(agent));
   return {
     plans: plans.filter((p) => agentMatches(p, agent)).length,
-    tasks: tasks.filter((s) => s.agents.includes(agent)).length,
+    tasks: mine.length,
+    /** Of the agent's tasks, those whose checklist step is done. */
+    done: mine.filter((s) => s.status === 'done').length,
     coordinating: plans.filter((p) => participation(p).coordinator === agent)
       .length,
     active: tasks.filter((s) => s.active.includes(agent)).length,

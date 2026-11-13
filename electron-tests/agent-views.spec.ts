@@ -36,7 +36,7 @@ for (const theme of ['light', 'dark'] as const) {
         page.getByRole('region', { name: 'Task overview' }),
       ).toBeVisible();
       await page
-        .locator('.agent-workload button')
+        .locator('.workload-table button')
         .filter({ has: page.getByText('Codex', { exact: true }) })
         .click();
       const filter = page.getByRole('combobox', { name: 'Filter by agent' });
@@ -396,7 +396,7 @@ test('keyboard only: workload button, a group toggle and Show more', async () =>
       .focus()
       .catch(() => undefined);
     const workload = page
-      .locator('.agent-workload button:not(:disabled)')
+      .locator('.workload-table button:not(:disabled)')
       .first();
     await expect(workload).toBeVisible();
     await tabTo(page, workload);

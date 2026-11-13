@@ -126,6 +126,119 @@ export const PlanCard = memo(function PlanCard({
     </article>
   );
 });
+/** Agent workload as a table: every agent on one row each, no scrolling. */
+function AgentWorkloadTable({
+  plans,
+  agents,
+  selected,
+  select,
+}: {
+  plans: DisplayPlan[];
+  agents: string[];
+  selected: string;
+  select(name: string): void;
+}) {
+  const rows = agents.map((name) => ({
+    name,
+    ...agentWorkload(plans, name),
+  }));
+  const totals = [
+    ['Total agents', rows.filter((r) => r.plans).length],
+    ['Total tasks', rows.reduce((n, r) => n + r.tasks, 0)],
+    ['Active', rows.reduce((n, r) => n + r.active, 0)],
+    ['Coordinating', rows.reduce((n, r) => n + r.coordinating, 0)],
+  ] as const;
+  const percent = (part: number, whole: number) =>
+    whole ? Math.round((part / whole) * 100) : 0;
+  return (
+    <section className="summary-panel summary-workload">
+      <div className="workload-head">
+        <div>
+          <h2>Agent workload</h2>
+          <p className="muted">
+            Reported participation · select an agent to view its work
+          </p>
+        </div>
+        <dl className="workload-totals">
+          {totals.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <div className="workload-table-wrap">
+        <table className="workload-table">
+          <thead>
+            <tr>
+              <th scope="col">Agent</th>
+              <th scope="col">Workload</th>
+              <th scope="col">Plans</th>
+              <th scope="col">Tasks</th>
+              <th scope="col">Coordinating</th>
+              <th scope="col">Active</th>
+              <th scope="col">Completion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const share = percent(r.plans, plans.length);
+              const done = percent(r.done, r.tasks);
+              return (
+                <tr
+                  key={r.name}
+                  className={selected === r.name ? 'selected' : undefined}
+                >
+                  <th scope="row">
+                    <button
+                      className="workload-row"
+                      aria-pressed={selected === r.name}
+                      disabled={!r.plans}
+                      onClick={() => select(r.name)}
+                    >
+                      <AgentBadge name={r.name} />
+                    </button>
+                  </th>
+                  <td>
+                    <span
+                      className="workload-share"
+                      title={`${plural(r.plans, 'plan')} of ${plans.length} matching`}
+                    >
+                      <span className="workload-bar">
+                        <i style={{ width: `${share}%` }} />
+                      </span>
+                      <span>{share}%</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span className="workload-num">{r.plans}</span>
+                  </td>
+                  <td>
+                    <span className="workload-num">{r.tasks}</span>
+                  </td>
+                  <td>
+                    <span className="workload-num">{r.coordinating}</span>
+                  </td>
+                  <td>
+                    <span className="workload-num">{r.active}</span>
+                  </td>
+                  <td>
+                    <span
+                      className={`workload-done${r.tasks && r.done ? ' some' : ''}`}
+                    >
+                      {r.done} / {r.tasks} ({done}%)
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 function StatusOverview({ plans }: { plans: DisplayPlan[] }) {
   const counts = COLUMNS.map(
     (_, i) => plans.filter((p) => columnOf(p) === i).length,
@@ -359,50 +472,16 @@ export function Overview({
                 )}
               </div>
             </section>
-            <section className="summary-panel summary-workload">
-              <h2>Agent workload</h2>
-              <p className="muted">
-                Reported participation · select an agent to view work
-              </p>
-              <div className="agent-workload">
-                {agents.map((name) => {
-                  const workload = agentWorkload(plans, name);
-                  const counts = `${plural(workload.plans, 'plan')} · ${plural(workload.tasks, 'task')}`;
-                  return (
-                    <button
-                      key={name}
-                      className="workload-row"
-                      aria-pressed={agent === name}
-                      disabled={!workload.plans}
-                      onClick={() => {
-                        const next = new URLSearchParams(search);
-                        next.set('agent', name);
-                        setSearch(next);
-                      }}
-                    >
-                      <AgentBadge name={name} />
-                      <span
-                        className="workload-bar"
-                        title={`${plural(workload.plans, 'plan')} of ${plans.length} matching`}
-                      >
-                        <i
-                          style={{
-                            width: `${plans.length ? (workload.plans / plans.length) * 100 : 0}%`,
-                          }}
-                        />
-                      </span>
-                      <span className="workload-counts">
-                        <strong>{counts}</strong>
-                        <small>
-                          {workload.coordinating} coordinating ·{' '}
-                          {plural(workload.active, 'active task')}
-                        </small>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+            <AgentWorkloadTable
+              plans={plans}
+              agents={agents}
+              selected={agent}
+              select={(name) => {
+                const next = new URLSearchParams(search);
+                next.set('agent', name);
+                setSearch(next);
+              }}
+            />
             <section className="summary-panel summary-focus summary-bounded">
               <div className="panel-heading">
                 <h2>Current work</h2>

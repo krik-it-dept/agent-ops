@@ -11,6 +11,9 @@ The release workflow takes the section whose heading starts with the pushed tag.
   Clearing without a note saves one from the todo list and latest requests.
 - **Sessions view.** See each AI session by workspace: working, waiting for
   you, idle or ended, with its todo list and handoff notes.
+- **Agent workload as a table.** Summary lists every agent in one table with
+  workload, plans, tasks, coordinating, active and completion, plus totals,
+  without scrolling.
 - **Claude Code hooks kept in place.** The installed app adds its hooks to
   Claude Code settings (yours and each Orca profile's) with a backup first,
   leaves other hooks unchanged, and removes them when Settings > Sessions is

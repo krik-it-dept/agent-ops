@@ -177,12 +177,14 @@ describe('reported agent participation', () => {
     expect(agentWorkload([p], 'Claude')).toEqual({
       plans: 1,
       tasks: 0,
+      done: 0,
       coordinating: 1,
       active: 0,
     });
     expect(agentWorkload([p], 'Codex')).toEqual({
       plans: 1,
       tasks: 1,
+      done: 0,
       coordinating: 0,
       active: 1,
     });

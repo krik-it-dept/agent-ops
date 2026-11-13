@@ -380,58 +380,6 @@
   border-top: 1px solid var(--border);
   font-size: var(--text-xs);
 }
-.agent-workload {
-  display: grid;
-  gap: 8px;
-}
-.agent-workload > button {
-  display: grid;
-  grid-template-columns: 90px minmax(24px, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  justify-content: stretch;
-  text-align: left;
-  padding: var(--s-2-5) 8px;
-  border: 0;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
-}
-.agent-workload > button:hover:not(:disabled) {
-  background: var(--hover);
-}
-.agent-workload > button[aria-pressed='true'] {
-  background: var(--accent);
-  box-shadow: inset 2px 0 0 var(--fg);
-}
-.agent-workload > button:disabled {
-  cursor: default;
-  opacity: 0.55;
-}
-.workload-bar {
-  height: 4px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.workload-bar i {
-  display: block;
-  height: 100%;
-  background: var(--muted-fg);
-}
-.workload-counts {
-  display: grid;
-  gap: 2px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.workload-counts strong {
-  font-size: var(--text-2xs);
-  font-weight: 500;
-}
-.workload-counts small {
-  color: var(--muted-fg);
-}
 .summary-panel .activity-feed h3 {
   font-size: var(--text-2xs);
   color: var(--muted-fg);
@@ -669,13 +617,6 @@
   }
   .summary-stat > span {
     font-size: var(--text-2xs);
-  }
-  .agent-workload > button {
-    grid-template-columns: 90px minmax(24px, 1fr);
-  }
-  .workload-counts {
-    grid-column: 1 / -1;
-    text-align: left;
   }
 }
 @media (max-width: 800px) {
@@ -1108,19 +1049,7 @@ button.task-count:focus-visible,
 }
 .summary-task-progress,
 .summary-workload {
-  min-height: 225px;
-  max-height: 260px;
-}
-.summary-workload {
-  display: flex;
-  flex-direction: column;
-}
-.summary-workload .agent-workload {
-  overflow: auto;
-  min-height: 0;
-}
-.summary-workload .agent-workload > button {
-  padding-block: 6px;
+  grid-column: 1 / -1;
 }
 .summary-quick-links {
   display: flex;
@@ -1553,4 +1482,123 @@ button.task-count:focus-visible,
   font: inherit;
   max-height: 320px;
   overflow: auto;
+}
+.workload-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+.workload-head h2 {
+  margin: 0;
+}
+.workload-head p {
+  margin: 4px 0 0;
+}
+.workload-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.workload-totals > div {
+  min-width: 96px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.workload-totals dt {
+  color: var(--muted-fg);
+  font-size: var(--text-2xs);
+}
+.workload-totals dd {
+  margin: 2px 0 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.workload-table-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.workload-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.workload-table th,
+.workload-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+.workload-table thead th {
+  color: var(--muted-fg);
+  font-weight: 500;
+  font-size: var(--text-2xs);
+}
+.workload-table th:first-child,
+.workload-table th:nth-child(2),
+.workload-table td:nth-child(2) {
+  text-align: left;
+}
+.workload-table td:nth-child(2) {
+  width: 40%;
+  min-width: 140px;
+}
+.workload-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.workload-table tbody tr:hover,
+.workload-table tbody tr.selected {
+  background: var(--hover);
+}
+.workload-table tbody tr.selected th {
+  box-shadow: inset 2px 0 0 var(--fg);
+}
+.workload-row {
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.workload-row:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.workload-share {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.workload-share > span:last-child {
+  min-width: 36px;
+  color: var(--muted-fg);
+}
+.workload-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.workload-bar i {
+  display: block;
+  height: 100%;
+  background: var(--muted-fg);
+}
+.workload-num,
+.workload-done {
+  display: inline-block;
+  min-width: 32px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+.workload-done.some {
+  border-color: var(--success-border, var(--border));
+  background: var(--success-bg, transparent);
 }

@@ -372,13 +372,14 @@ describe('React screen components', () => {
         }),
       );
     };
-    it('uses plural forms, a workload bar and marks the filtered agent as pressed', () => {
+    it('shows every agent in a table with totals and marks the filtered agent as pressed', () => {
       const html = summary('Codex');
       const rows = html.match(/<button class="workload-row"[^>]*>/g) ?? [];
       expect(rows.length).toBeGreaterThan(0);
+      expect(html).toMatch(/class="workload-table"/);
       expect(html).toMatch(/class="workload-bar"/);
-      expect(html).toMatch(/\d+ plans? · \d+ tasks?/);
-      expect(html).not.toMatch(/(?<![\d])1 (plans|tasks|active tasks)/);
+      expect(html).toMatch(/<dt>Total tasks<\/dt>/);
+      expect(html).toMatch(/\d+ \/ \d+ \(\d+%\)/);
       expect(
         rows.filter((r) => r.includes('aria-pressed="true"')),
       ).toHaveLength(1);
