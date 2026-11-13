@@ -69,8 +69,14 @@ function Shell() {
     if (!textSize || readOnly) return;
     const sizes = ['small', 'default', 'large', 'larger'] as const;
     let last = 0;
-    const step = (to: (typeof sizes)[number]) => {
-      if (to === textSize) return;
+    type Size = (typeof sizes)[number];
+    // The size on screen, which runs ahead of the saved setting while a save is on its way.
+    const shown = (): Size => {
+      const value = document.documentElement.dataset.textSize as Size;
+      return sizes.includes(value) ? value : textSize;
+    };
+    const step = (to: Size) => {
+      if (to === shown()) return;
       document.documentElement.dataset.textSize = to;
       void client.settings
         .set({ textSize: to })
@@ -78,7 +84,7 @@ function Shell() {
         .catch(report);
     };
     const by = (delta: number) => {
-      const i = sizes.indexOf(textSize);
+      const i = sizes.indexOf(shown());
       step(sizes[Math.max(0, Math.min(sizes.length - 1, i + delta))]!);
     };
     const onWheel = (event: WheelEvent) => {
