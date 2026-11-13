@@ -431,7 +431,7 @@ export function Overview({
               </div>
             ))}
           </div>
-          <div className="summary-grid">
+          <div className="summary-blocks">
             <section className="summary-panel summary-task-progress">
               <div className="panel-heading">
                 <h2>Task progress</h2>
@@ -482,6 +482,8 @@ export function Overview({
                 setSearch(next);
               }}
             />
+          </div>
+          <div className="summary-grid">
             <section className="summary-panel summary-focus summary-bounded">
               <div className="panel-heading">
                 <h2>Current work</h2>

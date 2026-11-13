@@ -1047,9 +1047,12 @@ button.task-count:focus-visible,
 .summary-task-progress button.task-count {
   padding-inline: 5px;
 }
-.summary-task-progress,
-.summary-workload {
-  grid-column: 1 / -1;
+/* Full-width panels stay outside the grid: a grid item spanning both columns
+   could stall the hidden window's renderer on CI. */
+.summary-blocks {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 .summary-quick-links {
   display: flex;

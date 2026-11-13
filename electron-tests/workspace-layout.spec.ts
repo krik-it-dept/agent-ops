@@ -54,7 +54,7 @@ for (const theme of ['dark', 'light'] as const) {
       await page.keyboard.press('Alt+ArrowDown');
       await expect(ledgerFolder.nth(2)).toContainText('Cải thiện tìm kiếm');
 
-      const panels = page.locator('.summary-grid > section');
+      const panels = page.locator('.summary-blocks > section');
       await expect(
         panels.nth(0).getByRole('heading', { name: 'Task progress' }),
       ).toBeVisible();
